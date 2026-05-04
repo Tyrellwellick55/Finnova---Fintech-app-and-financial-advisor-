@@ -1,0 +1,144 @@
+{% extends 'finnovaapp/base.html' %}
+
+{% block title %}Profile | Finnova{% endblock %}
+
+
+
+{% block content %}
+<div class="mod-hero">
+  <span class="mod-kicker">Account profile</span>
+  <h1>{{ user.get_full_name|default:user.username }}</h1>
+  <p>Manage the identity and preferences that shape your shell, onboarding defaults, and cross-module access.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+    <span class="badge {% if user.kyc_status == 'VERIFIED' %}badge-green{% else %}badge-yellow{% endif %}">KYC {{ user.get_kyc_status_display }}</span>
+    <span class="badge badge-blue">Risk {{ user.get_risk_level_display }}</span>
+  </div>
+</div>
+
+<div class="grid-sb">
+    <div class="panel">
+    <div class="panel-head"><h2>Profile details</h2></div>
+        <form method="post" enctype="multipart/form-data" style="margin-top: 18px;">
+            {% csrf_token %}
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">First name</label>
+                    {{ user_form.first_name }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Last name</label>
+                    {{ user_form.last_name }}
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    {{ user_form.email }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone</label>
+                    {{ user_form.phone }}
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Date of birth</label>
+                    {{ profile_form.date_of_birth }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Gender</label>
+                    {{ profile_form.gender }}
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Occupation</label>
+                    {{ profile_form.occupation }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Annual income</label>
+                    {{ profile_form.annual_income }}
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Address</label>
+                {{ profile_form.address }}
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">City</label>
+                    {{ profile_form.city }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">State</label>
+                    {{ profile_form.state }}
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Country</label>
+                    {{ profile_form.country }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Pincode</label>
+                    {{ profile_form.pincode }}
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Investment experience</label>
+                {{ profile_form.investment_experience }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">Bio</label>
+                {{ profile_form.bio }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">Onboarding goal themes</label>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <label><input type="checkbox" name="financial_goals" value="SAVING" {% if 'SAVING' in user.profile.financial_goals %}checked{% endif %}> Save consistently</label>
+                    <label><input type="checkbox" name="financial_goals" value="EMERGENCY" {% if 'EMERGENCY' in user.profile.financial_goals %}checked{% endif %}> Emergency fund</label>
+                    <label><input type="checkbox" name="financial_goals" value="DEBT" {% if 'DEBT' in user.profile.financial_goals %}checked{% endif %}> Reduce debt</label>
+                    <label><input type="checkbox" name="financial_goals" value="INVEST" {% if 'INVEST' in user.profile.financial_goals %}checked{% endif %}> Grow investments</label>
+                    <label><input type="checkbox" name="financial_goals" value="HOME" {% if 'HOME' in user.profile.financial_goals %}checked{% endif %}> Buy a home</label>
+                    <label><input type="checkbox" name="financial_goals" value="EDUCATION" {% if 'EDUCATION' in user.profile.financial_goals %}checked{% endif %}> Education funding</label>
+                </div>
+            </div>
+            <button type="submit" class="btn">Save profile</button>
+        </form>
+    </div>
+
+    <aside style="display:grid;gap:12px;">
+        <article class="card" style="padding: 24px;">
+            <h2>Connected accounts</h2>
+            <div style="display:grid; gap:12px; margin-top: 16px;">
+                <div class="metric" style="cursor:default;"><div class="metric-label">Finance</div><div class="metric-value" style="font-size:.9rem;">{% if finance_account %}{{ finance_account.name }}{% else %}Not provisioned{% endif %}</div></div>
+                <div class="metric" style="cursor:default;"><div class="metric-label">Payments</div><div class="metric-value" style="font-size:.9rem;">{% if payment_account %}{{ payment_account.account_number }}{% else %}Not provisioned{% endif %}</div></div>
+                <div class="metric" style="cursor:default;"><div class="metric-label">Autopilot</div><div class="metric-value" style="font-size:.9rem;">{% if autopilot_profile and autopilot_profile.is_active %}Active{% else %}Inactive{% endif %}</div></div>
+            </div>
+        </div>
+
+        <article class="card" style="padding: 24px;">
+            <h2>Security</h2>
+            <div style="display:grid; gap:12px; margin-top: 16px;">
+                <div class="metric" style="cursor:default;"><div class="metric-label">Email verified</div><div class="metric-value" style="font-size:.9rem;">{{ user.email_verified|yesno:"Yes,No" }}</div></div>
+                <div class="metric" style="cursor:default;"><div class="metric-label">Phone verified</div><div class="metric-value" style="font-size:.9rem;">{{ user.phone_verified|yesno:"Yes,No" }}</div></div>
+                <div class="metric" style="cursor:default;"><div class="metric-label">KYC status</div><div class="metric-value" style="font-size:.9rem;">{{ user.get_kyc_status_display }}</div></div>
+                {% if user.kyc_status != 'VERIFIED' %}
+                <a href="{% url 'finnovaapp:kyc_upload' %}" class="btn btn-outline btn-sm">Complete KYC</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <article class="card" style="padding: 24px;">
+            <h2>Recent activity</h2>
+            <div style="display:grid; gap:12px; margin-top: 16px;">
+                {% for entry in login_history|slice:":5" %}
+                <div class="metric" style="cursor:default;"><div class="metric-label">{{ entry.login_time|date:"d M Y H:i" }}</div><div class="metric-value" style="font-size:.9rem;">{{ entry.ip_address }}</div></div>
+                {% empty %}
+                <div class="empty-state">No login activity recorded yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </aside>
+</div>
+{% endblock %}

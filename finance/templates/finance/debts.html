@@ -1,0 +1,176 @@
+{% extends "finance/base.html" %}
+{% block title %}Debts — Finance — Finnova{% endblock %}
+
+{% block finance_content %}
+<style>
+.dbt-layout { display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px; }
+.dbt-grid   { display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px; }
+.dbt-card {
+  padding:20px 22px;border-radius:var(--r-xl);
+  border:1px solid var(--border);background:var(--surface);
+  transition:border-color .2s;
+}
+.dbt-card:hover { border-color:var(--border-2); }
+.dbt-card.ACTIVE { border-left:3px solid var(--red); }
+.dbt-card.PAID_OFF { border-left:3px solid var(--green);opacity:.7; }
+.dbt-card.RESTRUCTURED { border-left:3px solid var(--yellow); }
+.dc-top { display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px; }
+.dc-icon { width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0; }
+.dc-lender { font-weight:800;font-size:.95rem;color:var(--text);margin:0 0 2px; }
+.dc-type   { font-size:.74rem;color:var(--text-3); }
+.dc-st { padding:3px 9px;border-radius:999px;font-size:.7rem;font-weight:800; }
+.dc-st.ACTIVE { background:var(--red-bg);color:var(--red); }
+.dc-st.PAID_OFF { background:var(--green-bg);color:var(--green); }
+.dc-st.RESTRUCTURED { background:var(--yellow-bg);color:var(--yellow); }
+.dc-amounts { display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px; }
+.dc-remaining { font-family:var(--mono);font-size:1.2rem;font-weight:800;color:var(--red); }
+.dc-original  { font-family:var(--mono);font-size:.82rem;color:var(--text-3); }
+.dc-track { height:5px;border-radius:999px;background:var(--surface-3);overflow:hidden;margin-bottom:10px; }
+.dc-fill  { height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--green),var(--brand)); }
+.dc-meta  { display:grid;gap:5px;font-size:.76rem;color:var(--text-3);margin-bottom:12px; }
+.dc-meta-row { display:flex;justify-content:space-between; }
+.dc-actions { display:flex;gap:7px;padding-top:10px;border-top:1px solid var(--border); }
+.da { padding:5px 11px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);font-size:.75rem;font-weight:700;cursor:pointer;text-decoration:none;transition:.15s; }
+.da:hover { border-color:var(--brand);color:var(--brand); }
+.add-panel { background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:22px;position:sticky;top:84px; }
+.add-panel h2 { margin:0 0 16px;font-size:1rem;color:var(--text); }
+.af label  { font-size:.78rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px; }
+.af input,.af select { width:100%;padding:9px 12px;border-radius:var(--r-md);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.85rem;margin-bottom:12px; }
+.af input:focus,.af select:focus { outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-glow); }
+.af-row { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+.type-breakdown { display:grid;gap:8px;margin-top:14px; }
+.tb-row { display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border); }
+.tb-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+.tb-name { font-size:.82rem;font-weight:600;color:var(--text-2);flex:1; }
+.tb-val  { font-family:var(--mono);font-size:.8rem;font-weight:700;color:var(--red); }
+@media(max-width:1100px){ .dbt-layout{grid-template-columns:1fr} .add-panel{position:static} }
+@media(max-width:640px){ .metric-grid{grid-template-columns:repeat(2,1fr)} }
+</style>
+
+<!-- Hero -->
+<div style="padding:24px 26px;border-radius:var(--r-xl);background:linear-gradient(135deg,#1a0A0A 0%,#2A1010 100%);border:1px solid rgba(244,63,94,.3);margin-bottom:20px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+  <div>
+    <span style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--red);">Finance · Debts</span>
+    <h1 style="font-size:1.4rem;color:var(--text);margin:8px 0 6px;">Debt Tracker</h1>
+    <p style="font-size:.86rem;color:var(--text-2);margin:0;">Track loans, EMIs, and credit obligations. Debt data feeds directly into your financial health score and Autopilot risk signals.</p>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="metric-grid" style="margin-bottom:20px;">
+  <div class="metric" style="border-color:rgba(244,63,94,.3);background:var(--red-bg);">
+    <div class="metric-label" style="color:var(--red);">Total remaining</div>
+    <div class="metric-value" style="color:var(--red);">₹{{ stats.total_remaining|default:0|floatformat:0 }}</div>
+    <div class="metric-sub" style="color:var(--red);">Outstanding balance</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Monthly EMI</div>
+    <div class="metric-value">₹{{ stats.monthly_emi|default:0|floatformat:0 }}</div>
+    <div class="metric-sub">Active obligations</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Total paid</div>
+    <div class="metric-value up">₹{{ stats.total_paid|default:0|floatformat:0 }}</div>
+    <div class="metric-sub">Principal repaid so far</div>
+  </div>
+  <div class="metric" style="border-color:rgba(16,185,129,.3);background:var(--green-bg);">
+    <div class="metric-label" style="color:var(--green);">Paid off</div>
+    <div class="metric-value" style="color:var(--green);">{{ stats.paid_off }}</div>
+    <div class="metric-sub" style="color:var(--green);">Fully cleared</div>
+  </div>
+</div>
+
+<div class="dbt-layout">
+  <div>
+    {% if debts %}
+    <div class="dbt-grid">
+      {% for debt in debts %}
+      {% with paid_pct=debt.paid_percentage|default:0 %}
+      <div class="dbt-card {{ debt.status }}">
+        <div class="dc-top">
+          <div class="dc-icon" style="background:{% if debt.status == 'ACTIVE' %}var(--red-bg);color:var(--red){% elif debt.status == 'PAID_OFF' %}var(--green-bg);color:var(--green){% else %}var(--yellow-bg);color:var(--yellow){% endif %};">
+            <i class="fas fa-{% if debt.debt_type == 'HOME_LOAN' %}house{% elif debt.debt_type == 'CAR_LOAN' %}car{% elif debt.debt_type == 'CREDIT_CARD' %}credit-card{% elif debt.debt_type == 'EDUCATION' %}graduation-cap{% else %}money-bill-wave{% endif %}"></i>
+          </div>
+          <div style="flex:1;margin-left:10px;min-width:0;">
+            <p class="dc-lender">{{ debt.lender }}</p>
+            <p class="dc-type">{{ debt.get_debt_type_display }}</p>
+          </div>
+          <span class="dc-st {{ debt.status }}">{{ debt.get_status_display }}</span>
+        </div>
+        <div class="dc-amounts">
+          <span class="dc-remaining">₹{{ debt.remaining_amount|default:0|floatformat:0 }}</span>
+          <span class="dc-original">of ₹{{ debt.principal_amount|default:0|floatformat:0 }}</span>
+        </div>
+        <div class="dc-track">
+          <div class="dc-fill" style="width:{{ paid_pct|default:0|floatformat:0 }}%;"></div>
+        </div>
+        <div class="dc-meta">
+          {% if debt.emi_amount %}<div class="dc-meta-row"><span>EMI</span><span style="color:var(--text-2);">₹{{ debt.emi_amount|default:0|floatformat:0 }}/mo</span></div>{% endif %}
+          {% if debt.interest_rate %}<div class="dc-meta-row"><span>Interest</span><span style="color:var(--text-2);">{{ debt.interest_rate }}% p.a.</span></div>{% endif %}
+          {% if debt.next_payment_date %}<div class="dc-meta-row"><span>Next payment</span><span style="color:{% if debt.next_payment_date < today %}var(--red){% else %}var(--text-2){% endif %};">{{ debt.next_payment_date|date:"d M Y" }}</span></div>{% endif %}
+          {% if debt.end_date %}<div class="dc-meta-row"><span>End date</span><span>{{ debt.end_date|date:"M Y" }}</span></div>{% endif %}
+        </div>
+        <div class="dc-actions">
+          <a href="{% url 'finance:debt_detail' debt.id %}" class="da"><i class="fas fa-chart-line"></i> Details</a>
+          {% if debt.status == 'ACTIVE' %}
+          <a href="{% url 'finance:debt_detail' debt.id %}" class="da" style="border-color:var(--brand);color:var(--brand);"><i class="fas fa-plus"></i> Payment</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endwith %}
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">
+      <span class="empty-icon"><i class="fas fa-credit-card"></i></span>
+      <h3>No debts tracked</h3>
+      <p>Add your loans, credit cards, and EMIs to get accurate health score calculations.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Add debt form + breakdown -->
+  <div>
+    <div class="add-panel">
+      <h2><i class="fas fa-plus-circle" style="color:var(--red);margin-right:8px;"></i>Add debt</h2>
+      <form method="post" class="af">
+        {% csrf_token %}
+        <label>Lender / institution *</label>
+        <input type="text" name="lender" placeholder="HDFC, SBI, Axis…" required>
+        <label>Debt type</label>
+        <select name="debt_type">
+          {% for val, label in form.fields.debt_type.choices %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+        </select>
+        <div class="af-row">
+          <div><label>Principal ₹ *</label><input type="number" step="0.01" min="1" name="principal_amount" placeholder="0" required></div>
+          <div><label>Interest % p.a.</label><input type="number" step="0.01" min="0" name="interest_rate" placeholder="10.5"></div>
+        </div>
+        <div class="af-row">
+          <div><label>EMI ₹/month</label><input type="number" step="0.01" min="0" name="emi_amount" placeholder="0"></div>
+          <div><label>EMI due day</label><input type="number" min="1" max="31" name="emi_day" placeholder="5"></div>
+        </div>
+        <div class="af-row">
+          <div><label>Start date</label><input type="date" name="start_date" value="{% now 'Y-m-d' %}"></div>
+          <div><label>End date</label><input type="date" name="end_date"></div>
+        </div>
+        <button type="submit" class="btn" style="width:100%;justify-content:center;padding:11px;background:linear-gradient(135deg,var(--red),#e11d48);"><i class="fas fa-save"></i> Add debt</button>
+      </form>
+    </div>
+
+    {% if type_breakdown %}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;margin-top:16px;">
+      <h3 style="margin:0 0 14px;font-size:.9rem;color:var(--text);">By type</h3>
+      <div class="type-breakdown">
+        {% for row in type_breakdown %}
+        <div class="tb-row">
+          <span class="tb-dot" style="background:var(--red);opacity:{% cycle '1' '.8' '.6' '.5' %};"></span>
+          <span class="tb-name">{{ row.debt_type }}</span>
+          <span class="tb-val">₹{{ row.total_remaining|default:0|floatformat:0 }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

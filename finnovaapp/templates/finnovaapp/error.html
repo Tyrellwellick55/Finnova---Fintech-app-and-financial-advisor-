@@ -1,0 +1,123 @@
+{% extends 'finnovaapp/base.html' %}
+{% block title %}{{ error_code|default:"Error" }} — Finnova{% endblock %}
+
+{% block content %}
+<style>
+.error-wrap {
+  max-width: 520px;
+  margin: 80px auto;
+  text-align: center;
+  padding: 0 16px;
+}
+.error-icon {
+  width: 80px; height: 80px;
+  border-radius: var(--r-xl);
+  background: var(--red-bg);
+  border: 1px solid rgba(244,63,94,.3);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 24px;
+  font-size: 2.2rem;
+  color: var(--red);
+}
+.error-icon.warn { background: var(--yellow-bg); border-color: rgba(245,158,11,.3); color: var(--yellow); }
+.error-code {
+  font-size: 4rem;
+  font-weight: 900;
+  color: var(--text-3);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.error-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.error-msg {
+  color: var(--text-2);
+  font-size: .92rem;
+  margin-bottom: 28px;
+  line-height: 1.6;
+}
+.error-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.error-meta {
+  font-size: .78rem;
+  color: var(--text-3);
+}
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--brand); color: var(--bg);
+  border: none; border-radius: var(--r-md);
+  padding: 10px 20px; font-weight: 700; font-size: .9rem;
+  cursor: pointer; text-decoration: none;
+  transition: opacity .2s;
+}
+.btn-primary:hover { opacity: .85; }
+.btn-outline {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: transparent; color: var(--text-2);
+  border: 1px solid var(--border-2); border-radius: var(--r-md);
+  padding: 10px 20px; font-weight: 600; font-size: .9rem;
+  cursor: pointer; text-decoration: none;
+  transition: border-color .2s, color .2s;
+}
+.btn-outline:hover { border-color: var(--brand); color: var(--text); }
+</style>
+
+<div class="error-wrap">
+  <div class="error-icon {% if error_code == 404 %}warn{% endif %}">
+    {% if error_code == 404 %}
+      <i class="fas fa-map-signs"></i>
+    {% elif error_code == 403 %}
+      <i class="fas fa-lock"></i>
+    {% else %}
+      <i class="fas fa-exclamation-triangle"></i>
+    {% endif %}
+  </div>
+
+  <div class="error-code">{{ error_code|default:"Err" }}</div>
+
+  <h1 class="error-title">
+    {% if error_code == 404 %}Page not found
+    {% elif error_code == 403 %}Access denied
+    {% elif error_code == 500 %}Something went wrong
+    {% else %}{{ message|default:"An error occurred" }}
+    {% endif %}
+  </h1>
+
+  <p class="error-msg">
+    {% if error_code == 404 %}
+      The page you're looking for doesn't exist or has been moved. Double-check the URL or head back to the dashboard.
+    {% elif error_code == 403 %}
+      You don't have permission to access this resource. If you think this is a mistake, contact your workspace admin.
+    {% elif error_code == 500 %}
+      We hit an unexpected error on our end. Our team has been notified. Please try again in a moment.
+    {% else %}
+      {{ message|default:"Something went wrong. Please try again or contact support." }}
+    {% endif %}
+  </p>
+
+  <div class="error-actions">
+    <a href="{{ home_url }}" class="btn-primary">
+      <i class="fas fa-home"></i>
+      {{ home_label|default:"Back to Dashboard" }}
+    </a>
+    <a href="javascript:history.back()" class="btn-outline">
+      <i class="fas fa-arrow-left"></i>
+      Go back
+    </a>
+  </div>
+
+  {% if error_code == 500 and support_email %}
+  <p class="error-meta">
+    Need help? <a href="mailto:{{ support_email }}" style="color:var(--brand);">{{ support_email }}</a>
+  </p>
+  {% endif %}
+</div>
+{% endblock %}

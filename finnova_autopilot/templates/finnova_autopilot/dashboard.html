@@ -1,0 +1,201 @@
+{% extends "finnova_autopilot/base_autopilot.html" %}
+{% block title %}Autopilot Dashboard — Finnova{% endblock %}
+
+{% block autopilot_extra_css %}
+<style>
+/* Page-specific styles only */
+.ap-status-row { display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07); }
+.ap-status-badge { display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;font-size:.8rem;font-weight:700; }
+.ap-active { background:var(--brand-glow);border:1px solid var(--border-brand);color:var(--brand); }
+.ap-paused { background:var(--yellow-bg);border:1px solid rgba(245,158,11,.3);color:var(--yellow); }
+.ap-dot { width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+.ap-grid { display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:18px; }
+.ap-col { display:flex;flex-direction:column;gap:18px; }
+.ap-list-item { padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px; }
+.ap-list-item:last-child { margin-bottom:0; }
+.ap-list-item.sev-critical,.ap-list-item.sev-high { border-left:3px solid var(--red); }
+.ap-list-item.sev-medium { border-left:3px solid var(--yellow); }
+.ap-list-item.sev-low,.ap-list-item.sev-info { border-left:3px solid var(--brand); }
+.ap-item-title { font-weight:700;font-size:.88rem;color:var(--text);margin:0 0 3px; }
+.ap-item-meta  { font-size:.76rem;color:var(--text-3); }
+@media(max-width:1080px){ .ap-grid{grid-template-columns:1fr} }
+</style>
+{% endblock %}
+
+{% block autopilot_content %}
+<!-- Hero -->
+<div class="mod-hero">
+  <div>
+    <span class="mod-kicker">Guided action layer</span>
+    <h2>Autopilot is {% if profile.is_active %}<span style="color:var(--brand);">active</span>{% else %}<span style="color:var(--yellow);">paused</span>{% endif %}.</h2>
+    <p>Finance provides money data, Analytics provides signals, and Autopilot turns that into reviewable next actions. No hidden money movement runs from this dashboard.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+      <form method="post" action="{% url 'autopilot:toggle_autopilot' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn">
+          {% if profile.is_active %}<i class="fas fa-pause"></i> Pause Autopilot{% else %}<i class="fas fa-play"></i> Enable Autopilot{% endif %}
+        </button>
+      </form>
+      <form method="post" action="{% url 'autopilot:run_automation_now' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-ghost"><i class="fas fa-rotate"></i> Run check now</button>
+      </form>
+      <a href="{% url 'autopilot:approvals' %}" class="btn-outline"><i class="fas fa-check-double"></i> Review approvals{% if pending_approvals_count %} ({{ pending_approvals_count }}){% endif %}</a>
+    </div>
+    <div class="ap-status-row">
+      <span class="ap-status-badge {% if profile.is_active %}ap-active{% else %}ap-paused{% endif %}">
+        <span class="ap-dot"></span>
+        {% if profile.is_active %}Live monitoring{% else %}Paused{% endif %}
+      </span>
+      <span style="font-size:.8rem;color:var(--text-3);">Balance: <strong style="color:var(--text);font-family:var(--mono);">₹{{ payment_account.balance|default:0|floatformat:2 }}</strong></span>
+      <span style="font-size:.8rem;color:var(--text-3);">Last run: {% if profile.last_run %}{{ profile.last_run|date:"d M, H:i" }}{% else %}—{% endif %}</span>
+    </div>
+  </div>
+</div>
+
+<!-- KPI strip -->
+<div class="metrics">
+  <div class="metric" style="{% if unread_alerts_count %}border-color:rgba(244,63,94,.3);background:var(--red-bg);{% endif %}">
+    <span class="metric-label" style="{% if unread_alerts_count %}color:var(--red);{% endif %}">Unread alerts</span>
+    <span class="metric-value" style="{% if unread_alerts_count %}color:var(--red);{% endif %}">{{ unread_alerts_count }}</span>
+    <span class="metric-sub">Needs your attention</span>
+  </div>
+  <div class="metric" style="{% if upcoming_bills %}border-color:rgba(245,158,11,.3);background:var(--yellow-bg);{% endif %}">
+    <span class="metric-label">Upcoming bills</span>
+    <span class="metric-value">{{ upcoming_bills|length }}</span>
+    <span class="metric-sub">Due in next 30 days</span>
+  </div>
+  <div class="metric">
+    <span class="metric-label">Pending approvals</span>
+    <span class="metric-value">{{ pending_approvals_count }}</span>
+    <span class="metric-sub">Awaiting decision</span>
+  </div>
+  <div class="metric" style="border-color:var(--border-brand);background:var(--brand-glow);">
+    <span class="metric-label" style="color:var(--brand);">Active rules</span>
+    <span class="metric-value" style="color:var(--brand);">{{ active_rules_count }}</span>
+    <span class="metric-sub">Automation running</span>
+  </div>
+</div>
+
+<div class="ap-grid" style="margin-top:18px;">
+  <div class="ap-col">
+    <!-- Alerts -->
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>Active alerts</h3><p>Warnings and decision prompts that still need review.</p></div>
+        <a href="{% url 'autopilot:alerts' %}" class="autopilot-text-link">All alerts <i class="fas fa-arrow-right" style="font-size:.75rem;"></i></a>
+      </div>
+      {% if top_alerts %}
+        {% for alert in top_alerts %}
+        <div class="ap-list-item sev-{{ alert.severity|lower }}">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+            <div>
+              <p class="ap-item-title">{{ alert.title }}</p>
+              <span class="ap-item-meta">{{ alert.get_source_display }} · {{ alert.alert_time|date:"d M, H:i" }}</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+              <span class="badge severity-{{ alert.severity|lower }}">{{ alert.get_severity_display }}</span>
+              {% if not alert.is_read %}<span class="badge is-info">New</span>{% endif %}
+            </div>
+          </div>
+          <p style="margin:6px 0 0;font-size:.82rem;color:var(--text-2);">{{ alert.message|truncatechars:100 }}</p>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="list-item" style="justify-content:center;flex-direction:column;text-align:center;padding:18px;color:var(--text-3);">
+        <span style="font-size:1.8rem;display:block;margin-bottom:8px;">✓</span>
+        <h3 style="font-size:.9rem;margin:0 0 4px;">All clear</h3>
+        <p style="margin:0;">No active alerts right now.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Upcoming bills -->
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>Upcoming bills</h3><p>Bills due in the next 30 days.</p></div>
+        <a href="{% url 'autopilot:smart_bills' %}" class="autopilot-text-link">Manage bills <i class="fas fa-arrow-right" style="font-size:.75rem;"></i></a>
+      </div>
+      {% if upcoming_bills %}
+        {% for bill in upcoming_bills %}
+        <div class="ap-list-item {% if bill.status == 'OVERDUE' %}sev-high{% elif bill.is_due_soon %}sev-medium{% endif %}">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <div>
+              <p class="ap-item-title">{{ bill.biller_name }}</p>
+              <span class="ap-item-meta">Due {{ bill.due_date|date:"d M Y" }} · {{ bill.get_biller_category_display }}</span>
+            </div>
+            <strong style="font-family:var(--mono);font-size:.92rem;color:var(--text);flex-shrink:0;">₹{{ bill.amount|default:0|floatformat:2 }}</strong>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="list-item" style="justify-content:center;color:var(--text-3);padding:18px;">
+        <i class="fas fa-calendar-check" style="margin-right:8px;"></i> No bills due soon
+      </div>
+      {% endif %}
+    </div>
+
+    {% if budget_warnings %}
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>Budget health</h3><p>Finance guardrails affecting Autopilot decisions.</p></div>
+        <a href="{% url 'finance:budget_list' %}" class="autopilot-text-link">Open budgets <i class="fas fa-arrow-right" style="font-size:.75rem;"></i></a>
+      </div>
+      {% for budget in budget_warnings %}
+      <div class="ap-list-item" style="{% if budget.is_exceeded %}border-left:3px solid var(--red);{% elif budget.is_near_limit %}border-left:3px solid var(--yellow);{% endif %}">
+        <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px;">
+          <strong style="font-size:.87rem;color:var(--text);">{{ budget.name }}</strong>
+          <span class="badge {% if budget.is_exceeded %}is-danger{% elif budget.is_near_limit %}is-warning{% else %}is-on{% endif %}">{{ budget.get_status_display }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.76rem;color:var(--text-3);margin-bottom:6px;">
+          <span>₹{{ budget.current_spending|default:0|floatformat:2 }} spent</span>
+          <span>₹{{ budget.amount|default:0|floatformat:2 }} limit</span>
+        </div>
+        <div class="track"><div class="fill {% if budget.is_exceeded %}danger{% elif budget.is_near_limit %}warning{% endif %}" style="width:{% if budget.utilization_percentage > 100 %}100{% else %}{{ budget.utilization_percentage|default:0|floatformat:0 }}{% endif %}%;"></div></div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="ap-col">
+    {% if recommended_actions %}
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>Recommended actions</h3><p>AI-suggested moves based on your current financial state.</p></div>
+        <a href="{% url 'autopilot:ai_insights' %}" class="autopilot-text-link">AI insights →</a>
+      </div>
+      {% for action in recommended_actions %}
+      <div class="ap-list-item">
+        <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:4px;">
+          <p class="ap-item-title">{{ action.title }}</p>
+          <span class="badge severity-{{ action.priority|lower }}">{{ action.priority }}</span>
+        </div>
+        <p style="margin:0 0 8px;font-size:.82rem;color:var(--text-2);">{{ action.description|truncatechars:90 }}</p>
+        {% if action.url %}
+        <a href="{{ action.url }}" class="btn-outline" style="font-size:.78rem;padding:5px 10px;">
+          <i class="fas fa-arrow-right"></i> {{ action.cta|default:"Take action" }}
+        </a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Quick links -->
+    <div class="panel">
+      <div class="panel-head"><h3>Quick navigation</h3></div>
+      <div style="display:grid;gap:8px;padding-top:4px;">
+        <a href="{% url 'autopilot:alerts' %}" class="btn-outline" style="justify-content:flex-start;gap:10px;"><i class="fas fa-triangle-exclamation" style="color:var(--yellow);width:18px;"></i> Alerts{% if unread_alerts_count %} <span class="badge badge-red" style="margin-left:auto;">{{ unread_alerts_count }}</span>{% endif %}</a>
+        <a href="{% url 'autopilot:smart_bills' %}" class="btn-outline" style="justify-content:flex-start;gap:10px;"><i class="fas fa-file-invoice" style="color:var(--blue);width:18px;"></i> Smart Bills</a>
+        <a href="{% url 'autopilot:savings' %}" class="btn-outline" style="justify-content:flex-start;gap:10px;"><i class="fas fa-piggy-bank" style="color:var(--brand);width:18px;"></i> Savings Goals</a>
+        <a href="{% url 'autopilot:automation_rules' %}" class="btn-outline" style="justify-content:flex-start;gap:10px;"><i class="fas fa-bolt" style="color:#6366F1;width:18px;"></i> Automation Rules</a>
+        <a href="{% url 'autopilot:transaction_patterns' %}" class="btn-outline" style="justify-content:flex-start;gap:10px;"><i class="fas fa-repeat" style="color:var(--text-2);width:18px;"></i> Transaction Patterns</a>
+        <a href="{% url 'analytics-ai:financial_health_dashboard' %}" class="btn-outline" style="justify-content:flex-start;gap:10px;"><i class="fas fa-heartbeat" style="color:var(--red);width:18px;"></i> Financial Health</a>
+        <a href="{% url 'autopilot:autopilot_settings' %}" class="btn-outline" style="justify-content:flex-start;gap:10px;"><i class="fas fa-gear" style="color:var(--text-3);width:18px;"></i> Settings</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "agency/portal/base.html" %}
+{% block title %}Pay {{ invoice.invoice_number }} — Finnova Portal{% endblock %}
+
+{% block portal_content %}
+<div style="max-width:520px;margin:0 auto;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:40px 32px;text-align:center;">
+    <i class="fas fa-shield-halved" style="font-size:2.5rem;color:var(--brand);margin-bottom:20px;"></i>
+    <h1 style="font-size:1.4rem;margin:0 0 6px;">Secure payment</h1>
+    <p style="color:var(--text-2);margin:0 0 4px;">{{ invoice.invoice_number }} — {{ invoice.client.company_name|default:invoice.client.name }}</p>
+    <div style="font-size:3rem;font-weight:800;font-family:var(--mono);color:var(--brand);margin:20px 0 6px;">₹{{ invoice.amount|default:0|floatformat:2 }}</div>
+    <div style="font-size:.84rem;color:var(--text-3);margin-bottom:32px;">Due {{ invoice.due_date|date:"d M Y" }}</div>
+    {% if invoice.status == 'PAID' %}
+    <div style="padding:14px;border-radius:var(--r-lg);background:var(--green-bg);color:var(--green);font-weight:700;border:1px solid rgba(16,185,129,.3);"><i class="fas fa-check-circle"></i> Already paid on {{ invoice.paid_date|date:"d M Y" }}</div>
+    {% else %}
+    <form method="post">{% csrf_token %}
+      <button type="submit" style="width:100%;padding:16px;border-radius:var(--r-md);background:var(--brand);color:var(--bg);font-weight:800;font-size:1.05rem;border:none;cursor:pointer;"><i class="fas fa-lock"></i> Confirm payment</button>
+    </form>
+    <p style="font-size:.76rem;color:var(--text-3);margin-top:14px;">Powered by Finnova · Secure · Encrypted</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "finance/base.html" %}
+{% block title %}{{ budget.name }} — Budget — Finance — Finnova{% endblock %}
+
+{% block finance_content %}
+<div class="page-header">
+  <div>
+    <a href="{% url 'finance:budget_list' %}" style="font-size:.82rem;color:var(--brand);font-weight:700;text-decoration:none;"><i class="fas fa-arrow-left"></i> Budgets</a>
+    <h1 style="margin-top:8px;">{{ budget.name }}</h1>
+    <p>{{ budget.get_status_display }} · {{ budget.primary_category_label|default:"General" }}</p>
+  </div>
+  <div style="display:flex;gap:10px;">
+    <form method="post" action="{% url 'finance:toggle_budget' budget.id %}">{% csrf_token %}
+      <button type="submit" class="btn btn-ghost btn-sm">{% if budget.is_active %}Pause{% else %}Activate{% endif %}</button>
+    </form>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="metric-grid" style="margin-bottom:20px;">
+  <div class="metric" style="border-color:var(--border-brand);background:var(--brand-glow);">
+    <div class="metric-label" style="color:var(--brand);">Budget amount</div>
+    <div class="metric-value" style="color:var(--brand);">₹{{ budget.amount|default:0|floatformat:0 }}</div>
+  </div>
+  <div class="metric" {% if budget.is_exceeded %}style="border-color:rgba(244,63,94,.3);background:var(--red-bg);"{% endif %}>
+    <div class="metric-label" {% if budget.is_exceeded %}style="color:var(--red);"{% endif %}>Spent</div>
+    <div class="metric-value" {% if budget.is_exceeded %}style="color:var(--red);"{% endif %}>₹{{ budget.current_spending|default:0|floatformat:0 }}</div>
+  </div>
+  <div class="metric"><div class="metric-label">Remaining</div>
+    <div class="metric-value" style="color:{% if budget.is_exceeded %}var(--red){% else %}var(--green){% endif %};">₹{{ budget.amount|default:0|floatformat:0 }}</div>
+  </div>
+  <div class="metric" {% if utilization_percentage > 90 %}style="border-color:rgba(244,63,94,.3);background:var(--red-bg);"{% elif utilization_percentage > 70 %}style="border-color:rgba(245,158,11,.3);background:var(--yellow-bg);"{% endif %}>
+    <div class="metric-label" {% if utilization_percentage > 90 %}style="color:var(--red);"{% elif utilization_percentage > 70 %}style="color:var(--yellow);"{% endif %}>Utilization</div>
+    <div class="metric-value" {% if utilization_percentage > 90 %}style="color:var(--red);"{% elif utilization_percentage > 70 %}style="color:var(--yellow);"{% endif %}>{{ utilization_percentage|default:0|floatformat:1 }}%</div>
+  </div>
+</div>
+
+<!-- Progress bar -->
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 22px;margin-bottom:20px;">
+  <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+    <span style="font-weight:700;color:var(--text);">₹{{ budget.current_spending|default:0|floatformat:0 }} of ₹{{ budget.amount|default:0|floatformat:0 }}</span>
+    <span style="font-size:.84rem;color:var(--text-3);">{{ budget.start_date|date:"d M" }} — {{ budget.end_date|date:"d M Y"|default:"ongoing" }}</span>
+  </div>
+  <div style="height:10px;border-radius:999px;background:var(--surface-3);overflow:hidden;">
+    <div style="height:100%;border-radius:inherit;width:{% if utilization_percentage > 100 %}100{% else %}{{ utilization_percentage|default:0|floatformat:0 }}{% endif %}%;background:{% if budget.is_exceeded %}var(--red){% elif utilization_percentage > 70 %}var(--yellow){% else %}var(--brand){% endif %};"></div>
+  </div>
+  {% if remaining_days is not None %}<div style="font-size:.78rem;color:var(--text-3);margin-top:6px;">{{ remaining_days }} days remaining</div>{% endif %}
+</div>
+
+<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:18px;">
+  <!-- Expenses -->
+  <div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <h2 style="margin:0;font-size:.96rem;color:var(--text);">Expenses under this budget</h2>
+        <a href="{% url 'finance:expense_list' %}" style="font-size:.78rem;color:var(--brand);font-weight:700;">All expenses →</a>
+      </div>
+      {% if expenses %}{% for exp in expenses %}
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);">
+        <div style="flex:1;min-width:0;"><div style="font-size:.87rem;font-weight:600;color:var(--text);">{{ exp.description|truncatechars:36 }}</div>
+        <div style="font-size:.75px;color:var(--text-3);">{{ exp.date|date:"d M Y" }} · {{ exp.get_category_display }}</div></div>
+        <div style="font-family:var(--mono);font-weight:800;color:var(--red);">₹{{ exp.amount|default:0|floatformat:2 }}</div>
+      </div>
+      {% endfor %}{% else %}
+      <div style="padding:32px;text-align:center;color:var(--text-3);">No expenses linked to this budget yet.</div>{% endif %}
+    </div>
+  </div>
+
+  <!-- AI Insights + subcategory breakdown -->
+  <div>
+    {% if ai_insights %}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:18px;margin-bottom:14px;">
+      <h3 style="margin:0 0 12px;font-size:.9rem;color:var(--text);"><i class="fas fa-lightbulb" style="color:var(--yellow);margin-right:6px;"></i>AI insights</h3>
+      {% for ins in ai_insights %}
+      <div style="padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px;">
+        <strong style="font-size:.84rem;color:var(--text);display:block;margin-bottom:2px;">{{ ins.title }}</strong>
+        <p style="font-size:.78rem;color:var(--text-3);margin:0;">{{ ins.description|truncatechars:100 }}</p>
+      </div>{% endfor %}
+    </div>{% endif %}
+    {% if subcategories %}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:18px;">
+      <h3 style="margin:0 0 12px;font-size:.9rem;color:var(--text);">By subcategory</h3>
+      {% for sc in subcategories %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:.84rem;color:var(--text-2);">{{ sc.name|default:"Other" }}</span>
+        <span style="font-family:var(--mono);font-size:.82rem;font-weight:700;color:var(--text);">₹{{ sc.total|default:0|floatformat:0 }}</span>
+      </div>{% endfor %}
+    </div>{% endif %}
+  </div>
+</div>
+{% endblock %}

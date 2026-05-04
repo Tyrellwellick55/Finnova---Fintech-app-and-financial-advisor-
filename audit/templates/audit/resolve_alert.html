@@ -1,0 +1,39 @@
+{% extends 'audit/base_audit.html' %}
+{% block title %}Resolve Alert — Audit — Finnova{% endblock %}
+
+{% block audit_content %}
+<div class="audit-header">
+  <div><h1 class="audit-title"><i class="fas fa-check-shield" style="color:var(--brand);"></i> Resolve Alert</h1>
+  <p class="audit-breadcrumb"><a href="{% url 'audit:alert_list' %}">Security Alerts</a> → Resolve</p></div>
+  <a href="{% url 'audit:alert_list' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
+</div>
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px;">
+  <div class="audit-card">
+    <form method="post" action="{% url 'audit:mark_alert_resolved' alert.id %}" style="padding:18px;">{% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Resolution type *</label>
+        <select name="resolution_type" class="form-control form-select" required>
+          <option value="FALSE_POSITIVE">False positive</option>
+          <option value="MITIGATED">Mitigated</option>
+          <option value="ACCEPTED_RISK">Accepted risk</option>
+          <option value="FIXED">Fixed / remediated</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Resolution notes</label>
+        <textarea name="notes" class="form-control" rows="4" placeholder="Explain how this was resolved…"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Mark resolved</button>
+    </form>
+  </div>
+  <div class="audit-card">
+    <div class="card-header"><h2>Alert details</h2></div>
+    <div style="display:grid;gap:8px;padding:4px 0;font-size:.86rem;">
+      <div style="display:flex;justify-content:space-between;padding:9px 18px;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Title</span><strong>{{ alert.title|truncatechars:30 }}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:9px 18px;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Severity</span><strong style="color:{% if alert.severity == 'CRITICAL' %}var(--red){% elif alert.severity == 'HIGH' %}#F97316{% elif alert.severity == 'MEDIUM' %}var(--yellow){% else %}var(--brand){% endif %};">{{ alert.severity }}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:9px 18px;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Status</span><strong>{{ alert.status }}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:9px 18px;"><span style="color:var(--text-3);">Detected</span><strong>{{ alert.detected_at|timesince }} ago</strong></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

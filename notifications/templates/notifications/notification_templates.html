@@ -1,0 +1,21 @@
+{% extends "notifications/base_notifications.html" %}
+{% block title %}Templates — Notifications — Finnova{% endblock %}
+
+{% block notification_content %}
+<div class="page-header"><div><h1>Notification Templates</h1><p>{{ total_templates }} total · {{ active_templates }} active</p></div>
+{% if notification_admin_enabled %}<a href="{% url 'notifications:notification_template_form' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New template</a>{% endif %}
+</div>
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;">
+  {% if templates %}
+  {% for tmpl in templates %}
+  <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border);transition:background .15s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:.9rem;font-weight:700;color:var(--text);">{{ tmpl.name|default:tmpl.template_id }}</div>
+      <div style="font-size:.76rem;color:var(--text-3);">{{ tmpl.template_id }}</div>
+    </div>
+    <span style="padding:3px 9px;border-radius:999px;font-size:.72rem;font-weight:700;background:{% if tmpl.is_active %}var(--green-bg);color:var(--green){% else %}var(--surface-3);color:var(--text-3){% endif %};">{% if tmpl.is_active %}Active{% else %}Inactive{% endif %}</span>
+  </div>
+  {% endfor %}
+  {% else %}<div style="padding:40px;text-align:center;color:var(--text-3);">No templates yet.</div>{% endif %}
+</div>
+{% endblock %}

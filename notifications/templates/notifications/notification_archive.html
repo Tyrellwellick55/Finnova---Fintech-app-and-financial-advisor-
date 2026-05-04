@@ -1,0 +1,20 @@
+{% extends "notifications/base_notifications.html" %}
+{% block title %}Archive — Notifications — Finnova{% endblock %}
+
+{% block notification_content %}
+<div class="page-header"><div><h1>Archived Notifications</h1><p>{{ archived_notifications|length }} archived items</p></div>
+<a href="{% url 'notifications:notification_list' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Inbox</a></div>
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;">
+  {% if archived_notifications %}
+  {% for notif in archived_notifications %}
+  <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border);opacity:.8;">
+    <span style="width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;background:var(--text-3);"></span>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:.88rem;font-weight:600;color:var(--text);">{{ notif.title }}</div>
+      <div style="font-size:.76rem;color:var(--text-3);">{{ notif.created_at|timesince }} ago · {{ notif.category }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}<div style="padding:40px;text-align:center;color:var(--text-3);">No archived notifications.</div>{% endif %}
+</div>
+{% endblock %}

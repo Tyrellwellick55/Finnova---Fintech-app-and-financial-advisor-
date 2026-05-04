@@ -1,0 +1,201 @@
+{% extends 'payments_core/base_payments.html' %}
+{% block title %}Payment Methods — Finnova{% endblock %}
+{% block payment_content %}
+<style>
+.method-layout { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.method-panel  { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl); overflow:hidden; }
+.method-ph     { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border); }
+.method-ph h2  { font-size:.96rem; font-weight:700; color:var(--text); margin:0; }
+.method-row    { display:flex; align-items:center; gap:14px; padding:14px 20px; border-bottom:1px solid var(--border); transition:background .15s; }
+.method-row:last-child { border-bottom:none; }
+.method-row:hover { background:var(--surface-2); }
+.card-visual { width:52px; height:34px; border-radius:7px; background:var(--surface); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.card-visual i { color:var(--brand); font-size:.9rem; }
+.upi-visual  { width:38px; height:38px; border-radius:10px; background:var(--brand-glow); border:1px solid var(--border-brand); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.upi-visual i { color:var(--brand); font-size:.92rem; }
+.method-info { flex:1; min-width:0; }
+.method-name { font-weight:700; font-size:.9rem; color:var(--text); display:block; }
+.method-sub  { font-size:.75rem; color:var(--text-3); margin-top:2px; display:block; }
+.method-actions { display:flex; gap:8px; align-items:center; }
+.m-btn { padding:5px 11px; border-radius:7px; font-size:.75rem; font-weight:700; cursor:pointer; transition:.15s; text-decoration:none; border:1px solid var(--border); background:var(--surface-2); color:var(--text-2); }
+.m-btn:hover { border-color:var(--brand); color:var(--brand); }
+.m-btn.danger { border-color:rgba(244,63,94,.3); color:var(--red); background:var(--red-bg); }
+.m-btn.danger:hover { background:var(--red); color:#fff; }
+.m-btn.primary { background:var(--brand); border-color:var(--brand); color:var(--bg); }
+.m-btn.primary:hover { background:#00DFA0; }
+.default-tag { font-size:.69rem; font-weight:800; padding:2px 7px; border-radius:999px; background:var(--brand-glow); color:var(--brand); border:1px solid var(--border-brand); }
+.add-form { padding:18px 20px; }
+.add-form h3 { font-size:.88rem; font-weight:700; color:var(--text); margin:0 0 12px; }
+@media(max-width:900px){ .method-layout{grid-template-columns:1fr} }
+</style>
+
+<div class="page-container-head" style="margin-bottom:18px;">
+  <div>
+    <h1>Payment Methods</h1>
+    <p>Cards and UPI IDs used for payments and transfers.</p>
+  </div>
+</div>
+
+{% if messages %}
+<div style="margin-bottom:16px;">
+  {% for msg in messages %}
+  <div class="alert-info alert-info-{{ msg.tags|default:'info' }}" style="margin-bottom:8px;">
+    <i class="fas fa-circle-info"></i><div>{{ msg }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="method-layout">
+
+  <!-- Cards -->
+  <div>
+    <div class="method-panel">
+      <div class="method-ph">
+        <h2><i class="fas fa-credit-card" style="color:var(--brand);margin-right:8px;"></i>Debit / Credit Cards</h2>
+        <a href="{% url 'payments:add_card' %}" class="btn sm"><i class="fas fa-plus"></i> Add card</a>
+      </div>
+
+      {% if cards %}
+        {% for card in cards %}
+        <div class="method-row">
+          <div class="card-visual"><i class="fas fa-credit-card"></i></div>
+          <div class="method-info">
+            <span class="method-name">•••• •••• •••• {{ card.last4 }}</span>
+            <span class="method-sub">{{ card.holder_name }} · Expires {{ card.expiry_month }}/{{ card.expiry_year }}{% if card.card_type %} · {{ card.card_type }}{% endif %}</span>
+          </div>
+          <div class="method-actions">
+            {% if card.is_default %}
+              <span class="default-tag">Default</span>
+            {% else %}
+              <form method="post" action="{% url 'payments:set_default_card' card.id %}">
+                {% csrf_token %}
+                <button type="submit" class="m-btn">Set default</button>
+              </form>
+            {% endif %}
+            <form method="post" action="{% url 'payments:remove_card' card.id %}" onsubmit="return confirm('Remove this card?')">
+              {% csrf_token %}
+              <button type="submit" class="m-btn danger"><i class="fas fa-trash"></i></button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state" style="padding:28px; border:none; border-radius:0;">
+          <div class="empty-state-icon"><i class="fas fa-credit-card"></i></div>
+          <h3>No cards added yet</h3>
+          <p>Add a card to pay bills and make transfers.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Add card form -->
+    <div class="method-panel" style="margin-top:14px;">
+      <div class="method-ph"><h2>Add a card</h2></div>
+      <div class="add-form">
+        <form method="post" action="{% url 'payments:add_card' %}">
+          {% csrf_token %}
+          <div class="form-section-grid">
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label">Cardholder name <span class="req">*</span></label>
+              <input name="holder_name" class="form-control" placeholder="As printed on card" required>
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label">Card number <span class="req">*</span></label>
+              <input name="card_number" class="form-control" placeholder="•••• •••• •••• ••••" maxlength="19" required style="font-family:var(--mono);">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Expiry MM/YY <span class="req">*</span></label>
+              <input name="expiry" class="form-control" placeholder="MM/YY" maxlength="5" required style="font-family:var(--mono);">
+            </div>
+            <div class="form-group">
+              <label class="form-label">CVV <span class="req">*</span></label>
+              <input name="cvv" class="form-control" placeholder="•••" maxlength="4" required style="font-family:var(--mono);" type="password">
+            </div>
+          </div>
+          <div class="alert-info alert-info-info" style="margin:12px 0;">
+            <i class="fas fa-lock"></i>
+            <div>Card details are tokenised and never stored in plain text. Powered by Razorpay test mode.</div>
+          </div>
+          <button type="submit" class="btn"><i class="fas fa-lock"></i> Save card securely</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPI IDs -->
+  <div>
+    <div class="method-panel">
+      <div class="method-ph">
+        <h2><i class="fas fa-mobile-alt" style="color:var(--brand);margin-right:8px;"></i>UPI IDs</h2>
+        <a href="{% url 'payments:add_upi' %}" class="btn sm"><i class="fas fa-plus"></i> Add UPI</a>
+      </div>
+
+      {% if upi_ids %}
+        {% for upi in upi_ids %}
+        <div class="method-row">
+          <div class="upi-visual"><i class="fas fa-mobile-alt"></i></div>
+          <div class="method-info">
+            <span class="method-name">{{ upi.vpa }}</span>
+            <span class="method-sub">{% if upi.bank_name %}{{ upi.bank_name }}{% else %}UPI address{% endif %}</span>
+          </div>
+          <div class="method-actions">
+            {% if upi.is_default %}
+              <span class="default-tag">Default</span>
+            {% else %}
+              <form method="post" action="{% url 'payments:set_default_upi' upi.id %}">
+                {% csrf_token %}
+                <button type="submit" class="m-btn">Set default</button>
+              </form>
+            {% endif %}
+            <form method="post" action="{% url 'payments:remove_upi' upi.id %}" onsubmit="return confirm('Remove this UPI ID?')">
+              {% csrf_token %}
+              <button type="submit" class="m-btn danger"><i class="fas fa-trash"></i></button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state" style="padding:28px; border:none; border-radius:0;">
+          <div class="empty-state-icon"><i class="fas fa-mobile-alt"></i></div>
+          <h3>No UPI IDs linked</h3>
+          <p>Add your UPI VPA (e.g. name@upi) to receive and send money instantly.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Add UPI form -->
+    <div class="method-panel" style="margin-top:14px;">
+      <div class="method-ph"><h2>Link a UPI ID</h2></div>
+      <div class="add-form">
+        <form method="post" action="{% url 'payments:add_upi' %}">
+          {% csrf_token %}
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label">UPI VPA <span class="req">*</span></label>
+            <input name="vpa" class="form-control" placeholder="yourname@upi or 9876543210@paytm" required style="font-family:var(--mono);">
+            <div class="form-section-hint">Examples: name@okaxis · name@ybl · phone@paytm · number@upi</div>
+          </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label class="form-label">Nickname (optional)</label>
+            <input name="bank_name" class="form-control" placeholder="e.g. My SBI UPI">
+          </div>
+          <button type="submit" class="btn"><i class="fas fa-link"></i> Link UPI ID</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Wallet info -->
+    <div class="panel" style="margin-top:14px; border-color:var(--border-brand); background:var(--brand-glow);">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:var(--brand);color:var(--bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.95rem;"><i class="fas fa-wallet"></i></div>
+        <div>
+          <div style="font-size:.9rem;font-weight:700;color:var(--brand);">Wallet balance</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--brand);font-family:var(--mono);">₹{{ wallet_balance|default:0|floatformat:2 }}</div>
+        </div>
+        <a href="{% url 'payments:transfer_money' %}" class="btn" style="margin-left:auto;"><i class="fas fa-paper-plane"></i> Send</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

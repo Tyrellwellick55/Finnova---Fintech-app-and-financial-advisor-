@@ -1,0 +1,115 @@
+{% extends 'finnovaapp/base.html' %}
+{% load static %}
+{% block title %}Ops Console — {{ organization.name }} — Finnova{% endblock %}
+{% block topbar_title %}Ops Console{% endblock %}
+{% block topbar_sub %}{{ organization.name }} — operational overview{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Ops Console</h1>
+    <p>Operational command view for <strong style="color:var(--brand);">{{ organization.name }}</strong> — approvals, alerts, and team actions.</p>
+  </div>
+  <div class="page-actions">
+    <a href="{% url 'finnovaapp:activity_feed' %}" class="btn btn-ghost btn-sm"><i class="fas fa-stream"></i> Activity</a>
+    {% if show_agency_ui %}<a href="{% url 'agency:receivables_dashboard' %}" class="btn btn-ghost btn-sm"><i class="fas fa-file-invoice-dollar"></i> Receivables</a>{% endif %}
+    <a href="{% url 'finnovaapp:dashboard' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Dashboard</a>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:18px;">
+  <!-- Left -->
+  <div style="display:flex;flex-direction:column;gap:18px;">
+
+    <!-- Pending approvals -->
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);">
+        <h2 style="margin:0;font-size:.96rem;"><i class="fas fa-check-double" style="color:var(--brand);margin-right:8px;"></i>Pending Approvals</h2>
+        <span class="badge {% if pending_approvals %}badge-yellow{% else %}badge-green{% endif %}">{{ pending_approvals|length }}</span>
+      </div>
+      {% if pending_approvals %}
+      {% for a in pending_approvals %}
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border);">
+        <div style="width:38px;height:38px;border-radius:10px;background:var(--yellow-bg);color:var(--yellow);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="fas fa-user-check"></i>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:.88rem;color:var(--text);">{{ a.title }}</div>
+          <div style="font-size:.76rem;color:var(--text-3);margin-top:2px;">{{ a.request_type }} · ₹{{ a.amount|default:0|floatformat:2 }} · {{ a.created_at|timesince }} ago</div>
+          {% if a.bill %}<div style="font-size:.74rem;color:var(--text-3);">Bill: {{ a.bill.biller_name }}</div>{% endif %}
+        </div>
+        <a href="{% url 'autopilot:approvals' %}" class="btn btn-ghost btn-xs" style="flex-shrink:0;">Review</a>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty" style="border-radius:0;border:none;padding:28px;">
+        <span class="empty-icon" style="font-size:1.6rem;"><i class="fas fa-check-circle"></i></span>
+        <h3 style="font-size:.9rem;">No pending approvals</h3>
+        <p>All Autopilot actions are up to date.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Unread notifications -->
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);">
+        <h2 style="margin:0;font-size:.96rem;"><i class="fas fa-bell" style="color:var(--brand);margin-right:8px;"></i>Notifications</h2>
+        <a href="{% url 'notifications:notification_list' %}" class="btn btn-ghost btn-xs">View all</a>
+      </div>
+      {% if notifications %}
+      {% for n in notifications %}
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);">
+        <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;background:{% if n.severity == 'CRITICAL' %}var(--red){% elif n.severity == 'WARNING' %}var(--yellow){% else %}var(--brand){% endif %};"></div>
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:.86rem;color:var(--text);">{{ n.title }}</div>
+          <div style="font-size:.75rem;color:var(--text-3);margin-top:2px;">{{ n.created_at|timesince }} ago</div>
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty" style="border-radius:0;border:none;padding:22px;">
+        <h3 style="font-size:.88rem;">No recent notifications</h3>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right -->
+  <div style="display:flex;flex-direction:column;gap:18px;">
+
+    <!-- Quick links -->
+    <div class="card">
+      <div class="card-header"><h2>Quick navigation</h2></div>
+      <div style="display:grid;gap:8px;">
+        <a href="{% url 'autopilot:autopilot_dashboard' %}" class="btn btn-ghost btn-sm" style="justify-content:flex-start;"><i class="fas fa-robot"></i> Autopilot Dashboard</a>
+        <a href="{% url 'autopilot:alerts' %}" class="btn btn-ghost btn-sm" style="justify-content:flex-start;"><i class="fas fa-triangle-exclamation"></i> View Alerts</a>
+        <a href="{% url 'autopilot:smart_bills' %}" class="btn btn-ghost btn-sm" style="justify-content:flex-start;"><i class="fas fa-file-invoice"></i> Smart Bills</a>
+        <a href="{% url 'finnovaapp:org_members' %}" class="btn btn-ghost btn-sm" style="justify-content:flex-start;"><i class="fas fa-users"></i> Team Members</a>
+        <a href="{% url 'audit:dashboard' %}" class="btn btn-ghost btn-sm" style="justify-content:flex-start;"><i class="fas fa-shield-halved"></i> Audit Logs</a>
+        {% if show_agency_ui %}
+        <a href="{% url 'agency:control_tower' %}" class="btn btn-ghost btn-sm" style="justify-content:flex-start;"><i class="fas fa-tower-control"></i> Agency Control Tower</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Org info -->
+    <div class="card">
+      <div class="card-header"><h2>Workspace</h2></div>
+      <div style="display:grid;gap:10px;font-size:.86rem;">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-3);">Organization</span>
+          <strong>{{ organization.name }}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-3);">Your role</span>
+          <strong>{{ org_role }}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;">
+          <span style="color:var(--text-3);">Members</span>
+          <strong>{{ member_count|default:"—" }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "notifications/base_notifications.html" %}
+{% block title %}{% if selected_template %}Edit{% else %}New{% endif %} Template — Notifications — Finnova{% endblock %}
+
+{% block notification_content %}
+<div class="page-header"><div><h1>{% if selected_template %}Edit Template{% else %}New Template{% endif %}</h1></div>
+<a href="{% url 'notifications:notification_templates' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Templates</a></div>
+<div class="card">
+  {% if template_form %}{{ template_form.as_p }}{% else %}
+  <div class="form-group"><label class="form-label">Template ID</label><input type="text" name="template_id" class="form-control" value="{{ selected_template.template_id|default:'' }}"></div>
+  <div class="form-group"><label class="form-label">Name</label><input type="text" name="name" class="form-control" value="{{ selected_template.name|default:'' }}"></div>
+  <div class="form-group"><label class="form-label">Subject template</label><input type="text" name="subject_template" class="form-control"></div>
+  <div class="form-group"><label class="form-label">Body template</label><textarea name="body_template" class="form-control" rows="6"></textarea></div>
+  {% endif %}
+  <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Save</button>
+</div>
+{% endblock %}

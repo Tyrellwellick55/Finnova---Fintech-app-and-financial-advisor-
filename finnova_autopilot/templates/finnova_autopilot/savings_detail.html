@@ -1,0 +1,134 @@
+{% extends "finnova_autopilot/base_autopilot.html" %}
+{% block title %}{{ goal.goal_name }} — Savings — Finnova{% endblock %}
+
+{% block autopilot_content %}
+<div class="page-header">
+  <div>
+    <a href="{% url 'autopilot:savings' %}" style="font-size:.82rem;color:var(--brand);font-weight:700;text-decoration:none;"><i class="fas fa-arrow-left"></i> Savings</a>
+    <h1 style="margin-top:8px;">{{ goal.goal_name }}</h1>
+    <p>{{ goal.get_priority_display }} priority · {{ goal.get_status_display }}</p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    {% if goal.status == 'ACTIVE' %}
+    <form method="post" action="{% url 'autopilot:pause_savings_goal' goal.id %}">
+      {% csrf_token %}<button type="submit" class="btn-outline"><i class="fas fa-pause"></i> Pause</button>
+    </form>
+    {% elif goal.status == 'PAUSED' %}
+    <form method="post" action="{% url 'autopilot:resume_savings_goal' goal.id %}">
+      {% csrf_token %}<button type="submit" class="btn"><i class="fas fa-play"></i> Resume</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<!-- KPIs -->
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px;">
+  <div style="padding:16px 18px;border-radius:var(--r-lg);border:1px solid var(--border-brand);background:var(--brand-glow);">
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--brand);display:block;margin-bottom:4px;">Saved</span>
+    <div style="font-size:1.5rem;font-weight:800;font-family:var(--mono);color:var(--brand);">₹{{ goal.current_saved|default:0|floatformat:0 }}</div>
+  </div>
+  <div style="padding:16px 18px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--surface);">
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);display:block;margin-bottom:4px;">Target</span>
+    <div style="font-size:1.5rem;font-weight:800;font-family:var(--mono);">₹{{ goal.target_amount|default:0|floatformat:0 }}</div>
+  </div>
+  <div style="padding:16px 18px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--surface);">
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);display:block;margin-bottom:4px;">Monthly target</span>
+    <div style="font-size:1.5rem;font-weight:800;font-family:var(--mono);">₹{{ goal.suggested_monthly_saving|default:0|floatformat:0 }}</div>
+  </div>
+  <div style="padding:16px 18px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--surface);">
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);display:block;margin-bottom:4px;">Next savings</span>
+    <div style="font-size:1rem;font-weight:800;">{% if next_savings_date %}{{ next_savings_date|date:"d M Y" }}{% else %}—{% endif %}</div>
+  </div>
+</div>
+
+<!-- Progress bar -->
+{% with pct=goal.progress_percentage|default:0 %}
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 22px;margin-bottom:20px;">
+  <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+    <span style="font-weight:700;color:var(--text);">Progress</span>
+    <span style="font-family:var(--mono);font-weight:800;color:var(--brand);">{{ pct|default:0|floatformat:1 }}%</span>
+  </div>
+  <div style="height:12px;border-radius:999px;background:var(--surface-3);overflow:hidden;">
+    <div style="height:100%;border-radius:inherit;width:{% if pct > 100 %}100{% else %}{{ pct|default:0|floatformat:0 }}{% endif %}%;background:linear-gradient(90deg,var(--brand),#6366F1);transition:width .4s;"></div>
+  </div>
+  {% if goal.target_date %}<div style="font-size:.76rem;color:var(--text-3);margin-top:6px;">Target date: {{ goal.target_date|date:"d M Y" }}</div>{% endif %}
+</div>
+{% endwith %}
+
+<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px;">
+  <!-- Activity log -->
+  <div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+        <h2 style="margin:0;font-size:.96rem;color:var(--text);">Activity log</h2>
+      </div>
+      {% if activity_entries %}
+      {% for entry in activity_entries %}
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border);">
+        <div style="width:34px;height:34px;border-radius:10px;background:{% if entry.kind == 'ADD' %}var(--green-bg);color:var(--green){% else %}var(--red-bg);color:var(--red){% endif %};display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;">
+          <i class="fas fa-{% if entry.kind == 'ADD' %}arrow-down{% else %}arrow-up{% endif %}"></i>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.88rem;font-weight:700;color:var(--text);">{% if entry.kind == 'ADD' %}Added{% else %}Withdrawn{% endif %}</div>
+          <div style="font-size:.76rem;color:var(--text-3);">{{ entry.date|date:"d M Y" }}{% if entry.note %} · {{ entry.note }}{% endif %}</div>
+        </div>
+        <div style="font-family:var(--mono);font-weight:800;color:{% if entry.kind == 'ADD' %}var(--green){% else %}var(--red){% endif %};">{% if entry.kind == 'ADD' %}+{% else %}−{% endif %}₹{{ entry.amount|default:0|floatformat:2 }}</div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div style="padding:32px;text-align:center;color:var(--text-3);">No activity yet. Add your first contribution below.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Actions panel -->
+  <div>
+    <!-- Add funds -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;">
+      <h3 style="margin:0 0 14px;font-size:.9rem;color:var(--text);"><i class="fas fa-plus-circle" style="color:var(--brand);margin-right:8px;"></i>Add contribution</h3>
+      <form method="post" action="{% url 'autopilot:add_to_savings' goal.id %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Amount ₹ *</label>
+          <input type="number" step="0.01" min="0.01" name="amount" class="form-control" placeholder="0.00" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" name="entry_date" class="form-control" value="{% now 'Y-m-d' %}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Note</label>
+          <input type="text" name="note" class="form-control" placeholder="Optional">
+        </div>
+        <button type="submit" class="btn" style="width:100%;justify-content:center;padding:11px;"><i class="fas fa-save"></i> Add funds</button>
+      </form>
+    </div>
+
+    <!-- Withdraw -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;">
+      <h3 style="margin:0 0 14px;font-size:.9rem;color:var(--text);"><i class="fas fa-minus-circle" style="color:var(--red);margin-right:8px;"></i>Withdraw</h3>
+      <form method="post" action="{% url 'autopilot:withdraw_from_savings' goal.id %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Amount ₹</label>
+          <input type="number" step="0.01" min="0.01" name="amount" class="form-control" placeholder="0.00">
+        </div>
+        <button type="submit" class="btn-outline" style="width:100%;justify-content:center;padding:10px;color:var(--red);border-color:rgba(244,63,94,.3);" onclick="return confirm('Withdraw from this savings goal?')"><i class="fas fa-minus"></i> Withdraw</button>
+      </form>
+    </div>
+
+    <!-- AI strategies -->
+    {% if strategies %}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;">
+      <h3 style="margin:0 0 12px;font-size:.9rem;color:var(--text);"><i class="fas fa-brain" style="color:var(--yellow);margin-right:8px;"></i>Acceleration strategies</h3>
+      {% for s in strategies %}
+      <div style="padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px;">
+        <strong style="font-size:.83rem;color:var(--text);display:block;margin-bottom:3px;">{{ s.title|default:s }}</strong>
+        {% if s.description %}<p style="font-size:.76rem;color:var(--text-3);margin:0;line-height:1.45;">{{ s.description|truncatechars:100 }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

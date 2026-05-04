@@ -1,0 +1,133 @@
+{% extends "agency/base.html" %}
+{% block title %}{% if mode == 'edit' %}Edit Invoice{% else %}New Invoice{% endif %} — Agency — Finnova{% endblock %}
+
+{% block agency_content %}
+<style>
+.inv-layout { display:grid; grid-template-columns:1.5fr 1fr; gap:20px; }
+.inv-panel  { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl); padding:22px 24px; }
+.inv-panel h2 { font-size:.96rem; font-weight:700; color:var(--text); margin:0 0 16px; display:flex; align-items:center; gap:8px; }
+.inv-panel h2 i { color:var(--brand); }
+.flow-step { display:flex; gap:12px; align-items:flex-start; padding:10px 12px; border-radius:var(--r-md); background:var(--surface-2); border-left:3px solid var(--border); margin-bottom:8px; }
+.flow-step:last-child { margin-bottom:0; }
+.flow-step.active { border-left-color:var(--brand); background:var(--brand-glow); }
+.flow-step.warn   { border-left-color:var(--yellow); }
+.flow-step.info   { border-left-color:var(--blue); }
+.flow-num { width:22px; height:22px; border-radius:6px; background:var(--surface-3); color:var(--text-3); font-size:.7rem; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+.flow-step.active .flow-num { background:var(--brand); color:var(--bg); }
+.flow-text strong { display:block; font-size:.83rem; color:var(--text); margin-bottom:2px; }
+.flow-text span   { font-size:.76rem; color:var(--text-3); line-height:1.5; }
+@media(max-width:900px){ .inv-layout{grid-template-columns:1fr} }
+</style>
+
+<div class="page-container-head" style="margin-bottom:18px;">
+  <div>
+    <h1>{% if mode == 'edit' %}Edit invoice{% else %}Create invoice{% endif %}</h1>
+    <p>{% if mode == 'edit' %}Update the invoice details below.{% else %}Invoice number is auto-generated. Client will receive a payment link when you send it.{% endif %}</p>
+  </div>
+  <a href="{% url 'agency:receivables_dashboard' %}" class="btn-outline sm"><i class="fas fa-arrow-left"></i> Back</a>
+</div>
+
+{% if messages %}
+<div style="margin-bottom:16px;">
+  {% for msg in messages %}
+  <div class="alert-info alert-info-{{ msg.tags|default:'info' }}" style="margin-bottom:8px;">
+    <i class="fas fa-circle-info"></i><div>{{ msg }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="inv-layout">
+
+  <!-- Form -->
+  <div class="inv-panel">
+    <h2><i class="fas fa-file-invoice-dollar"></i> Invoice details</h2>
+    <form method="post">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="alert-info alert-info-danger" style="margin-bottom:14px;">
+        <i class="fas fa-circle-xmark"></i>
+        <div>{{ form.non_field_errors.0 }}</div>
+      </div>
+      {% endif %}
+
+      <div class="form-section-grid">
+        {% for field in form %}
+        <div class="form-group {% if field.name in 'title,notes' %}style='grid-column:1/-1'{% endif %}">
+          <label class="form-label">
+            {{ field.label }}{% if field.field.required %} <span class="req">*</span>{% endif %}
+          </label>
+          {{ field }}
+          {% if field.errors %}
+            <div class="form-section-error">{{ field.errors.0 }}</div>
+          {% endif %}
+          {% if field.help_text %}
+            <div class="form-section-hint">{{ field.help_text }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="form-section-actions" style="margin-top:18px;">
+        <button type="submit" class="btn">
+          <i class="fas fa-save"></i>
+          {% if mode == 'edit' %}Save changes{% else %}Create invoice{% endif %}
+        </button>
+        <a href="{% url 'agency:receivables_dashboard' %}" class="btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Sidebar -->
+  <div>
+    <!-- Invoice workflow -->
+    <div class="inv-panel" style="margin-bottom:14px;">
+      <h2><i class="fas fa-route"></i> Invoice workflow</h2>
+      <div class="flow-step {% if mode == 'create' %}active{% endif %}">
+        <div class="flow-num">1</div>
+        <div class="flow-text">
+          <strong>Create as Draft</strong>
+          <span>Review and edit before sending. Client won't see this yet.</span>
+        </div>
+      </div>
+      <div class="flow-step warn">
+        <div class="flow-num">2</div>
+        <div class="flow-text">
+          <strong>Send to client</strong>
+          <span>Client receives email with a secure payment link. Invoice status moves to Sent.</span>
+        </div>
+      </div>
+      <div class="flow-step info">
+        <div class="flow-num">3</div>
+        <div class="flow-text">
+          <strong>Client pays online</strong>
+          <span>Via UPI or card on the client portal. Payment is processed via Razorpay.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num" style="background:var(--green-bg);color:var(--green);">4</div>
+        <div class="flow-text">
+          <strong>Auto-posted to Finance</strong>
+          <span>Income record created instantly. Autopilot builds your money-split plan.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- GST note -->
+    <div class="panel" style="border-color:var(--border-brand);background:var(--brand-glow);">
+      <div style="font-size:.84rem;color:var(--text-2);line-height:1.6;">
+        <strong style="color:var(--brand);display:block;margin-bottom:6px;"><i class="fas fa-info-circle"></i> GST auto-calculation</strong>
+        If you are GST-registered and the amount entered is inclusive of GST, Finnova will automatically calculate the 18% portion and lock it into your GST Reserve when income is posted. Set your GST status in <a href="{% url 'finnovaapp:settings' %}" style="color:var(--brand);font-weight:700;">Settings → Tax</a>.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<style>
+/* Make Django form fields use fv-system styles */
+.form-group select,
+.form-group input,
+.form-group textarea { width:100%; }
+</style>
+{% endblock %}

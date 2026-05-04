@@ -1,0 +1,228 @@
+{% extends 'finnovaapp/base.html' %}
+
+{% block title %}Settings — Finnova{% endblock %}
+
+{% block content %}
+<!-- D1: Rebuilt with design system — mod-hero + panels -->
+<div class="mod-hero">
+  <span class="mod-kicker">Account settings</span>
+  <h1>Settings</h1>
+  <p>Manage preferences that shape your shell, notifications, privacy defaults, and connected workflows.</p>
+</div>
+
+<div style="display:grid;gap:20px;">
+
+  <!-- Panel 1: Account Settings -->
+  <div class="panel">
+    <div class="panel-head">
+      <h2><i class="fas fa-user-circle" style="color:var(--brand);margin-right:8px;"></i>Account settings</h2>
+    </div>
+    <form method="post" style="padding-top:4px;">
+      {% csrf_token %}
+      <div class="form-grid" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label class="form-label">Email address</label>
+          <input type="email" name="email" class="form-control" value="{{ account_settings.user.email }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone number</label>
+          <input type="text" name="phone" class="form-control" value="{{ account_settings.user.phone|default:'' }}" placeholder="+91 98765 43210">
+        </div>
+      </div>
+      <div class="form-grid" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label class="form-label">Preferred currency</label>
+          <select name="preferred_currency" class="form-control">
+            <option value="INR" {% if account_settings.user.preferred_currency == 'INR' %}selected{% endif %}>INR — Indian Rupee</option>
+            <option value="USD" {% if account_settings.user.preferred_currency == 'USD' %}selected{% endif %}>USD — US Dollar</option>
+            <option value="EUR" {% if account_settings.user.preferred_currency == 'EUR' %}selected{% endif %}>EUR — Euro</option>
+            <option value="GBP" {% if account_settings.user.preferred_currency == 'GBP' %}selected{% endif %}>GBP — British Pound</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Language</label>
+          <select name="language" class="form-control">
+            <option value="en" {% if account_settings.user.language == 'en' %}selected{% endif %}>English</option>
+            <option value="hi" {% if account_settings.user.language == 'hi' %}selected{% endif %}>Hindi</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:20px;">
+        <label class="form-label">Timezone</label>
+        <select name="timezone" class="form-control" style="max-width:400px;">
+          <option value="Asia/Kolkata" {% if account_settings.user.timezone == 'Asia/Kolkata' %}selected{% endif %}>Asia/Kolkata (IST +5:30)</option>
+          <option value="America/New_York" {% if account_settings.user.timezone == 'America/New_York' %}selected{% endif %}>America/New_York (ET)</option>
+          <option value="Europe/London" {% if account_settings.user.timezone == 'Europe/London' %}selected{% endif %}>Europe/London (GMT)</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button type="submit" name="account_settings" class="btn"><i class="fas fa-check"></i> Save account settings</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Panel 2: Security -->
+  <div class="panel">
+    <div class="panel-head">
+      <h2><i class="fas fa-shield-halved" style="color:var(--brand);margin-right:8px;"></i>Security</h2>
+    </div>
+    <form method="post" style="padding-top:4px;">
+      {% csrf_token %}
+      <div class="form-grid" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label class="form-label">Current password</label>
+          <input type="password" name="current_password" class="form-control" placeholder="Enter current password">
+        </div>
+        <div class="form-group">
+          <label class="form-label">New password</label>
+          <input type="password" name="new_password" class="form-control" placeholder="Enter new password">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button type="submit" name="security_settings" class="btn"><i class="fas fa-lock"></i> Update password</button>
+        <a href="{% url 'finnovaapp:change_password' %}" class="btn-outline">Advanced security</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Panel 3: Tax & GST -->
+  <div class="panel">
+    <div class="panel-head">
+      <h2><i class="fas fa-file-invoice" style="color:var(--brand);margin-right:8px;"></i>Tax &amp; GST</h2>
+    </div>
+    <div style="padding:4px 0 16px;font-size:.85rem;color:var(--text-3);">
+      GST registration and tax settings are configured during onboarding and can be updated from your profile metadata.
+      <a href="{% url 'audit:gst_dashboard' %}" class="btn-outline" style="margin-left:10px;font-size:.8rem;">Open GST dashboard</a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
+      <div class="metric" style="cursor:default;">
+        <div class="metric-label">GST status</div>
+        <div class="metric-value" style="font-size:1rem;">
+          {% if account_settings.gst_registered == 'yes' %}
+          <span class="badge badge-green"><i class="fas fa-check"></i> Registered</span>
+          {% else %}
+          <span class="badge badge-neutral">Not registered</span>
+          {% endif %}
+        </div>
+      </div>
+      {% if account_settings.gstin %}
+      <div class="metric" style="cursor:default;">
+        <div class="metric-label">GSTIN</div>
+        <div class="metric-value" style="font-size:.9rem;font-family:var(--mono);">{{ account_settings.gstin }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Panel 4: Notification preferences -->
+  <div class="panel">
+    <div class="panel-head">
+      <h2><i class="fas fa-bell" style="color:var(--brand);margin-right:8px;"></i>Notification preferences</h2>
+    </div>
+    <form method="post" style="padding-top:4px;">
+      {% csrf_token %}
+      <div style="display:grid;gap:14px;margin-bottom:20px;">
+        <label class="list-item" style="cursor:pointer;gap:14px;">
+          <input type="checkbox" name="email_notifications" {% if notification_settings.email_notifications %}checked{% endif %}>
+          <div>
+            <div style="font-weight:600;font-size:.88rem;">Email notifications</div>
+            <div style="font-size:.78rem;color:var(--text-3);">Invoice confirmations, approval requests, weekly digest</div>
+          </div>
+        </label>
+        <label class="list-item" style="cursor:pointer;gap:14px;">
+          <input type="checkbox" name="sms_notifications" {% if notification_settings.sms_notifications %}checked{% endif %}>
+          <div>
+            <div style="font-weight:600;font-size:.88rem;">SMS notifications</div>
+            <div style="font-size:.78rem;color:var(--text-3);">Critical payment alerts only</div>
+          </div>
+        </label>
+        <label class="list-item" style="cursor:pointer;gap:14px;">
+          <input type="checkbox" name="push_notifications" {% if notification_settings.push_notifications %}checked{% endif %}>
+          <div>
+            <div style="font-weight:600;font-size:.88rem;">In-app notifications</div>
+            <div style="font-size:.78rem;color:var(--text-3);">Real-time alerts in the notification panel</div>
+          </div>
+        </label>
+        <label class="list-item" style="cursor:pointer;gap:14px;">
+          <input type="checkbox" name="autopilot_enabled" {% if notification_settings.autopilot_enabled %}checked{% endif %}>
+          <div>
+            <div style="font-weight:600;font-size:.88rem;">Autopilot guidance</div>
+            <div style="font-size:.78rem;color:var(--text-3);">Get notified when Autopilot needs your approval</div>
+          </div>
+        </label>
+        <label class="list-item" style="cursor:pointer;gap:14px;">
+          <input type="checkbox" name="weekly_digest" {% if notification_settings.weekly_digest %}checked{% endif %}>
+          <div>
+            <div style="font-weight:600;font-size:.88rem;">Weekly digest</div>
+            <div style="font-size:.78rem;color:var(--text-3);">Summary of income, expenses, and savings every Monday</div>
+          </div>
+        </label>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button type="submit" name="notification_settings" class="btn"><i class="fas fa-check"></i> Save preferences</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Privacy + Integrations row -->
+  <div class="g2">
+    <div class="panel">
+      <div class="panel-head">
+        <h2><i class="fas fa-eye-slash" style="color:var(--brand);margin-right:8px;"></i>Privacy</h2>
+      </div>
+      <form method="post" style="padding-top:4px;">
+        {% csrf_token %}
+        <div style="display:grid;gap:12px;margin-bottom:20px;">
+          <label style="display:flex;align-items:center;gap:10px;font-size:.86rem;cursor:pointer;">
+            <input type="checkbox" name="show_profile" {% if privacy_settings.show_profile %}checked{% endif %}>
+            Show profile details in shared workflows
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;font-size:.86rem;cursor:pointer;">
+            <input type="checkbox" name="share_analytics" {% if privacy_settings.share_analytics %}checked{% endif %}>
+            Share anonymous analytics
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;font-size:.86rem;cursor:pointer;">
+            <input type="checkbox" name="personalization" {% if privacy_settings.personalization %}checked{% endif %}>
+            Allow personalized recommendations
+          </label>
+        </div>
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">Data retention</label>
+          <select name="data_retention" class="form-control">
+            <option value="3 months" {% if privacy_settings.data_retention == '3 months' %}selected{% endif %}>3 months</option>
+            <option value="6 months" {% if privacy_settings.data_retention == '6 months' %}selected{% endif %}>6 months</option>
+            <option value="1 year" {% if privacy_settings.data_retention == '1 year' %}selected{% endif %}>1 year</option>
+            <option value="Indefinite" {% if privacy_settings.data_retention == 'Indefinite' %}selected{% endif %}>Indefinite</option>
+          </select>
+        </div>
+        <button type="submit" name="privacy_settings" class="btn"><i class="fas fa-check"></i> Save privacy</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2><i class="fas fa-plug" style="color:var(--brand);margin-right:8px;"></i>Integrations</h2>
+      </div>
+      <form method="post" style="padding-top:4px;">
+        {% csrf_token %}
+        <div style="display:grid;gap:12px;margin-bottom:20px;">
+          <label style="display:flex;align-items:center;gap:10px;font-size:.86rem;cursor:pointer;">
+            <input type="checkbox" name="bank_sync" {% if integration_settings.bank_sync %}checked{% endif %}>
+            Bank sync
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;font-size:.86rem;cursor:pointer;">
+            <input type="checkbox" name="email_sync" {% if integration_settings.email_sync %}checked{% endif %}>
+            Email sync
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;font-size:.86rem;cursor:pointer;">
+            <input type="checkbox" name="calendar_sync" {% if integration_settings.calendar_sync %}checked{% endif %}>
+            Calendar sync
+          </label>
+        </div>
+        <button type="submit" name="integration_settings" class="btn"><i class="fas fa-check"></i> Save integrations</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

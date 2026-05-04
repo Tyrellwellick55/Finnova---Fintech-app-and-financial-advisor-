@@ -1,0 +1,52 @@
+{% extends 'finnovaapp/base.html' %}
+
+{% block title %}Policies | Finnova{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Policies & Controls</h1>
+  <p class="text-muted">Set approval thresholds and quiet hours for notifications.</p>
+</div>
+
+<div class="card">
+  <div style="padding:6px 0">
+    <form method="post">
+      {% csrf_token %}
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="grid-column: 1 / -1;">
+          <label style="display:flex; align-items:center; gap: 10px; font-weight:700;">
+            {{ form.approval_required }}
+            Require human approval for high-risk autopilot actions
+          </label>
+        </div>
+
+        <div>
+          <label class="form-label">Max autopay amount</label>
+          {{ form.max_autopay_amount }}
+        </div>
+
+        <div>
+          <label class="form-label">Transfer approval threshold</label>
+          {{ form.transfer_approval_threshold }}
+        </div>
+
+        <div>
+          <label class="form-label">Quiet hours start</label>
+          {{ form.quiet_hours_start }}
+        </div>
+
+        <div>
+          <label class="form-label">Quiet hours end</label>
+          {{ form.quiet_hours_end }}
+        </div>
+      </div>
+
+      <div style="margin-top:16px; display:flex; gap:10px;">
+        <button class="btn btn-primary" type="submit">Save policies</button>
+        <a class="btn btn-outline" href="{% url 'finnovaapp:ops_console' %}">Back to Ops</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

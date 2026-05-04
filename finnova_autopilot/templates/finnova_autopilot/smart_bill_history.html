@@ -1,0 +1,73 @@
+{% extends "finnova_autopilot/base_autopilot.html" %}
+{% block title %}{{ bill.biller_name }} History — Autopilot — Finnova{% endblock %}
+
+{% block autopilot_content %}
+<div class="page-header">
+  <div>
+    <h1>{{ bill.biller_name }}</h1>
+    <p>Full payment history for this biller — all cycles tracked by Autopilot.</p>
+  </div>
+  <a href="{% url 'autopilot:smart_bills' %}" class="btn-outline"><i class="fas fa-arrow-left"></i> Smart Bills</a>
+</div>
+
+<!-- Bill summary card -->
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px;">
+  <div style="padding:16px 18px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--surface);">
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);display:block;margin-bottom:4px;">Current amount</span>
+    <div style="font-size:1.5rem;font-weight:800;font-family:var(--mono);">₹{{ bill.amount|default:0|floatformat:2 }}</div>
+  </div>
+  <div style="padding:16px 18px;border-radius:var(--r-lg);border:1px solid {% if bill.status == 'OVERDUE' %}rgba(244,63,94,.3){% else %}var(--border){% endif %};background:{% if bill.status == 'OVERDUE' %}var(--red-bg){% else %}var(--surface){% endif %};">
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:{% if bill.status == 'OVERDUE' %}var(--red){% else %}var(--text-3){% endif %};display:block;margin-bottom:4px;">Status</span>
+    <div style="font-size:1.1rem;font-weight:800;color:{% if bill.status == 'OVERDUE' %}var(--red){% elif bill.status == 'PAID' %}var(--green){% else %}var(--text){% endif %};">{{ bill.get_status_display }}</div>
+  </div>
+  <div style="padding:16px 18px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--surface);">
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);display:block;margin-bottom:4px;">Due date</span>
+    <div style="font-size:1.1rem;font-weight:800;">{{ bill.due_date|date:"d M Y" }}</div>
+  </div>
+  <div style="padding:16px 18px;border-radius:var(--r-lg);border:1px solid {% if bill.auto_pay %}var(--border-brand){% else %}var(--border){% endif %};background:{% if bill.auto_pay %}var(--brand-glow){% else %}var(--surface){% endif %};">
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:{% if bill.auto_pay %}var(--brand){% else %}var(--text-3){% endif %};display:block;margin-bottom:4px;">Auto-pay</span>
+    <div style="font-size:1.1rem;font-weight:800;color:{% if bill.auto_pay %}var(--brand){% else %}var(--text-3){% endif %};">{% if bill.auto_pay %}Armed{% else %}Off{% endif %}</div>
+  </div>
+</div>
+
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+    <h2 style="margin:0;font-size:.96rem;color:var(--text);">Payment history ({{ history|length }} records)</h2>
+    <a href="{% url 'autopilot:smart_bills' %}" class="btn-outline" style="padding:6px 14px;font-size:.82rem;"><i class="fas fa-plus"></i> Add new cycle</a>
+  </div>
+
+  <!-- Header row -->
+  <div style="display:grid;grid-template-columns:2fr 1fr 120px 120px 100px;gap:14px;padding:10px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);">
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Period / description</div>
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Due date</div>
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Status</div>
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Amount</div>
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Auto-pay</div>
+  </div>
+
+  {% if history %}
+  {% for h in history %}
+  <div style="display:grid;grid-template-columns:2fr 1fr 120px 120px 100px;gap:14px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border);transition:background .15s;">
+    <div>
+      <strong style="font-size:.9rem;color:var(--text);display:block;">{{ h.biller_name }}</strong>
+      <span style="font-size:.75rem;color:var(--text-3);">{{ h.get_biller_category_display }}{% if h.bill_period %} · {{ h.bill_period }}{% endif %}</span>
+    </div>
+    <div style="font-size:.86rem;color:var(--text-2);">{{ h.due_date|date:"d M Y" }}</div>
+    <div>
+      <span style="padding:3px 9px;border-radius:999px;font-size:.7rem;font-weight:800;background:{% if h.status == 'PAID' %}var(--green-bg);color:var(--green){% elif h.status == 'OVERDUE' %}var(--red-bg);color:var(--red){% elif h.status == 'SKIPPED' %}var(--surface-3);color:var(--text-3){% else %}var(--blue-bg);color:var(--blue){% endif %};">{{ h.get_status_display }}</span>
+    </div>
+    <div style="font-family:var(--mono);font-weight:800;font-size:.9rem;">₹{{ h.amount|default:0|floatformat:2 }}</div>
+    <div>
+      {% if h.auto_pay %}
+      <span class="badge badge-green"><i class="fas fa-bolt"></i> On</span>
+      {% else %}
+      <span style="font-size:.75rem;color:var(--text-3);">Off</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div style="padding:40px;text-align:center;color:var(--text-3);">No payment history found for this biller.</div>
+  {% endif %}
+</div>
+{% endblock %}

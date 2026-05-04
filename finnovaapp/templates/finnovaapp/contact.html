@@ -1,0 +1,21 @@
+{% extends 'finnovaapp/base.html' %}
+{% block title %}Contact — Finnova{% endblock %}
+
+{% block content %}
+<div style="max-width:620px;margin:0 auto;">
+  <div class="page-header"><div><h1>Contact</h1><p>Get in touch with the Finnova team.</p></div></div>
+  <div class="card">
+    <div style="display:grid;gap:14px;">
+      <div style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+        <div style="width:38px;height:38px;border-radius:10px;background:var(--brand-glow);color:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-envelope"></i></div>
+        <div><div style="font-size:.88rem;font-weight:700;color:var(--text);">Support</div><div style="font-size:.8rem;color:var(--text-3);">support@finnova.in</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+        <div style="width:38px;height:38px;border-radius:10px;background:var(--brand-glow);color:var(--brand);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-file-alt"></i></div>
+        <div><div style="font-size:.88rem;font-weight:700;color:var(--text);">Documentation</div><a href="#" style="font-size:.8rem;color:var(--brand);">docs.finnova.in</a></div>
+      </div>
+    </div>
+    <div style="margin-top:20px;"><a href="{% url 'finnovaapp:dashboard' %}" class="btn btn-outline btn-sm">Back to dashboard</a></div>
+  </div>
+</div>
+{% endblock %}

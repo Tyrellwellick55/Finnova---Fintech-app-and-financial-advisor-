@@ -1,0 +1,215 @@
+{% extends "finnova_autopilot/base_autopilot.html" %}
+{% block title %}Savings Goals — Autopilot — Finnova{% endblock %}
+
+{% block autopilot_extra_css %}
+<style>
+/* Goal cards — Fi Money "jars" style */
+.goal-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
+.goal-jar {
+  padding:20px;
+  border-radius:var(--r-xl);
+  border:1px solid var(--border);
+  background:var(--surface);
+  transition:border-color .2s, transform .2s;
+}
+.goal-jar:hover { border-color:var(--border-2); transform:translateY(-2px); }
+.goal-jar.priority-CRITICAL { border-left:3px solid var(--red); }
+.goal-jar.priority-HIGH     { border-left:3px solid #F97316; }
+.goal-jar.priority-MEDIUM   { border-left:3px solid var(--yellow); }
+.goal-jar.priority-LOW      { border-left:3px solid var(--brand); }
+.goal-jar.achieved          { border-color:var(--brand); background:var(--surface); }
+.gj-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px; }
+.gj-name { font-weight:800; font-size:.95rem; color:var(--text); margin:0 0 3px; }
+.gj-priority { padding:2px 8px; border-radius:999px; font-size:.68rem; font-weight:800; }
+.gj-amounts { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
+.gj-saved { font-family:var(--mono); font-size:1.2rem; font-weight:800; color:var(--text); }
+.gj-target { font-family:var(--mono); font-size:.85rem; color:var(--text-3); }
+.gj-bar-track { height:6px; border-radius:999px; background:var(--surface-3); overflow:hidden; margin-bottom:10px; }
+.gj-bar-fill  { height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--brand),#6366F1); }
+.gj-bar-fill.achieved { background:linear-gradient(90deg,var(--brand),#00DFA0); }
+.gj-meta { font-size:.76rem; color:var(--text-3); display:flex; justify-content:space-between; }
+.gj-actions { display:flex; gap:6px; margin-top:12px; flex-wrap:wrap; }
+.gj-btn { padding:5px 11px; border-radius:9px; border:1px solid var(--border); background:var(--surface-2); color:var(--text-2); font-size:.76rem; font-weight:700; cursor:pointer; text-decoration:none; transition:.15s; }
+.gj-btn:hover { border-color:var(--brand); color:var(--brand); }
+.gj-btn.primary { background:var(--brand); border-color:var(--brand); color:var(--bg); }
+/* Create form panel */
+.create-panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl); padding:20px; position:sticky; top:84px; }
+.create-panel h2 { margin:0 0 16px; font-size:.95rem; color:var(--text); }
+.cp-field { margin-bottom:12px; }
+.cp-field label { display:block; font-size:.76rem; font-weight:700; color:var(--text-2); margin-bottom:4px; }
+.cp-field input, .cp-field select { width:100%; padding:9px 12px; border-radius:var(--r-md); border:1px solid var(--border-2); background:var(--bg-3); color:var(--text); font:inherit; font-size:.85rem; }
+.cp-field input:focus, .cp-field select:focus { outline:none; border-color:var(--brand); box-shadow:0 0 0 3px var(--brand-glow); }
+.cp-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.cp-check { display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:12px; }
+.cp-check input { width:15px; height:15px; }
+.cp-check span { font-size:.83rem; font-weight:600; color:var(--text-2); }
+@media(max-width:1100px){ .create-panel{position:static} }
+@media(max-width:640px){ }
+</style>
+{% endblock %}
+
+{% block autopilot_content %}
+<!-- Hero -->
+<div class="autopilot-hero" style="margin-bottom:20px;">
+  <span class="autopilot-kicker">Autopilot · Savings</span>
+  <h1>Savings goals</h1>
+  <p>Set financial targets, let Autopilot monitor monthly progress, and get contribution recommendations based on your actual cash position.</p>
+</div>
+
+<!-- KPIs -->
+<div class="metrics">
+  <div class="metric" style="border-color:var(--border-brand);background:var(--brand-glow);">
+    <span class="metric-label" style="color:var(--brand);">Active goals</span>
+    <div class="metric-value" style="color:var(--brand);">{{ stats.active }}</div>
+  </div>
+  <div class="metric">
+    <span class="metric-label">Total saved</span>
+    <div class="metric-value">₹{{ stats.total_saved|default:0|floatformat:0 }}</div>
+  </div>
+  <div class="metric">
+    <span class="metric-label">Total target</span>
+    <div class="metric-value">₹{{ stats.total_target|default:0|floatformat:0 }}</div>
+  </div>
+  <div class="metric" style="border-color:rgba(16,185,129,.3);background:var(--green-bg);">
+    <span class="metric-label" style="color:var(--green);">On track</span>
+    <div class="metric-value" style="color:var(--green);">{{ stats.on_track }}</div>
+  </div>
+</div>
+
+<div class="grid-sb">
+  <!-- Goals grid -->
+  <div>
+    <!-- Filters -->
+    <form method="get" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:16px;">
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
+        <label style="font-size:.72rem;font-weight:700;color:var(--text-3);">Status</label>
+        <select name="status" style="padding:8px 11px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;">
+          <option value="">All</option>
+          <option value="active"   {% if status_filter == "active" %}selected{% endif %}>Active</option>
+          <option value="paused"   {% if status_filter == "paused" %}selected{% endif %}>Paused</option>
+          <option value="achieved" {% if status_filter == "achieved" %}selected{% endif %}>Achieved</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
+        <label style="font-size:.72rem;font-weight:700;color:var(--text-3);">Priority</label>
+        <select name="priority" style="padding:8px 11px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;">
+          <option value="">All</option>
+          <option value="LOW"      {% if priority_filter == "LOW" %}selected{% endif %}>Low</option>
+          <option value="MEDIUM"   {% if priority_filter == "MEDIUM" %}selected{% endif %}>Medium</option>
+          <option value="HIGH"     {% if priority_filter == "HIGH" %}selected{% endif %}>High</option>
+          <option value="CRITICAL" {% if priority_filter == "CRITICAL" %}selected{% endif %}>Critical</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex:2;min-width:160px;">
+        <label style="font-size:.72rem;font-weight:700;color:var(--text-3);">Search</label>
+        <input type="search" name="search" value="{{ search_query }}" placeholder="Goal name…" style="padding:8px 11px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;">
+      </div>
+      <div style="display:flex;gap:6px;align-items:flex-end;">
+        <button type="submit" class="btn" style="min-height:37px;padding:8px 14px;">Filter</button>
+        <a href="{% url 'autopilot:savings' %}" class="btn-outline" style="min-height:37px;padding:8px 12px;">Reset</a>
+      </div>
+    </form>
+
+    {% if goals %}
+    <div class="goal-grid">
+      {% for goal in goals %}
+      <div class="goal-jar priority-{{ goal.priority }} {% if goal.status == 'ACHIEVED' %}achieved{% endif %}">
+        <div class="gj-top">
+          <p class="gj-name">{{ goal.goal_name }}</p>
+          <span class="gj-priority
+            {% if goal.priority == 'CRITICAL' %}badge-red
+            {% elif goal.priority == 'HIGH' %}badge-yellow
+            {% elif goal.priority == 'MEDIUM' %}badge-blue
+            {% else %}badge-brand{% endif %}">{{ goal.get_priority_display }}</span>
+        </div>
+        <div class="gj-amounts">
+          <span class="gj-saved">₹{{ goal.current_saved|default:0|floatformat:0 }}</span>
+          <span class="gj-target">of ₹{{ goal.target_amount|default:0|floatformat:0 }}</span>
+        </div>
+        <div class="gj-bar-track">
+          <div class="gj-bar-fill {% if goal.status == 'ACHIEVED' %}achieved{% endif %}" style="width:{% if goal.progress_percentage > 100 %}100{% else %}{{ goal.progress_percentage|default:0|floatformat:0 }}{% endif %}%;"></div>
+        </div>
+        <div class="gj-meta">
+          <span>{{ goal.progress_percentage|default:0|floatformat:0 }}% complete</span>
+          <span>Target: {{ goal.target_date|date:"d M Y" }}</span>
+        </div>
+        {% if goal.suggested_monthly_saving or goal.required_monthly_saving %}
+        <div style="margin-top:10px;padding:8px 10px;border-radius:var(--r-sm);background:var(--surface-2);font-size:.76rem;color:var(--text-3);">
+          <i class="fas fa-calendar" style="color:var(--brand);margin-right:5px;"></i>
+          Save ₹{{ goal.suggested_monthly_saving|default:goal.required_monthly_saving|default:0|floatformat:0 }}/month to stay on track
+        </div>
+        {% endif %}
+        <div class="gj-actions">
+          <a href="{% url 'autopilot:savings_detail' goal.id %}" class="gj-btn primary"><i class="fas fa-arrow-right"></i> Open</a>
+          {% if goal.status != 'ACHIEVED' %}
+          <a href="{% url 'autopilot:add_to_savings' goal.id %}" class="gj-btn"><i class="fas fa-plus"></i> Add</a>
+          {% if goal.status == 'ACTIVE' %}
+          <form method="post" action="{% url 'autopilot:pause_savings_goal' goal.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="gj-btn"><i class="fas fa-pause"></i></button>
+          </form>
+          {% else %}
+          <form method="post" action="{% url 'autopilot:resume_savings_goal' goal.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="gj-btn"><i class="fas fa-play"></i></button>
+          </form>
+          {% endif %}
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">
+      <span class="empty-icon"><i class="fas fa-piggy-bank"></i></span>
+      <h3>No savings goals yet</h3>
+      <p>Create your first goal using the form on the right. Autopilot will monitor progress against your Finance data.</p>
+    </div>
+    {% endif %}
+
+    {% if recommendations %}
+    <div style="margin-top:20px;">
+      <div style="font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);margin-bottom:12px;">AI recommendations</div>
+      <div style="display:grid;gap:10px;">
+        {% for rec in recommendations %}
+        <div style="padding:14px 16px;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--border);">
+          <strong style="font-size:.88rem;color:var(--text);display:block;margin-bottom:3px;">{{ rec.title }}</strong>
+          <span style="font-size:.8rem;color:var(--text-2);">{{ rec.description }}</span>
+          <div style="margin-top:6px;font-size:.76rem;color:var(--brand);">
+            <i class="fas fa-bolt"></i> Monthly impact: ₹{{ rec.potential_savings|default:0|floatformat:2 }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Create goal form -->
+  <div>
+    <div class="create-panel">
+      <h2><i class="fas fa-plus-circle" style="color:var(--brand);margin-right:8px;"></i>Create savings goal</h2>
+      <form method="post">
+        {% csrf_token %}
+        <div class="cp-field"><label>Goal name *</label>{{ form.goal_name }}</div>
+        <div class="cp-row">
+          <div class="cp-field"><label>Target amount *</label>{{ form.target_amount }}</div>
+          <div class="cp-field"><label>Priority</label>{{ form.priority }}</div>
+        </div>
+        <div class="cp-row">
+          <div class="cp-field"><label>Target date</label>{{ form.target_date }}</div>
+          <div class="cp-field"><label>Monthly saving</label>{{ form.suggested_monthly_saving }}</div>
+        </div>
+        <div class="cp-row">
+          <div class="cp-field"><label>Savings day</label>{{ form.savings_day }}</div>
+          <div class="cp-field"><label>Auto-save account</label>{{ form.auto_save_account }}</div>
+        </div>
+        <label class="cp-check">{{ form.is_auto_save }}<span>Enable auto-save tracking</span></label>
+        <button type="submit" class="btn" style="width:100%;justify-content:center;padding:12px;">
+          <i class="fas fa-save"></i> Create goal
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

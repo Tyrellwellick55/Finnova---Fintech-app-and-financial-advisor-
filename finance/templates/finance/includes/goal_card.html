@@ -1,0 +1,26 @@
+<article class="card">
+    <div class="finance-split">
+        <div>
+            <h3>{{ goal.name }}</h3>
+            <p>{{ goal.get_goal_type_display }}{% if goal.target_date %} by {{ goal.target_date }}{% endif %}</p>
+        </div>
+        <span class="badge {% if goal.status == 'ACHIEVED' %}is-success{% elif goal.status == 'ON_HOLD' %}is-warning{% else %}is-info{% endif %}">{{ goal.get_status_display }}</div>
+    </div>
+    <div class="finance-list-compact" style="margin-top: 0.9rem;">
+        <div class="finance-split">
+            <span class="metric-sub">Current</span>
+            <strong>{{ request.user.preferred_currency|default:"INR" }} {{ goal.current_amount|default:0|floatformat:2 }}</strong>
+        </div>
+        <div class="finance-split">
+            <span class="metric-sub">Target</span>
+            <strong>{{ request.user.preferred_currency|default:"INR" }} {{ goal.target_amount|default:0|floatformat:2 }}</strong>
+        </div>
+    </div>
+    <div style="margin: 0.9rem 0 0.55rem;" class="progress">
+        <span style="width: {{ goal.progress_display|default:0|floatformat:0 }}%;"></span>
+    </div>
+    <div class="finance-split">
+        <span class="metric-sub">{{ goal.progress_percentage|default:0|floatformat:1 }}% funded</span>
+        <a href="{% url 'finance:goal_detail' goal.id %}" class="btn-outline">Open</a>
+    </div>
+</article>

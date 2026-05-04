@@ -1,0 +1,151 @@
+{% load nav_extras %}
+{% extends 'audit/base_audit.html' %}
+{% block title %}Add Compliance — Audit — Finnova{% endblock %}
+
+{% block audit_content %}
+<div class="audit-header">
+  <div><h1 class="audit-title"><i class="fas fa-clipboard-plus" style="color:var(--brand);"></i> Add Compliance Record</h1>
+  <p class="audit-breadcrumb"><a href="{% url 'audit:dashboard' %}">Audit</a> → <a href="{% url 'audit:compliance' %}">Compliance</a> → Add</p></div>
+  <a href="{% url 'audit:compliance' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Compliance</a>
+</div>
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px;">
+  <div class="audit-card">
+    <form method="post" style="padding:18px;">{% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Compliance type *</label>
+        <select name="compliance_type" class="form-control form-select" required>
+          <option value="KYC">KYC</option><option value="AML">AML</option>
+          <option value="GDPR">GDPR</option><option value="PCI_DSS">PCI DSS</option>
+          <option value="ISO">ISO</option><option value="CUSTOM">Custom</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Requirement *</label>
+        <input type="text" name="requirement" class="form-control" placeholder="Describe the compliance requirement" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea name="description" class="form-control" rows="3" placeholder="Additional details…"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Assign to user</label>
+          <select name="user" class="form-control form-select">
+            <option value="">System-wide</option>
+            <option value="{{ u.id }}">{{ u.username }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Due date *</label>
+          <input type="date" name="due_date" class="form-control" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Priority</label>
+        <select name="priority" class="form-control form-select">
+          <option value="LOW">Low</option><option value="MEDIUM" selected>Medium</option>
+          <option value="HIGH">High</option><option value="CRITICAL">Critical</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Create record</button>
+    </form>
+  </div>
+  <div class="audit-card">
+    <div class="card-header"><h2>Compliance types</h2></div>
+    <div style="display:grid;gap:8px;padding:16px 18px;">
+      {% for label, desc in "KYC:Know Your Customer — identity verification,AML:Anti-Money Laundering checks,GDPR:EU data protection requirements,PCI DSS:Payment card industry standards"|split:"," %}
+      
+      <div style="padding:9px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+        <strong style="font-size:.84rem;color:var(--text);display:block;">KYC</strong>
+        <span style="font-size:.76rem;color:var(--text-3);">Know Your Customer — identity verification</span>
+      </div>
+      
+      <option value="{{ u.id }}">{{ u.username }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Due date *</label>
+          <input type="date" name="due_date" class="form-control" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Priority</label>
+        <select name="priority" class="form-control form-select">
+          <option value="LOW">Low</option><option value="MEDIUM" selected>Medium</option>
+          <option value="HIGH">High</option><option value="CRITICAL">Critical</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Create record</button>
+    </form>
+  </div>
+  <div class="audit-card">
+    <div class="card-header"><h2>Compliance types</h2></div>
+    <div style="display:grid;gap:8px;padding:16px 18px;">
+      {% for label, desc in "KYC:Know Your Customer — identity verification,AML:Anti-Money Laundering checks,GDPR:EU data protection requirements,PCI DSS:Payment card industry standards"|split:"," %}
+      
+      <div style="padding:9px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+        <strong style="font-size:.84rem;color:var(--text);display:block;">AML</strong>
+        <span style="font-size:.76rem;color:var(--text-3);">Anti-Money Laundering checks</span>
+      </div>
+      
+      <option value="{{ u.id }}">{{ u.username }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Due date *</label>
+          <input type="date" name="due_date" class="form-control" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Priority</label>
+        <select name="priority" class="form-control form-select">
+          <option value="LOW">Low</option><option value="MEDIUM" selected>Medium</option>
+          <option value="HIGH">High</option><option value="CRITICAL">Critical</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Create record</button>
+    </form>
+  </div>
+  <div class="audit-card">
+    <div class="card-header"><h2>Compliance types</h2></div>
+    <div style="display:grid;gap:8px;padding:16px 18px;">
+      {% for label, desc in "KYC:Know Your Customer — identity verification,AML:Anti-Money Laundering checks,GDPR:EU data protection requirements,PCI DSS:Payment card industry standards"|split:"," %}
+      
+      <div style="padding:9px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+        <strong style="font-size:.84rem;color:var(--text);display:block;">GDPR</strong>
+        <span style="font-size:.76rem;color:var(--text-3);">EU data protection requirements</span>
+      </div>
+      
+      <option value="{{ u.id }}">{{ u.username }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Due date *</label>
+          <input type="date" name="due_date" class="form-control" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Priority</label>
+        <select name="priority" class="form-control form-select">
+          <option value="LOW">Low</option><option value="MEDIUM" selected>Medium</option>
+          <option value="HIGH">High</option><option value="CRITICAL">Critical</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Create record</button>
+    </form>
+  </div>
+  <div class="audit-card">
+    <div class="card-header"><h2>Compliance types</h2></div>
+    <div style="display:grid;gap:8px;padding:16px 18px;">
+      {% for label, desc in "KYC:Know Your Customer — identity verification,AML:Anti-Money Laundering checks,GDPR:EU data protection requirements,PCI DSS:Payment card industry standards"|split:"," %}
+      
+      <div style="padding:9px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+        <strong style="font-size:.84rem;color:var(--text);display:block;">PCI DSS</strong>
+        <span style="font-size:.76rem;color:var(--text-3);">Payment card industry standards</span>
+      </div>
+      
+      
+    </div>
+  </div>
+</div>
+{% endblock %}

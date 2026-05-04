@@ -1,0 +1,97 @@
+{% extends 'payments_core/base_payments.html' %}
+{% block title %}Transfer — Payments — Finnova
+<script>
+// Blueprint fix: replace CSS :has() selector (Firefox ≤120 unsupported) with JS
+document.addEventListener('DOMContentLoaded', function() {
+  var pills = document.querySelectorAll('.method-pill');
+  pills.forEach(function(pill) {
+    var radio = pill.querySelector('input[type="radio"]');
+    if (!radio) return;
+    // Set initial active state
+    if (radio.checked) pill.classList.add('active');
+    // Toggle on click
+    pill.addEventListener('click', function() {
+      pills.forEach(function(p) { p.classList.remove('active'); });
+      pill.classList.add('active');
+    });
+    radio.addEventListener('change', function() {
+      pills.forEach(function(p) { p.classList.remove('active'); });
+      if (radio.checked) pill.classList.add('active');
+    });
+  });
+});
+</script>
+{% endblock %}
+{% block payment_content %}
+<style>
+.tr-layout { display:grid;grid-template-columns:1fr 1fr;gap:20px; }
+.method-pill { display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--r-md);border:2px solid var(--border);background:var(--surface-2);cursor:pointer;transition:.15s; }
+.method-pill.active,.method-pill.active { border-color:var(--brand);background:var(--brand-glow); }
+.method-pill input { width:16px;height:16px;accent-color:var(--brand); }
+.method-pill strong { font-size:.88rem;color:var(--text);display:block; }
+.method-pill span { font-size:.76rem;color:var(--text-3); }
+@media(max-width:900px){ .tr-layout{grid-template-columns:1fr} }
+</style>
+<div class="page-header">
+  <div><h1>Send Money</h1><p>Transfer via UPI, card, or bank transfer. Synced to Finance automatically.</p></div>
+  <a href="{% url 'payments:payment_dashboard' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Payments</a>
+</div>
+<div class="tr-layout">
+  <div class="card">
+    <div class="card-header"><h2>Transfer details</h2></div>
+    <form method="post">{% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Payment method</label>
+        <div style="display:grid;gap:10px;margin-bottom:8px;">
+          <label class="method-pill"><input type="radio" name="payment_method" value="UPI" checked><div><strong>UPI</strong><span>Instant transfer via VPA</span></div></label>
+          <label class="method-pill"><input type="radio" name="payment_method" value="CARD"><div><strong>Card</strong><span>Debit or credit card</span></div></label>
+          <label class="method-pill"><input type="radio" name="payment_method" value="BANK_TRANSFER"><div><strong>Bank transfer</strong><span>NEFT / IMPS / RTGS</span></div></label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Recipient name</label>
+        <input type="text" name="recipient_name" class="form-control" value="{{ prefill_name }}" placeholder="Full name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">UPI VPA / phone</label>
+        <input type="text" name="upi_vpa" class="form-control" value="{{ prefill_vpa }}" placeholder="name@upi or 9876543210">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount ₹ *</label>
+        <input type="number" step="0.01" min="1" name="amount" class="form-control" value="{{ prefill_amount }}" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Note</label>
+        <input type="text" name="note" class="form-control" value="{{ prefill_note }}" placeholder="Optional note">
+      </div>
+      <button type="submit" class="btn" style="width:100%;justify-content:center;padding:12px;"><i class="fas fa-lock"></i> Send securely</button>
+    </form>
+  </div>
+  <div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header"><h2>Saved UPI IDs</h2></div>
+      {% if upis %}{% for upi in upis %}
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border);">
+        <div style="width:32px;height:32px;border-radius:9px;background:var(--brand-glow);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;"><i class="fas fa-mobile-alt"></i></div>
+        <div style="flex:1;"><div style="font-size:.86rem;font-weight:600;color:var(--text);">{{ upi.vpa }}</div>{% if upi.is_default %}<span style="font-size:.74rem;color:var(--brand);">Default</span>{% endif %}</div>
+      </div>
+      {% endfor %}{% else %}
+      <div style="padding:20px;text-align:center;color:var(--text-3);font-size:.86rem;">No UPI IDs saved yet.</div>
+      {% endif %}
+    </div>
+    <div class="card">
+      <div class="card-header"><h2>Saved cards</h2></div>
+      {% if cards %}{% for card in cards %}
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border);">
+        <div style="width:32px;height:32px;border-radius:9px;background:var(--surface-3);color:var(--text-2);display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;"><i class="fas fa-credit-card"></i></div>
+        <div style="flex:1;"><div style="font-size:.86rem;font-weight:600;color:var(--text);">•••• {{ card.last4 }}</div><div style="font-size:.74rem;color:var(--text-3);">{{ card.holder_name }}</div></div>
+        {% if card.is_default %}<span style="font-size:.74rem;font-weight:700;color:var(--brand);">Default</span>{% endif %}
+      </div>
+      {% endfor %}{% else %}
+      <div style="padding:20px;text-align:center;color:var(--text-3);font-size:.86rem;">No cards saved.</div>
+      {% endif %}
+      <div style="padding:14px 18px;"><a href="{% url 'payments:payment_methods' %}" class="btn btn-ghost btn-sm"><i class="fas fa-plus"></i> Add card</a></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

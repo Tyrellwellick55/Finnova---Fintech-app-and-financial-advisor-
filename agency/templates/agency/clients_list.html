@@ -1,0 +1,108 @@
+{% extends "agency/base.html" %}
+{% block title %}Clients — Agency — Finnova{% endblock %}
+
+{% block agency_content %}
+<style>
+.cl-layout { display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px; }
+.cl-panel  { background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden; }
+.cl-row    { display:grid;grid-template-columns:2.5fr 1.5fr 1fr 120px;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border);transition:background .15s; }
+.cl-row:last-child { border-bottom:none; }
+.cl-row:hover { background:var(--surface-2); }
+.cl-avatar { width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--brand),#6366F1);color:var(--bg);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0; }
+.cl-name   { font-weight:700;font-size:.9rem;color:var(--text);display:block; }
+.cl-email  { font-size:.76rem;color:var(--text-3);margin-top:2px; }
+.cl-status { padding:3px 9px;border-radius:999px;font-size:.7rem;font-weight:800; }
+.cl-status.active   { background:var(--green-bg);color:var(--green); }
+.cl-status.inactive { background:var(--surface-3);color:var(--text-3); }
+.ca { padding:5px 11px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);font-size:.75rem;font-weight:700;cursor:pointer;text-decoration:none;transition:.15s; }
+.ca:hover { border-color:var(--brand);color:var(--brand); }
+.ca.primary { background:var(--brand);border-color:var(--brand);color:var(--bg); }
+.add-panel { background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:22px;position:sticky;top:84px; }
+.add-panel h2 { margin:0 0 14px;font-size:1rem;color:var(--text); }
+.af label { font-size:.78rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px; }
+.af input,.af select,.af textarea { width:100%;padding:9px 12px;border-radius:var(--r-md);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.85rem;margin-bottom:10px; }
+.af input:focus,.af select:focus { outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-glow); }
+@media(max-width:1100px){ .cl-layout{grid-template-columns:1fr} .add-panel{position:static} }
+@media(max-width:800px){ .cl-row{grid-template-columns:1fr 1fr;gap:8px} }
+</style>
+
+<div  class="mod-hero">
+  <div>
+    <span style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--brand);">Agency · Clients</span>
+    <h1 style="font-size:1.4rem;color:var(--text);margin:8px 0 5px;">Clients</h1>
+    <p style="font-size:.86rem;color:var(--text-2);margin:0;">{{ clients|length }} client{{ clients|length|pluralize }} in {{ org.name }}</p>
+  </div>
+  <a href="{% url 'agency:client_create' %}"  class="btn"><i class="fas fa-plus"></i> New client</a>
+</div>
+
+<div class="cl-layout">
+  <div>
+    <div class="cl-panel">
+      <!-- Search bar -->
+      <form method="get" style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;gap:10px;">
+        <input type="search" name="q" value="{{ q }}" placeholder="Search clients…" style="flex:1;padding:8px 12px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.84rem;">
+        <button type="submit" class="ca primary" style="flex-shrink:0;">Search</button>
+        {% if q %}<a href="{% url 'agency:clients_list' %}" class="ca">Clear</a>{% endif %}
+      </form>
+      <!-- Header -->
+      <div class="cl-row" style="background:var(--surface-2);">
+        
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Client</div>
+        
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Contact</div>
+        
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Status</div>
+        
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Actions</div>
+        
+      </div>
+      {% if clients %}
+      {% for client in clients %}
+      <div class="cl-row">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="cl-avatar">{{ client.name|first|upper }}</div>
+          <div>
+            <span class="cl-name">{{ client.company_name|default:client.name }}</span>
+            {% if client.company_name %}<span style="font-size:.75rem;color:var(--text-3);">{{ client.name }}</span>{% endif %}
+          </div>
+        </div>
+        <div>
+          {% if client.email %}<div style="font-size:.83rem;color:var(--text-2);">{{ client.email }}</div>{% endif %}
+          {% if client.phone %}<div style="font-size:.76rem;color:var(--text-3);">{{ client.phone }}</div>{% endif %}
+        </div>
+        <div><span class="cl-status {% if client.is_active %}active{% else %}inactive{% endif %}">{% if client.is_active %}Active{% else %}Inactive{% endif %}</span></div>
+        <div style="display:flex;gap:6px;">
+          <a href="{% url 'agency:client_edit' client.id %}" class="ca"><i class="fas fa-pen"></i></a>
+          <a href="{% url 'agency:projects_list' %}?client={{ client.id }}" class="ca" title="Projects"><i class="fas fa-briefcase"></i></a>
+          <a href="{% url 'agency:receivables_dashboard' %}?q={{ client.name }}" class="ca" title="Invoices"><i class="fas fa-file-invoice"></i></a>
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state" style="padding:56px 20px;">
+        <div class="empty-icon"><i class="fas fa-address-book"></i></div>
+        <h3>No clients yet</h3>
+        <p>Add your first client to start raising invoices. Techwave, StartupCo, RetailX — whoever pays you.</p>
+        <a href="{% url 'agency:client_create' %}" class="btn"><i class="fas fa-plus"></i> Add client</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Quick add -->
+  <div>
+    <div class="add-panel">
+      <h2><i class="fas fa-plus-circle" style="color:var(--brand);margin-right:8px;"></i>Quick add client</h2>
+      <form method="post" action="{% url 'agency:client_create' %}" class="af">
+        {% csrf_token %}
+        <label>Contact name *</label><input type="text" name="name" placeholder="Jane Doe" required>
+        <label>Company name</label><input type="text" name="company_name" placeholder="Acme Corp">
+        <label>Email</label><input type="email" name="email" placeholder="jane@acme.com">
+        <label>Phone</label><input type="text" name="phone" placeholder="+91 98765 43210">
+        <label>GSTIN</label><input type="text" name="gstin" placeholder="22AAAAA0000A1Z5" style="font-family:var(--mono);">
+        <button type="submit" style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;border-radius:var(--r-md);background:var(--brand);color:var(--bg);font-weight:700;font-size:.88rem;border:none;cursor:pointer;"><i class="fas fa-save"></i> Save client</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

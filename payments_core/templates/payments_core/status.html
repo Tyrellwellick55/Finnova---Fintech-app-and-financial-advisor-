@@ -1,0 +1,365 @@
+{% extends 'payments_core/base_payments.html' %}
+{% load static %}
+{% block title %}Payment {{ intent.status|title }} — Finnova{% endblock %}
+
+{% block payment_content %}
+<style>
+.status-wrap { max-width: 720px; margin: 0 auto; }
+.status-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 40px 32px;
+  text-align: center;
+  margin-bottom: 20px;
+  position: relative; overflow: hidden;
+}
+.status-card::before {
+  content: '';
+  position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+  width: 300px; height: 200px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.status-card.success::before { background: radial-gradient(circle, rgba(16,185,129,.12), transparent 70%); }
+.status-card.pending::before { background: radial-gradient(circle, rgba(245,158,11,.1), transparent 70%); }
+.status-card.failed::before  { background: radial-gradient(circle, rgba(244,63,94,.1), transparent 70%); }
+.status-card.refunded::before { background: radial-gradient(circle, rgba(59,130,246,.1), transparent 70%); }
+
+.si {
+  width: 88px; height: 88px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 24px;
+  font-size: 2.4rem;
+  animation: scaleIn .5s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes scaleIn { 0%{transform:scale(0)} 100%{transform:scale(1)} }
+.si.success { background: var(--green-bg); color: var(--green); border: 2px solid rgba(16,185,129,.3); }
+.si.pending { background: var(--yellow-bg); color: var(--yellow); border: 2px solid rgba(245,158,11,.3); }
+.si.failed  { background: var(--red-bg); color: var(--red); border: 2px solid rgba(244,63,94,.3); }
+.si.refunded { background: var(--blue-bg); color: var(--blue); border: 2px solid rgba(59,130,246,.3); }
+.si.other   { background: var(--surface-2); color: var(--text-3); border: 2px solid var(--border); }
+
+.status-title  { font-size: 1.6rem; font-weight: 800; color: var(--text); margin: 0 0 10px; }
+.status-amount { font-size: 2.4rem; font-weight: 800; font-family: var(--mono); margin: 10px 0; }
+.status-amount.success { color: var(--green); }
+.status-amount.pending { color: var(--yellow); }
+.status-amount.failed  { color: var(--red); }
+.status-amount.refunded { color: var(--blue); }
+.status-amount.other   { color: var(--text-2); }
+
+.ref-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  font-size: .85rem; font-family: var(--mono);
+  color: var(--text-2); margin: 6px 0 24px;
+}
+
+.status-details {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  margin: 0 0 24px;
+  text-align: left;
+}
+.detail-cell {
+  padding: 16px 18px;
+  background: var(--surface-2);
+}
+.detail-cell label {
+  display: block; font-size: .68rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: var(--text-3); margin-bottom: 5px;
+}
+.detail-cell span { font-size: .92rem; font-weight: 600; color: var(--text); }
+
+/* Timeline */
+.timeline { text-align: left; margin: 0 0 24px; }
+.timeline h3 { font-size: .9rem; font-weight: 700; color: var(--text-2); margin: 0 0 16px; }
+.tl-item { display: flex; gap: 14px; position: relative; margin-bottom: 20px; }
+.tl-item:last-child { margin-bottom: 0; }
+.tl-item::before {
+  content: '';
+  position: absolute; left: 15px; top: 32px;
+  width: 2px; bottom: -20px;
+  background: var(--border);
+}
+.tl-item:last-child::before { display: none; }
+.tl-dot {
+  width: 32px; height: 32px;
+  border-radius: 50%; border: 2px solid;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; flex-shrink: 0; z-index: 1;
+  background: var(--surface);
+}
+.tl-dot.done { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+.tl-dot.wait { border-color: var(--yellow); color: var(--yellow); background: var(--yellow-bg); }
+.tl-dot.fail { border-color: var(--red); color: var(--red); background: var(--red-bg); }
+.tl-text h4 { font-size: .88rem; font-weight: 700; color: var(--text); margin: 0 0 2px; }
+.tl-text p  { font-size: .78rem; color: var(--text-3); margin: 0; }
+
+/* Receipt */
+.receipt {
+  background: var(--bg-3);
+  border: 1px solid var(--border-brand);
+  border-radius: var(--r-lg);
+  padding: 20px 22px;
+  text-align: left; margin-bottom: 24px;
+}
+.receipt-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.receipt-head i { color: var(--brand); }
+.receipt-head strong { font-size: .95rem; color: var(--text); }
+.receipt-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: .86rem; }
+.receipt-row:last-child { border-bottom: none; }
+.receipt-row span { color: var(--text-3); }
+.receipt-row strong { color: var(--text); font-family: var(--mono); }
+
+/* Alerts */
+.status-alert {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 16px 18px;
+  border-radius: var(--r-md);
+  margin-bottom: 20px; text-align: left;
+}
+.status-alert.warn { background: var(--yellow-bg); border: 1px solid rgba(245,158,11,.25); }
+.status-alert.err  { background: var(--red-bg); border: 1px solid rgba(244,63,94,.25); }
+.status-alert.info { background: var(--blue-bg); border: 1px solid rgba(59,130,246,.25); }
+.status-alert i { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+.status-alert.warn i { color: var(--yellow); }
+.status-alert.err  i { color: var(--red); }
+.status-alert.info i { color: var(--blue); }
+.status-alert h4 { font-size: .9rem; font-weight: 700; color: var(--text); margin: 0 0 3px; }
+.status-alert p  { font-size: .83rem; color: var(--text-2); margin: 0; line-height: 1.5; }
+
+/* Risk bar */
+.risk-wrap {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--yellow);
+  border-radius: var(--r-md);
+  padding: 16px 18px; text-align: left; margin-bottom: 20px;
+}
+.risk-wrap h4 { font-size: .88rem; color: var(--text); margin: 0 0 10px; display:flex; align-items:center; gap:7px; }
+.risk-bar-track { height: 6px; border-radius: 999px; background: var(--surface-3); overflow: hidden; margin-bottom: 8px; }
+.risk-bar-fill  { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--yellow), var(--red)); }
+.risk-flags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.risk-flag { padding: 3px 10px; border-radius: 999px; font-size: .72rem; font-weight: 700; background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(245,158,11,.25); }
+
+/* Status actions */
+.status-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
+
+/* Demo controls */
+.demo-panel {
+  background: var(--surface-2);
+  border: 1px dashed var(--border-2);
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  margin-top: 20px;
+}
+.demo-panel h3 { font-size: .88rem; color: var(--text-2); margin: 0 0 4px; }
+.demo-panel p  { font-size: .76rem; color: var(--text-3); margin: 0 0 14px; }
+.demo-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Support links */
+.support-row { text-align: center; margin-top: 20px; }
+.support-row p { font-size: .82rem; color: var(--text-3); margin: 0 0 10px; }
+.support-links { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+.support-links a { font-size: .83rem; color: var(--brand); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.support-links a:hover { color: var(--text); }
+
+@media(max-width:640px) {
+  .status-details { grid-template-columns: 1fr; }
+  .status-actions { flex-direction: column; }
+  .status-card { padding: 28px 18px; }
+}
+</style>
+
+<div class="status-wrap">
+
+  {% if intent.status == 'SUCCESS' %}
+  <div class="status-card success">
+    <div class="si success"><i class="fas fa-check"></i></div>
+    <h1 class="status-title">Payment successful</h1>
+    <div class="status-amount success">₹{{ intent.amount|default:0|floatformat:2 }}</div>
+    <div class="ref-chip"><i class="fas fa-hashtag"></i> {{ intent.reference_id }}</div>
+
+    <div class="status-details">
+      <div class="detail-cell"><label>Method</label><span><i class="fas fa-{% if intent.payment_method == 'CARD' %}credit-card{% elif intent.payment_method == 'UPI' %}mobile-alt{% else %}university{% endif %}" style="margin-right:6px;color:var(--brand);"></i>{{ intent.get_payment_method_display }}</span></div>
+      <div class="detail-cell"><label>Completed</label><span>{{ intent.completed_at|date:"d M Y, h:i A" }}</span></div>
+      <div class="detail-cell"><label>Gateway</label><span>{{ intent.gateway }}</span></div>
+      <div class="detail-cell"><label>Gateway ID</label><span class="mono" style="font-size:.82rem;">{{ intent.gateway_payment_id|default:"N/A" }}</span></div>
+    </div>
+
+    <div class="timeline">
+      <h3><i class="fas fa-route" style="margin-right:7px;color:var(--brand);"></i>Transaction timeline</h3>
+      <div class="tl-item"><div class="tl-dot done"><i class="fas fa-check"></i></div><div class="tl-text"><h4>Payment initiated</h4><p>{{ intent.created_at|date:"d M Y, h:i A" }}</p></div></div>
+      <div class="tl-item"><div class="tl-dot done"><i class="fas fa-check"></i></div><div class="tl-text"><h4>Gateway processed</h4><p>Verified by {{ intent.gateway }}</p></div></div>
+      <div class="tl-item"><div class="tl-dot done"><i class="fas fa-flag-checkered"></i></div><div class="tl-text"><h4>Payment completed</h4><p>{{ intent.completed_at|date:"d M Y, h:i A" }}</p></div></div>
+    </div>
+
+    <div class="receipt">
+      <div class="receipt-head"><i class="fas fa-file-invoice-dollar"></i><strong>Payment receipt</strong></div>
+      <div class="receipt-row"><span>Receipt no.</span><strong>{{ intent.reference_id }}</strong></div>
+      <div class="receipt-row"><span>Amount paid</span><strong style="color:var(--green);">₹{{ intent.amount|default:0|floatformat:2 }}</strong></div>
+      <div class="receipt-row"><span>Date</span><strong>{{ intent.completed_at|date:"d M Y" }}</strong></div>
+      <div class="receipt-row"><span>Status</span><strong style="color:var(--green);">Paid</strong></div>
+    </div>
+
+    <div class="status-actions">
+      <a href="{% url 'payments:payment_status' intent.reference_id %}" class="btn btn-primary"><i class="fas fa-download"></i> Download receipt</a>
+      <a href="{% url 'payments:payment_dashboard' %}" class="btn btn-ghost"><i class="fas fa-arrow-left"></i> Back to payments</a>
+    </div>
+  </div>
+
+  {% elif intent.status == 'PENDING' or intent.status == 'PROCESSING' %}
+  <div class="status-card pending">
+    <div class="si pending"><i class="fas fa-clock"></i></div>
+    <h1 class="status-title">Payment processing</h1>
+    <div class="status-amount pending">₹{{ intent.amount|default:0|floatformat:2 }}</div>
+    <div class="ref-chip"><i class="fas fa-hashtag"></i> {{ intent.reference_id }}</div>
+
+    <div class="status-alert warn">
+      <i class="fas fa-spinner fa-spin"></i>
+      <div><h4>Awaiting confirmation</h4><p>Your payment is being verified by {{ intent.gateway }}. This usually takes under 30 seconds. The page refreshes automatically.</p></div>
+    </div>
+
+    <div class="progress-track" style="margin-bottom:20px;"><div class="progress-fill" style="width:60%;"></div></div>
+
+    <div class="status-details">
+      <div class="detail-cell"><label>Method</label><span>{{ intent.get_payment_method_display }}</span></div>
+      <div class="detail-cell"><label>Initiated</label><span>{{ intent.created_at|date:"d M Y, h:i A" }}</span></div>
+      <div class="detail-cell"><label>Gateway</label><span>{{ intent.gateway }}</span></div>
+      <div class="detail-cell"><label>Status</label><span class="badge badge-yellow">Processing</span></div>
+    </div>
+
+    <div class="status-actions">
+      <button onclick="location.reload()" class="btn btn-primary"><i class="fas fa-rotate"></i> Refresh status</button>
+      <a href="{% url 'payments:payment_dashboard' %}" class="btn btn-ghost"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+  </div>
+
+  {% elif intent.status == 'FAILED' %}
+  <div class="status-card failed">
+    <div class="si failed"><i class="fas fa-xmark"></i></div>
+    <h1 class="status-title">Payment failed</h1>
+    <div class="status-amount failed">₹{{ intent.amount|default:0|floatformat:2 }}</div>
+    <div class="ref-chip"><i class="fas fa-hashtag"></i> {{ intent.reference_id }}</div>
+
+    <div class="status-alert err">
+      <i class="fas fa-triangle-exclamation"></i>
+      <div><h4>{{ intent.error_message|default:"Transaction declined" }}</h4><p>Please try again with a different payment method, or contact your bank if the issue persists.</p></div>
+    </div>
+
+    <div class="risk-wrap">
+      <h4><i class="fas fa-shield-halved"></i> Risk analysis</h4>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+        <span style="font-size:.82rem;color:var(--text-3);">Risk score</span>
+        <div class="risk-bar-track" style="flex:1;"><div class="risk-bar-fill" style="width:65%;"></div></div>
+        <span style="font-family:var(--mono);font-weight:800;color:var(--yellow);font-size:.88rem;">65</span>
+      </div>
+      <p style="font-size:.8rem;color:var(--text-3);margin:0 0 8px;">Transaction flagged for additional verification.</p>
+      <div class="risk-flags">
+        <span class="risk-flag"><i class="fas fa-credit-card"></i> Card declined</span>
+        <span class="risk-flag"><i class="fas fa-lock"></i> Verify funds</span>
+      </div>
+    </div>
+
+    <div class="status-details">
+      <div class="detail-cell"><label>Method</label><span>{{ intent.get_payment_method_display }}</span></div>
+      <div class="detail-cell"><label>Attempted</label><span>{{ intent.created_at|date:"d M Y, h:i A" }}</span></div>
+      <div class="detail-cell"><label>Error code</label><span class="mono">{{ intent.metadata.error_code|default:"DECLINED" }}</span></div>
+      <div class="detail-cell"><label>Gateway</label><span>{{ intent.gateway }}</span></div>
+    </div>
+
+    <div class="status-actions">
+      <a href="{% url 'payments:transfer_money' %}" class="btn btn-primary"><i class="fas fa-rotate-right"></i> Try again</a>
+      <a href="{% url 'payments:payment_methods' %}" class="btn btn-ghost"><i class="fas fa-credit-card"></i> Change method</a>
+    </div>
+  </div>
+
+  {% elif intent.status == 'REFUNDED' or intent.status == 'PARTIALLY_REFUNDED' %}
+  <div class="status-card refunded">
+    <div class="si refunded"><i class="fas fa-rotate-left"></i></div>
+    <h1 class="status-title">{% if intent.status == 'PARTIALLY_REFUNDED' %}Partial refund{% else %}Refunded{% endif %}</h1>
+    <div class="status-amount refunded">₹{{ intent.amount|default:0|floatformat:2 }}</div>
+    <div class="ref-chip"><i class="fas fa-hashtag"></i> {{ intent.reference_id }}</div>
+
+    <div class="status-alert info">
+      <i class="fas fa-circle-check"></i>
+      <div><h4>Refund processed successfully</h4><p>Amount will be credited to your original payment method within 5–7 business days.</p></div>
+    </div>
+
+    <div class="status-details">
+      <div class="detail-cell"><label>Original date</label><span>{{ intent.created_at|date:"d M Y" }}</span></div>
+      <div class="detail-cell"><label>Refund date</label><span>{{ intent.completed_at|date:"d M Y" }}</span></div>
+      <div class="detail-cell"><label>Refund amount</label><span class="mono" style="color:var(--blue);">₹{{ intent.amount|default:0|floatformat:2 }}</span></div>
+      <div class="detail-cell"><label>Refund ID</label><span class="mono" style="font-size:.8rem;">{{ intent.metadata.refund_id|default:intent.reference_id }}</span></div>
+    </div>
+
+    <div class="status-actions">
+      <a href="{% url 'payments:payment_status' intent.reference_id %}" class="btn btn-primary"><i class="fas fa-download"></i> Refund receipt</a>
+      <a href="{% url 'payments:payment_dashboard' %}" class="btn btn-ghost"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="status-card">
+    <div class="si other"><i class="fas fa-file-invoice"></i></div>
+    <h1 class="status-title">{{ intent.status|title }}</h1>
+    <div class="status-amount other">₹{{ intent.amount|default:0|floatformat:2 }}</div>
+    <div class="ref-chip"><i class="fas fa-hashtag"></i> {{ intent.reference_id }}</div>
+    <p style="color:var(--text-3);margin:16px 0 24px;">This payment is {{ intent.status|lower }}. No further action is required.</p>
+    <div class="status-actions">
+      <a href="{% url 'payments:payment_dashboard' %}" class="btn btn-primary"><i class="fas fa-arrow-left"></i> Back to payments</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Demo gateway controls -->
+  <div class="demo-panel">
+    <h3><i class="fas fa-flask" style="margin-right:6px;color:var(--yellow);"></i>Demo gateway controls</h3>
+    <p>Simulate gateway outcomes for testing — no real money moves.</p>
+    <div class="demo-btns">
+      <form method="post" action="{% url 'payments:simulate_payment_action' intent.reference_id %}" style="display:inline;">
+        {% csrf_token %}<input type="hidden" name="action" value="success">
+        <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-check"></i> Mark success</button>
+      </form>
+      <form method="post" action="{% url 'payments:simulate_payment_action' intent.reference_id %}" style="display:inline;">
+        {% csrf_token %}<input type="hidden" name="action" value="fail">
+        <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-xmark"></i> Mark failed</button>
+      </form>
+      <form method="post" action="{% url 'payments:simulate_payment_action' intent.reference_id %}" style="display:inline;">
+        {% csrf_token %}<input type="hidden" name="action" value="refund">
+        <button type="submit" class="btn btn-ghost btn-sm"><i class="fas fa-rotate-left"></i> Refund</button>
+      </form>
+      <form method="post" action="{% url 'payments:simulate_payment_action' intent.reference_id %}" style="display:inline;">
+        {% csrf_token %}<input type="hidden" name="action" value="chargeback">
+        <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--yellow);"><i class="fas fa-gavel"></i> Chargeback</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Support -->
+  <div class="support-row">
+    <p>Need help with this payment?</p>
+    <div class="support-links">
+      <a href="mailto:support@finnova.app"><i class="fas fa-envelope"></i> Email support</a>
+      <a href="{% url 'finnovaapp:contact' %}"><i class="fas fa-comment"></i> Contact us</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const isPending = "{{ intent.status }}" === "PENDING" || "{{ intent.status }}" === "PROCESSING";
+if (isPending) {
+  setTimeout(() => location.reload(), 10000);
+}
+</script>
+{% endblock %}

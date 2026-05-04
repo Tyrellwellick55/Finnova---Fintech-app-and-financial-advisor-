@@ -1,0 +1,132 @@
+{% extends 'finnovaapp/base.html' %}
+{% block title %}Identity Verification — Finnova{% endblock %}
+{% block content %}
+<style>
+.kyc-wrap{max-width:680px;margin:0 auto;}
+.kyc-steps{display:flex;align-items:center;gap:0;margin-bottom:28px;}
+.ks{display:flex;align-items:center;gap:10px;}
+.ks-circle{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);background:var(--surface);color:var(--text-3);font-weight:800;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ks.active .ks-circle{background:var(--brand);border-color:var(--brand);color:#fff;}
+.ks.done .ks-circle{background:var(--green);border-color:var(--green);color:#fff;}
+.ks-label{font-size:.85rem;font-weight:700;color:var(--text-2);}
+.ks.active .ks-label{color:var(--brand);}
+.ks-line{flex:1;height:2px;background:var(--border);margin:0 12px;}
+.doc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px;}
+.doc-opt{border:2px solid var(--border);border-radius:14px;padding:16px;cursor:pointer;transition:.15s;text-align:center;}
+.doc-opt:has(input:checked){border-color:var(--brand);background:var(--brand-glow);}
+.doc-opt input{display:none;}
+.doc-icon{font-size:1.5rem;margin-bottom:8px;color:var(--text-3);}
+.doc-opt:has(input:checked) .doc-icon{color:var(--brand);}
+.doc-name{font-weight:800;font-size:.88rem;color:var(--text);}
+.doc-sub{font-size:.76rem;color:var(--text-3);}
+.upload-zone{border:2px dashed var(--border-2);border-radius:16px;padding:28px;text-align:center;cursor:pointer;transition:.15s;background:var(--surface-2);}
+.upload-zone:hover{border-color:var(--brand);background:var(--brand-glow);}
+.upload-zone input{display:none;}
+</style>
+
+<div class="kyc-wrap">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Verify your identity</h1>
+            <p>Complete KYC to unlock higher transaction limits and investment features.</p>
+        </div>
+        <a href="{% url 'finnovaapp:profile' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Profile</a>
+    </div>
+
+    <div class="kyc-steps">
+        <div class="ks active">
+            <div class="ks-circle">1</div>
+            <span class="ks-label">Upload document</span>
+        </div>
+        <div class="ks-line"></div>
+        <div class="ks">
+            <div class="ks-circle">2</div>
+            <span class="ks-label">Verification</span>
+        </div>
+        <div class="ks-line"></div>
+        <div class="ks">
+            <div class="ks-circle">3</div>
+            <span class="ks-label">Complete</span>
+        </div>
+    </div>
+
+    <article class="card">
+        <div class="card-header"><h2>Document upload</h2></div>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label class="form-label">Select document type</label>
+                <div class="doc-grid">
+                    <label class="doc-opt">
+                        <input type="radio" name="document_type" value="PAN" required>
+                        <div class="doc-icon"><i class="fas fa-id-card"></i></div>
+                        <div class="doc-name">PAN Card</div>
+                        <div class="doc-sub">Income Tax PAN</div>
+                    </label>
+                    <label class="doc-opt">
+                        <input type="radio" name="document_type" value="AADHAAR">
+                        <div class="doc-icon"><i class="fas fa-fingerprint"></i></div>
+                        <div class="doc-name">Aadhaar</div>
+                        <div class="doc-sub">Government ID</div>
+                    </label>
+                    <label class="doc-opt">
+                        <input type="radio" name="document_type" value="PASSPORT">
+                        <div class="doc-icon"><i class="fas fa-passport"></i></div>
+                        <div class="doc-name">Passport</div>
+                        <div class="doc-sub">Travel document</div>
+                    </label>
+                    <label class="doc-opt">
+                        <input type="radio" name="document_type" value="DL">
+                        <div class="doc-icon"><i class="fas fa-car"></i></div>
+                        <div class="doc-name">Driving Licence</div>
+                        <div class="doc-sub">RTO issued</div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Document number</label>
+                <input type="text" name="document_number" class="form-control" placeholder="Enter document number" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Upload document (front)</label>
+                <label class="upload-zone" id="uploadZone">
+                    <input type="file" name="document_file" accept="image/*,.pdf" onchange="showFile(this)">
+                    <i class="fas fa-cloud-upload-alt" style="font-size:2rem;color:var(--brand);margin-bottom:10px;display:block;"></i>
+                    <strong id="fileLabel">Click to upload or drag & drop</strong>
+                    <p style="margin:4px 0 0;font-size:.82rem;color:var(--text-3);">JPG, PNG or PDF — max 5 MB</p>
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Upload document (back, optional)</label>
+                <label class="upload-zone">
+                    <input type="file" name="document_file_back" accept="image/*,.pdf">
+                    <i class="fas fa-cloud-upload-alt" style="font-size:1.5rem;color:var(--text-3);margin-bottom:8px;display:block;"></i>
+                    <strong style="font-size:.9rem;">Back side (if applicable)</strong>
+                </label>
+            </div>
+
+            <div class="alert alert-info">
+                <i class="fas fa-shield-halved"></i>
+                <div>Your documents are encrypted and stored securely. KYC is processed within 1–2 business days.</div>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:6px;">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-upload"></i> Submit for verification</button>
+                <a href="{% url 'finnovaapp:profile' %}" class="btn btn-outline">Cancel</a>
+            </div>
+        </form>
+    </article>
+</div>
+
+<script>
+function showFile(input) {
+    if (input.files && input.files[0]) {
+        document.getElementById('fileLabel').textContent = input.files[0].name;
+    }
+}
+</script>
+{% endblock %}

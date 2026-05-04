@@ -1,0 +1,189 @@
+{% extends 'analytics_ai/base_analytics.html' %}
+{% load static %}
+{% block title %}AI Settings — Finnova{% endblock %}
+{% block page_title %}AI Settings{% endblock %}
+
+{% block analytics_css %}
+<style>
+.settings-section{margin-bottom:24px;}
+.settings-section h2{font-size:.82rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin:0 0 14px;display:flex;align-items:center;gap:8px;}
+.settings-section h2::after{content:'';flex:1;height:1px;background:var(--border);}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);gap:16px;}
+.setting-row:last-child{border-bottom:none;}
+.setting-info{flex:1;}
+.setting-info strong{display:block;font-size:.88rem;color:var(--text);margin-bottom:3px;}
+.setting-info p{font-size:.8rem;color:var(--text-3);margin:0;line-height:1.5;}
+.toggle-wrap{position:relative;width:44px;height:24px;flex-shrink:0;}
+.toggle-wrap input{opacity:0;width:0;height:0;position:absolute;}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--surface-3);border-radius:999px;transition:.2s;}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.2s;}
+.toggle-wrap input:checked + .toggle-slider{background:var(--brand);}
+.toggle-wrap input:checked + .toggle-slider::before{transform:translateX(20px);}
+.select-field{padding:8px 12px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.84rem;min-width:140px;}
+.profile-card{padding:20px;border-radius:var(--r-xl);background:linear-gradient(135deg,var(--surface),rgba(0,229,160,.03));border:1px solid var(--border-brand);margin-bottom:18px;}
+.risk-btn{padding:8px 14px;border-radius:var(--r-md);border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);font-size:.82rem;font-weight:700;cursor:pointer;transition:.15s;flex:1;}
+.risk-btn:hover{border-color:var(--brand);color:var(--brand);}
+.risk-btn.active{background:var(--brand-glow);border-color:var(--border-brand);color:var(--brand);}
+.risk-btn.active-HIGH{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--red);}
+</style>
+{% endblock %}
+
+{% block analytics_content %}
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap;">
+  <div>
+    <h1 style="font-size:1.35rem;color:var(--text);margin:0 0 4px;">AI Settings</h1>
+    <p style="font-size:.86rem;color:var(--text-2);margin:0;">Configure how Finnova's analytics engine analyses your data and generates insights.</p>
+  </div>
+</div>
+
+{% if messages %}
+{% for msg in messages %}
+<div class="an-banner {% if 'error' in msg.tags %}danger{% else %}tip{% endif %}" style="margin-bottom:16px;">
+  <i class="fas {% if 'error' in msg.tags %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
+  <div><span>{{ msg }}</span></div>
+</div>
+{% endfor %}
+{% endif %}
+
+<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:18px;">
+  <div>
+    <form method="post">
+      {% csrf_token %}
+
+      <!-- Profile -->
+      <div class="an-card" style="margin-bottom:16px;">
+        <div class="an-card-head"><h2><i class="fas fa-user-circle"></i> Financial profile</h2></div>
+
+        <div class="settings-section">
+          <div class="setting-row">
+            <div class="setting-info">
+              <strong>Risk tolerance</strong>
+              <p>Shapes investment recommendations and savings strategy suggestions.</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+              {% for val, label in risk_tolerance_options %}
+              <button type="button" onclick="setRisk('{{ val }}')" id="risk-{{ val }}" class="risk-btn {% if val == profile.risk_level %}active{% if val == 'HIGH' %} active-HIGH{% endif %}{% endif %}">{{ label }}</button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="risk_tolerance" id="risk-input" value="{{ profile.risk_level|default:'MEDIUM' }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- Analytics preferences -->
+      <div class="an-card" style="margin-bottom:16px;">
+        <div class="an-card-head"><h2><i class="fas fa-brain"></i> Analytics preferences</h2></div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>Predictive analytics</strong>
+            <p>90-day cash flow forecasting, expense trend predictions, and income projections.</p>
+          </div>
+          <label class="toggle-wrap">
+            <input type="checkbox" name="enable_predictive" value="true" {% if ai_preferences.enable_predictive_analytics != False %}checked{% endif %}>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>Anomaly detection</strong>
+            <p>Alerts you to unusual spending patterns and transaction anomalies in real time.</p>
+          </div>
+          <label class="toggle-wrap">
+            <input type="checkbox" name="enable_anomaly" value="true" {% if ai_preferences.enable_anomaly_detection != False %}checked{% endif %}>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>Auto-generate insights</strong>
+            <p>AI generates financial insights automatically when new income or expense data is recorded.</p>
+          </div>
+          <label class="toggle-wrap">
+            <input type="checkbox" name="enable_insights" value="true" {% if ai_preferences.enable_auto_insights != False %}checked{% endif %}>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>Insight frequency</strong>
+            <p>How often the AI checks for new insights to surface.</p>
+          </div>
+          <select name="insight_frequency" class="select-field">
+            <option value="DAILY" {% if ai_preferences.insight_frequency == 'DAILY' %}selected{% endif %}>Daily</option>
+            <option value="WEEKLY" {% if ai_preferences.insight_frequency == 'WEEKLY' or not ai_preferences.insight_frequency %}selected{% endif %}>Weekly</option>
+            <option value="MONTHLY" {% if ai_preferences.insight_frequency == 'MONTHLY' %}selected{% endif %}>Monthly</option>
+          </select>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>Alert threshold</strong>
+            <p>Minimum confidence score (0–100) required to surface a predictive alert. Higher = fewer but more reliable alerts.</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="range" name="alert_threshold" min="0" max="100" step="5" value="{{ ai_preferences.alert_threshold|default:70 }}" oninput="document.getElementById('threshold-val').textContent=this.value" style="width:100px;">
+            <span id="threshold-val" style="font-family:var(--f-mono);font-size:.88rem;font-weight:700;color:var(--brand);min-width:28px;">{{ ai_preferences.alert_threshold|default:70 }}</span>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn"><i class="fas fa-save"></i> Save settings</button>
+    </form>
+  </div>
+
+  <!-- Right: status + info -->
+  <div>
+    <!-- Current profile summary -->
+    <div class="profile-card">
+      <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--brand);margin-bottom:12px;">Your AI profile</div>
+      <div style="display:grid;gap:10px;font-size:.85rem;">
+        <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-3);">Risk level</span><strong style="color:var(--text);">{{ profile.risk_level|default:"MEDIUM" }}</strong></div>
+        <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-3);">Monthly income (set)</span><strong style="color:var(--text);">{% if profile.monthly_income %}₹{{ profile.monthly_income|floatformat:0 }}{% else %}—{% endif %}</strong></div>
+        <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-3);">Data window</span><strong style="color:var(--text);">90 days</strong></div>
+      </div>
+    </div>
+
+    <!-- AI capabilities info -->
+    <div class="an-card" style="margin-bottom:16px;">
+      <div class="an-card-head"><h2><i class="fas fa-circle-info"></i> What AI analyses</h2></div>
+      <div style="display:grid;gap:8px;font-size:.83rem;">
+        {% for item in "Monthly income & expenses,Budget utilisation %,Savings goals progress,Investment returns,Debt obligations,Spending category trends,Cash flow projections,Anomaly patterns,Health score components"|split:"," %}
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
+          <i class="fas fa-check" style="color:var(--brand);font-size:.72rem;flex-shrink:0;"></i>
+          <span style="color:var(--text-2);">{{ item }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Quick links -->
+    <div class="an-card">
+      <div class="an-card-head"><h2><i class="fas fa-compass"></i> Run now</h2></div>
+      <div style="display:grid;gap:8px;">
+        <a href="{% url 'analytics-ai:financial_health_dashboard' %}" class="btn-outline" style="justify-content:flex-start;gap:8px;"><i class="fas fa-heartbeat" style="color:var(--red)"></i> Recalculate health score</a>
+        <a href="{% url 'analytics-ai:ai_report' %}" class="btn-outline" style="justify-content:flex-start;gap:8px;"><i class="fas fa-file-lines" style="color:var(--brand)"></i> Generate fresh report</a>
+        <a href="{% url 'analytics-ai:predictive_analytics' %}" class="btn-outline" style="justify-content:flex-start;gap:8px;"><i class="fas fa-brain" style="color:#6366F1"></i> Update predictions</a>
+        <a href="{% url 'analytics-ai:ai_chat' %}" class="btn-outline" style="justify-content:flex-start;gap:8px;"><i class="fas fa-comment-dots" style="color:#EC4899"></i> Ask AI a question</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function setRisk(val) {
+  document.getElementById('risk-input').value = val;
+  document.querySelectorAll('.risk-btn').forEach(btn => {
+    btn.classList.remove('active','active-HIGH');
+  });
+  const btn = document.getElementById('risk-' + val);
+  if (btn) {
+    btn.classList.add('active');
+    if (val === 'HIGH') btn.classList.add('active-HIGH');
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'audit/base_audit.html' %}
+{% block title %}Audit Reports — Finnova{% endblock %}
+
+{% block audit_content %}
+<div class="audit-header">
+  <div><h1 class="audit-title"><i class="fas fa-file-alt" style="color:var(--brand);"></i> Audit Reports</h1>
+  <p class="audit-breadcrumb"><a href="{% url 'audit:dashboard' %}">Audit</a> → Reports</p></div>
+  <a href="{% url 'audit:export' %}?format=csv" class="btn btn-ghost btn-sm"><i class="fas fa-download"></i> Export CSV</a>
+</div>
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:20px;">
+  {% for report_type in report_types %}
+  <a href="{% url 'audit:export' %}?format=csv&type={{ report_type|lower }}" class="audit-card" style="padding:20px 22px;text-decoration:none;display:block;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="this.style.borderColor='var(--border)'">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+      <div style="width:36px;height:36px;border-radius:10px;background:var(--brand-glow);color:var(--brand);display:flex;align-items:center;justify-content:center;"><i class="fas fa-file-chart-column"></i></div>
+      <strong style="font-size:.95rem;color:var(--text);">{{ report_type }} Report</strong>
+    </div>
+    <p style="font-size:.82rem;color:var(--text-3);margin:0;">Export all {{ report_type|lower }} audit data as CSV for analysis.</p>
+  </a>
+  {% endfor %}
+</div>
+<div class="audit-card">
+  <div class="audit-card-header"><h2 style="margin:0;font-size:.96rem;color:var(--text);">Custom export</h2></div>
+  <form method="get" action="{% url 'audit:export' %}" style="display:flex;flex-wrap:wrap;gap:12px;padding:18px;align-items:flex-end;">
+    <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px;">
+      <label style="font-size:.76rem;font-weight:700;color:var(--text-3);">Format</label>
+      <select name="format" style="padding:9px 12px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.84rem;">
+        <option value="csv">CSV</option><option value="json">JSON</option>
+      </select>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px;">
+      <label style="font-size:.76rem;font-weight:700;color:var(--text-3);">From date</label>
+      <input type="date" name="date_from" style="padding:9px 12px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.84rem;">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px;">
+      <label style="font-size:.76rem;font-weight:700;color:var(--text-3);">To date</label>
+      <input type="date" name="date_to" style="padding:9px 12px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.84rem;">
+    </div>
+    <button type="submit" class="btn btn-primary" style="min-height:40px;"><i class="fas fa-download"></i> Export</button>
+  </form>
+</div>
+{% endblock %}

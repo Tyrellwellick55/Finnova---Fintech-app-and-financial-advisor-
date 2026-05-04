@@ -1,0 +1,307 @@
+{% extends 'analytics_ai/base_analytics.html' %}
+{% load static %}
+{% block title %}AI Overview — Finnova{% endblock %}
+{% block page_title %}AI Overview{% endblock %}
+
+{% block analytics_css %}
+<style>
+.dash-hero{padding:24px 28px;border-radius:var(--r-xl);background:linear-gradient(135deg,var(--surface) 0%,rgba(0,229,160,.04) 100%);border:1px solid var(--border-brand);margin-bottom:22px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+.dash-hero h1{font-size:1.4rem;color:var(--text);margin:6px 0 4px;}
+.dash-hero p{font-size:.86rem;color:var(--text-2);margin:0;max-width:60ch;}
+.hero-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:.74rem;font-weight:700;background:rgba(0,229,160,.1);border:1px solid rgba(0,229,160,.25);color:var(--brand);margin-right:8px;margin-bottom:4px;}
+.insight-row{display:flex;flex-direction:column;align-items:flex-start;padding:14px 16px;border-radius:var(--r-lg);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px;border-left:3px solid var(--border);}
+.insight-row.CRITICAL,.insight-row.HIGH{border-left-color:var(--red);}
+.insight-row.MEDIUM{border-left-color:var(--yellow);}
+.insight-row.LOW,.insight-row.INFO{border-left-color:var(--green);}
+.ins-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;width:100%;margin-bottom:4px;}
+.ins-title{font-weight:700;font-size:.88rem;color:var(--text);margin:0;}
+.ins-desc{font-size:.8rem;color:var(--text-2);margin:0;line-height:1.5;}
+.alert-row{padding:10px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.alert-dot{width:8px;height:8px;border-radius:50%;background:var(--yellow);flex-shrink:0;}
+.anomaly-row{padding:10px 14px;border-radius:var(--r-md);background:var(--red-bg);border:1px solid rgba(239,68,68,.2);margin-bottom:8px;}
+.cat-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:.84rem;}
+.cat-row:last-child{border-bottom:none;}
+.cat-bar-wrap{flex:1;min-width:60px;}
+.health-grade-badge{padding:4px 14px;border-radius:999px;font-size:.82rem;font-weight:800;display:inline-block;}
+.grade-A{background:var(--green-bg);color:var(--green);}
+.grade-B{background:var(--brand-glow);color:var(--brand);}
+.grade-C{background:var(--yellow-bg);color:var(--yellow);}
+.grade-D,.grade-F{background:var(--red-bg);color:var(--red);}
+</style>
+{% endblock %}
+
+{% block analytics_content %}
+
+{% if error %}
+<div class="an-banner warn"><i class="fas fa-triangle-exclamation" style="color:var(--yellow)"></i><div><strong>Analysis limited</strong><span>Add income and expenses in <a href="{% url 'finance:finance_dashboard' %}" style="color:var(--brand)">Finance</a> to unlock full AI analysis.</span></div></div>
+{% endif %}
+
+<!-- Hero -->
+<div class="dash-hero">
+  <div>
+    <span style="font-size:.67rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--brand);">AI · Overview</span>
+    <h1>Financial Intelligence</h1>
+    <p>Powered by pattern analysis on your real Finance data — insights, predictions, and health signals.</p>
+    <div style="margin-top:12px;">
+      {% if health_score %}<span class="hero-pill"><i class="fas fa-heartbeat"></i> Health {{ health_score }}/1000 · {{ health_grade }}</span>{% endif %}
+      {% if recent_insights_count %}<span class="hero-pill"><i class="fas fa-lightbulb"></i> {{ recent_insights_count }} new insight{{ recent_insights_count|pluralize }}</span>{% endif %}
+      {% if savings_rate %}<span class="hero-pill"><i class="fas fa-piggy-bank"></i> {{ savings_rate }}% savings rate</span>{% endif %}
+      <span class="hero-pill" style="background:transparent;border-color:var(--border);color:var(--text-3);"><i class="fas fa-clock"></i> {% now "d M Y, H:i" %}</span>
+    </div>
+  </div>
+  {% if health_score %}
+  <div style="text-align:center;flex-shrink:0;">
+    <div class="score-ring-wrap">
+      <svg class="score-ring-svg" viewBox="0 0 130 130">
+        <circle class="score-ring-bg" cx="65" cy="65" r="55"/>
+        <circle class="score-ring-fg" cx="65" cy="65" r="55"
+          stroke-dasharray="345.4"
+          stroke-dashoffset="{{ 345.4|floatformat:1 }}"/>
+      </svg>
+      <div class="score-ring-inner">
+        <span class="score-ring-num">{{ health_score }}</span>
+        <span class="score-ring-sub">/ 1000</span>
+      </div>
+    </div>
+    <div class="health-grade-badge grade-{{ health_grade|default:'C' }}" style="margin-top:8px;">Grade {{ health_grade|default:"—" }}</div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- KPIs -->
+<div class="an-kpis">
+  <div class="an-kpi hi">
+    <span class="an-kpi-label">This month income</span>
+    <span class="an-kpi-val brand">₹{{ total_income|default:0|floatformat:0 }}</span>
+    <span class="an-kpi-sub">Recorded in Finance</span>
+  </div>
+  <div class="an-kpi">
+    <span class="an-kpi-label">This month spend</span>
+    <span class="an-kpi-val {% if total_expense > total_income %}dn{% endif %}">₹{{ total_expense|default:0|floatformat:0 }}</span>
+    <span class="an-kpi-sub">Across all categories</span>
+  </div>
+  <div class="an-kpi">
+    <span class="an-kpi-label">Net savings</span>
+    <span class="an-kpi-val {% if net_savings >= 0 %}up{% else %}dn{% endif %}">₹{{ net_savings|default:0|floatformat:0 }}</span>
+    <span class="an-kpi-sub">Income minus expenses</span>
+  </div>
+  <div class="an-kpi">
+    <span class="an-kpi-label">Savings rate</span>
+    <span class="an-kpi-val {% if savings_rate >= 20 %}up{% elif savings_rate >= 10 %}{% else %}dn{% endif %}">{{ savings_rate|default:0|floatformat:1 }}%</span>
+    <span class="an-kpi-sub">Target: 20%+</span>
+  </div>
+  <div class="an-kpi">
+    <span class="an-kpi-label">Active insights</span>
+    <span class="an-kpi-val">{{ recent_insights_count|default:0 }}</span>
+    <span class="an-kpi-sub">Last 7 days</span>
+  </div>
+  <div class="an-kpi">
+    <span class="an-kpi-label">Predictive alerts</span>
+    <span class="an-kpi-val">{{ active_alerts|length }}</span>
+    <span class="an-kpi-sub">Upcoming events</span>
+  </div>
+</div>
+
+<!-- Main grid -->
+<div class="an-grid-2">
+  <!-- Left col -->
+  <div>
+    <!-- Income vs Expense chart -->
+    {% if income_series and income_series != '[]' %}
+    <div class="an-card">
+      <div class="an-card-head">
+        <h2><i class="fas fa-chart-bar"></i> Income vs Expenses — 6 months</h2>
+        <a href="{% url 'finance:finance_dashboard' %}" class="btn-outline xs">Finance</a>
+      </div>
+      <div class="chart-box"><canvas id="incomeExpenseChart" height="120"></canvas></div>
+    </div>
+    {% endif %}
+
+    <!-- Category breakdown -->
+    {% if category_data %}
+    <div class="an-card">
+      <div class="an-card-head">
+        <h2><i class="fas fa-chart-pie"></i> Spending by category</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:16px;align-items:center;">
+        <div id="cat-list">
+          {% for cat, amount, pct in category_data|slice:":6" %}
+          <div class="cat-row">
+            <span style="color:var(--text-2);min-width:80px;font-size:.82rem;">{{ cat }}</span>
+            <div class="cat-bar-wrap">
+              <div class="an-bar-track"><div class="an-bar-fill brand" style="width:{{ pct|default:0|floatformat:0 }}%;"></div></div>
+            </div>
+            <span style="font-family:var(--f-mono);font-size:.8rem;color:var(--text);min-width:64px;text-align:right;">₹{{ amount|floatformat:0 }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        <div><canvas id="categoryChart" height="180"></canvas></div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent insights -->
+    <div class="an-card">
+      <div class="an-card-head">
+        <h2><i class="fas fa-lightbulb"></i> Recent insights</h2>
+        <a href="{% url 'analytics-ai:financial_insights' %}" class="btn-outline xs">All insights</a>
+      </div>
+      {% if recent_insights %}
+      {% for insight in recent_insights %}
+      <div class="insight-row {{ insight.severity }}">
+        <div class="ins-top">
+          <p class="ins-title">{{ insight.title }}</p>
+          <span class="sev sev-{{ insight.severity }}">{{ insight.severity }}</span>
+        </div>
+        <p class="ins-desc">{{ insight.description|truncatechars:110 }}</p>
+        {% if insight.action_required and not insight.is_read %}
+        <div style="margin-top:8px;display:flex;gap:8px;">
+          <a href="{% url 'analytics-ai:insight_detail' insight.id %}" class="btn xs">View & act</a>
+          <a href="{% url 'analytics-ai:ai_chat' %}?q={{ insight.title|urlencode }}" class="btn-outline xs"><i class="fas fa-robot"></i> Ask AI</a>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="an-empty"><i class="fas fa-brain"></i><strong>Insights generating</strong><p>Add income and expenses in Finance to unlock AI analysis.</p></div>
+      {% endif %}
+    </div>
+
+    <!-- Anomalies -->
+    {% if anomalies %}
+    <div class="an-card" style="border-color:rgba(239,68,68,.2);">
+      <div class="an-card-head"><h2><i class="fas fa-exclamation-triangle" style="color:var(--red)"></i> Anomalies detected</h2></div>
+      {% for a in anomalies|slice:":3" %}
+      <div class="anomaly-row">
+        <strong style="font-size:.87rem;color:var(--red);display:block;">{{ a.title|default:a }}</strong>
+        {% if a.description %}<p style="margin:3px 0 0;font-size:.78rem;color:var(--text-2);">{{ a.description|truncatechars:100 }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right col -->
+  <div>
+    <!-- Health breakdown -->
+    {% if health_breakdown %}
+    <div class="an-card" style="margin-bottom:16px;">
+      <div class="an-card-head">
+        <h2><i class="fas fa-heartbeat"></i> Health breakdown</h2>
+        <a href="{% url 'analytics-ai:financial_health_dashboard' %}" class="btn-outline xs">Full details</a>
+      </div>
+      {% for key, val in health_breakdown.items %}
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
+          <span style="font-size:.8rem;color:var(--text-2);">{{ key|cut:"_"|title }}</span>
+          <span style="font-family:var(--f-mono);font-size:.78rem;font-weight:700;color:var(--text);">{{ val.points|default:val|floatformat:0 }}/{{ val.max|default:200 }}</span>
+        </div>
+        {% with pct=val.pct|default:0 %}
+        <div class="an-bar-track">
+          <div class="an-bar-fill {% if pct >= 70 %}green{% elif pct >= 40 %}yellow{% else %}red{% endif %}" style="width:{{ pct|floatformat:0 }}%;"></div>
+        </div>
+        {% endwith %}
+        {% if val.status %}<span style="font-size:.7rem;color:var(--text-3);">{{ val.status }}</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Predictive alerts -->
+    {% if active_alerts %}
+    <div class="an-card" style="margin-bottom:16px;">
+      <div class="an-card-head"><h2><i class="fas fa-bell"></i> Upcoming alerts</h2></div>
+      {% for alert in active_alerts %}
+      <div class="alert-row">
+        <div class="alert-dot"></div>
+        <div style="flex:1;">
+          <div style="font-size:.86rem;font-weight:700;color:var(--text);">{{ alert.title }}</div>
+          <div style="font-size:.75rem;color:var(--text-3);">{{ alert.predicted_date|date:"d M Y" }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Savings plan -->
+    {% if savings_plan.recommended_monthly_savings %}
+    <div class="an-card" style="margin-bottom:16px;">
+      <div class="an-card-head"><h2><i class="fas fa-piggy-bank"></i> Smart savings plan</h2></div>
+      <div style="text-align:center;padding:16px;border-radius:var(--r-lg);background:var(--green-bg);border:1px solid rgba(16,185,129,.2);margin-bottom:14px;">
+        <div style="font-size:.74rem;color:var(--green);font-weight:700;margin-bottom:4px;">Recommended monthly saving</div>
+        <div style="font-family:var(--f-mono);font-size:1.7rem;font-weight:800;color:var(--green);">₹{{ savings_plan.recommended_monthly_savings|floatformat:0 }}</div>
+      </div>
+      {% if savings_plan.saving_opportunities %}
+      {% for opp in savings_plan.saving_opportunities|slice:":3" %}
+      <div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:.82rem;">
+        <span style="color:var(--brand);flex-shrink:0;">→</span>
+        <span style="color:var(--text-2);">{{ opp.title|default:opp }}</span>
+        {% if opp.amount %}<span style="font-family:var(--f-mono);color:var(--green);margin-left:auto;">₹{{ opp.amount|floatformat:0 }}</span>{% endif %}
+      </div>
+      {% endfor %}
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Quick nav -->
+    <div class="an-card">
+      <div class="an-card-head"><h2><i class="fas fa-compass"></i> Explore analytics</h2></div>
+      <div style="display:grid;gap:8px;">
+        <a href="{% url 'analytics-ai:financial_insights' %}" class="btn-outline" style="justify-content:flex-start;gap:8px;"><i class="fas fa-lightbulb" style="color:var(--yellow)"></i> Financial insights</a>
+        <a href="{% url 'analytics-ai:predictive_analytics' %}" class="btn-outline" style="justify-content:flex-start;gap:8px;"><i class="fas fa-brain" style="color:#6366F1"></i> Predictive analytics</a>
+        <a href="{% url 'analytics-ai:financial_health_dashboard' %}" class="btn-outline" style="justify-content:flex-start;gap:8px;"><i class="fas fa-heartbeat" style="color:var(--red)"></i> Financial health</a>
+        <a href="{% url 'analytics-ai:ai_report' %}" class="btn-outline" style="justify-content:flex-start;gap:8px;"><i class="fas fa-file-lines" style="color:var(--brand)"></i> Full AI report</a>
+        <a href="{% url 'analytics-ai:ai_chat' %}" class="btn-outline" style="justify-content:flex-start;gap:8px;"><i class="fas fa-comment-dots" style="color:#EC4899"></i> Ask AI anything</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const isDark = true;
+  const gridColor = 'rgba(255,255,255,.05)';
+  const tickColor = '#5A6070';
+  // Fix score ring
+  const ring = document.querySelector('.score-ring-fg');
+  if(ring){
+    const score = {{ health_score|default:0 }};
+    const total = 345.4;
+    ring.style.strokeDashoffset = total - (total * score / 1000);
+  }
+
+  // Income vs Expense
+  {% if income_series and income_series != '[]' %}
+  const ctx1 = document.getElementById('incomeExpenseChart');
+  if(ctx1){
+    new Chart(ctx1,{
+      type:'bar',
+      data:{
+        labels: {{ month_labels|safe }},
+        datasets:[
+          {label:'Income',data:{{ income_series|safe }},backgroundColor:'rgba(0,229,160,.65)',borderRadius:5,borderSkipped:false},
+          {label:'Expenses',data:{{ expense_series|safe }},backgroundColor:'rgba(239,68,68,.55)',borderRadius:5,borderSkipped:false}
+        ]
+      },
+      options:{responsive:true,interaction:{mode:'index'},plugins:{legend:{labels:{color:tickColor,font:{size:11}}}},scales:{y:{grid:{color:gridColor},ticks:{color:tickColor,callback:v=>'₹'+v.toLocaleString('en-IN')}},x:{grid:{display:false},ticks:{color:tickColor}}}}
+    });
+  }
+  {% endif %}
+
+  // Category donut
+  {% if category_amounts and category_amounts != '[]' %}
+  const ctx2 = document.getElementById('categoryChart');
+  if(ctx2){
+    new Chart(ctx2,{
+      type:'doughnut',
+      data:{
+        labels: {{ category_labels|safe }},
+        datasets:[{data:{{ category_amounts|safe }},backgroundColor:['#00E5A0','#6366F1','#F59E0B','#EF4444','#3B82F6','#EC4899'],borderWidth:2,borderColor:'var(--surface)'}]
+      },
+      options:{responsive:true,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'₹'+ctx.raw.toLocaleString('en-IN')}}}}
+    });
+  }
+  {% endif %}
+})();
+</script>
+{% endblock %}

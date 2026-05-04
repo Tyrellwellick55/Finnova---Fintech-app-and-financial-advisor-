@@ -1,0 +1,36 @@
+{% extends "finance/base.html" %}
+{% block title %}{{ page_title|default:"Create goal" }} — Finance — Finnova{% endblock %}
+
+{% block finance_content %}
+<div class="page-header">
+  <div><h1>{{ page_title|default:"Create goal" }}</h1><p>Save with purpose. Connect surplus cash to a specific target.</p></div>
+  <a href="{% url 'finance:financial_goals' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Goals</a>
+</div>
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;">
+  <div class="card">
+    <form method="post">{% csrf_token %}
+      {% for field in form %}
+      <div class="form-group">
+        <label class="form-label">{{ field.label }}{% if field.field.required %} <span style="color:var(--red);">*</span>{% endif %}</label>
+        {{ field }}
+        {% if field.errors %}<p style="color:var(--red);font-size:.78rem;margin:4px 0 0;">{{ field.errors.0 }}</p>{% endif %}
+      </div>{% endfor %}
+      <div style="display:flex;gap:10px;margin-top:6px;">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Create goal</button>
+        <a href="{% url 'finance:financial_goals' %}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+  {% if templates %}
+  <div class="card">
+    <div class="card-header"><h2>Quick templates</h2></div>
+    <div style="display:grid;gap:10px;">
+      {% for tmpl in templates %}
+      <a href="?type={{ tmpl.goal_type }}&target={{ tmpl.target_amount }}" style="padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);text-decoration:none;display:block;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="this.style.borderColor='var(--border)'">
+        <strong style="font-size:.86rem;color:var(--text);display:block;margin-bottom:2px;">{{ tmpl.name }}</strong>
+        <span style="font-size:.78rem;color:var(--text-3);">₹{{ tmpl.target_amount|default:0|floatformat:0 }} · {{ tmpl.target_months }} months</span>
+      </a>{% endfor %}
+    </div>
+  </div>{% endif %}
+</div>
+{% endblock %}

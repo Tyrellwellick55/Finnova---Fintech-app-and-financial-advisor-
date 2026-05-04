@@ -1,0 +1,42 @@
+{% extends "finance/base.html" %}
+{% block title %}Tax Calculator — Finance — Finnova{% endblock %}
+
+{% block finance_content %}
+<div class="page-header">
+  <div><h1>Tax Calculator</h1><p>Estimate your income tax liability for the financial year.</p></div>
+  <a href="{% url 'finance:taxes' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Tax records</a>
+</div>
+<div style="display:grid;grid-template-columns:1.3fr 1fr;gap:20px;">
+  <div class="card">
+    <div class="card-header"><h2>Income details</h2></div>
+    <form method="post">{% csrf_token %}
+      {% if form %}{% for field in form %}
+      <div class="form-group"><label class="form-label">{{ field.label }}</label>{{ field }}</div>{% endfor %}{% else %}
+      <div class="form-group"><label class="form-label">Annual income ₹</label><input type="number" name="annual_income" class="form-control" value="{{ prefill_income|default:'' }}" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">Deductions u/s 80C ₹</label><input type="number" name="deduction_80c" class="form-control" placeholder="0 (max 1,50,000)"></div>
+      <div class="form-group"><label class="form-label">HRA exemption ₹</label><input type="number" name="hra" class="form-control" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">Other deductions ₹</label><input type="number" name="other_deductions" class="form-control" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">Tax regime</label>
+        <select name="regime" class="form-control form-select">
+          <option value="NEW">New regime (FY 2024-25)</option>
+          <option value="OLD">Old regime</option>
+        </select>
+      </div>{% endif %}
+      <button type="submit" class="btn" style="width:100%;justify-content:center;padding:11px;"><i class="fas fa-calculator"></i> Calculate tax</button>
+    </form>
+  </div>
+  <div class="card">
+    {% if result %}
+    <div class="card-header"><h2>Tax estimate</h2></div>
+    <div style="text-align:center;padding:20px 0;">
+      <div style="font-size:2.2rem;font-weight:800;font-family:var(--mono);color:var(--red);">₹{{ result.tax_liability|default:0|floatformat:0 }}</div>
+      <div style="font-size:.84rem;color:var(--text-3);margin-top:4px;">Estimated tax liability</div>
+    </div>
+    <div style="display:grid;gap:8px;font-size:.86rem;">
+      {% for label, val in result.breakdown.items %}<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-2);">{{ label }}</span><span style="font-family:var(--mono);">₹{{ val|default:0|floatformat:0 }}</span></div>{% endfor %}
+    </div>
+    {% else %}
+    <div style="padding:32px;text-align:center;color:var(--text-3);">Enter your income details to calculate estimated tax.</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

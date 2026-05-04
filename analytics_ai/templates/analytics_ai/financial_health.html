@@ -1,0 +1,222 @@
+{% extends 'analytics_ai/base_analytics.html' %}
+{% load static ai_filters %}
+{% block title %}Financial Health — Finnova{% endblock %}
+{% block page_title %}Financial Health{% endblock %}
+
+{% block analytics_css %}
+<style>
+.health-hero{padding:26px 30px;border-radius:var(--r-xl);background:var(--surface);border:1px solid var(--border-brand);margin-bottom:22px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+.grade-badge{display:inline-block;padding:5px 18px;border-radius:999px;font-size:.88rem;font-weight:800;margin-top:8px;}
+.grade-A{background:var(--green-bg);color:var(--green);}
+.grade-B{background:var(--brand-glow);color:var(--brand);}
+.grade-C{background:var(--yellow-bg);color:var(--yellow);}
+.grade-D,.grade-F{background:var(--red-bg);color:var(--red);}
+.breakdown-card{padding:18px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--surface);}
+.bc-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+.bc-name{font-size:.8rem;font-weight:700;color:var(--text-2);}
+.bc-score{font-family:var(--f-mono);font-size:1.05rem;font-weight:800;}
+.bc-status{font-size:.69rem;font-weight:700;padding:2px 8px;border-radius:999px;display:inline-block;}
+.status-Excellent{background:var(--green-bg);color:var(--green);}
+.status-Good{background:var(--brand-glow);color:var(--brand);}
+.status-Fair{background:var(--yellow-bg);color:var(--yellow);}
+.status-Poor,.status-Needs{background:var(--red-bg);color:var(--red);}
+.suggestion-item{padding:14px 16px;border-radius:var(--r-lg);background:var(--surface-2);border:1px solid var(--border);border-left:3px solid var(--brand);margin-bottom:10px;}
+.sug-title{font-size:.88rem;font-weight:700;color:var(--text);display:block;margin-bottom:4px;}
+.sug-desc{font-size:.8rem;color:var(--text-2);line-height:1.55;margin:0;}
+.bench-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px;font-size:.84rem;}
+.action-item{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px;}
+.action-num{width:24px;height:24px;border-radius:6px;background:var(--brand-glow);border:1px solid var(--border-brand);color:var(--brand);font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.action-body strong{display:block;font-size:.86rem;color:var(--text);margin-bottom:2px;}
+.action-body p{margin:0;font-size:.78rem;color:var(--text-2);line-height:1.5;}
+</style>
+{% endblock %}
+
+{% block analytics_content %}
+{% if error %}
+<div class="an-banner warn"><i class="fas fa-triangle-exclamation" style="color:var(--yellow)"></i><div><strong>Health score unavailable</strong><span>Add income and expense records in <a href="{% url 'finance:finance_dashboard' %}" style="color:var(--brand)">Finance</a> to calculate your score.</span></div></div>
+{% endif %}
+
+<div class="health-hero">
+  <div style="flex:1;">
+    <span style="font-size:.67rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--brand);">Financial Health</span>
+    <h1 style="font-size:1.4rem;color:var(--text);margin:8px 0 6px;">Your money's vital signs</h1>
+    <p style="color:var(--text-2);font-size:.88rem;max-width:56ch;margin:0 0 14px;line-height:1.65;">A composite score from your savings rate, debt load, budget discipline, and investment habits. Updated each time you add Finance data.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="{% url 'analytics-ai:ai_dashboard' %}" class="btn-outline btn-sm"><i class="fas fa-gauge-high"></i> AI Overview</a>
+      <a href="{% url 'analytics-ai:ai_chat' %}?q=How+do+I+improve+my+health+score" class="btn-outline btn-sm"><i class="fas fa-comment-dots"></i> Ask AI</a>
+    </div>
+  </div>
+  <div style="text-align:center;flex-shrink:0;">
+    {% if score %}
+    <div class="score-ring-wrap" style="width:150px;height:150px;">
+      <svg class="score-ring-svg" viewBox="0 0 150 150" style="width:150px;height:150px;">
+        <circle class="score-ring-bg" cx="75" cy="75" r="60" stroke-width="12"/>
+        <circle class="score-ring-fg" cx="75" cy="75" r="60" stroke-width="12"
+          stroke-dasharray="376.99" stroke-dashoffset="{{ 376.99|floatformat:2 }}"
+          id="healthRingFg"/>
+      </svg>
+      <div class="score-ring-inner">
+        <span class="score-ring-num" style="font-size:1.8rem;">{{ score }}</span>
+        <span class="score-ring-sub">/ 1000</span>
+      </div>
+    </div>
+    <div class="grade-badge grade-{{ grade|default:'C' }}">Grade {{ grade|default:"—" }}</div>
+    {% else %}
+    <div class="score-ring-wrap" style="width:150px;height:150px;">
+      <svg class="score-ring-svg" viewBox="0 0 150 150" style="width:150px;height:150px;">
+        <circle class="score-ring-bg" cx="75" cy="75" r="60" stroke-width="12"/>
+      </svg>
+      <div class="score-ring-inner">
+        <span style="font-size:1.4rem;color:var(--text-3);font-family:var(--f-mono);">—</span>
+        <span class="score-ring-sub">pending</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Breakdown cards -->
+{% if breakdown %}
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:22px;">
+  {% for key, val in breakdown.items %}
+  <div class="breakdown-card">
+    <div class="bc-head">
+      <span class="bc-name">{{ val.name|default:key }}</span>
+      {% if val.status %}<span class="bc-status status-{{ val.status|cut:" " }}">{{ val.status }}</span>{% endif %}
+    </div>
+    <span class="bc-score" style="color:{% if val.pct >= 70 %}var(--green){% elif val.pct >= 40 %}var(--yellow){% else %}var(--red){% endif %};">{{ val.points|default:0 }}<small style="font-size:.7rem;font-weight:500;color:var(--text-3);">/{{ val.max|default:200 }}</small></span>
+    <div class="an-bar-track" style="margin-top:10px;">
+      <div class="an-bar-fill {% if val.pct >= 70 %}green{% elif val.pct >= 40 %}yellow{% else %}red{% endif %}" style="width:{{ val.pct|default:0|floatformat:0 }}%;"></div>
+    </div>
+    <div style="font-size:.7rem;color:var(--text-3);margin-top:4px;">{{ val.pct|default:0|floatformat:0 }}% of max</div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:22px;">
+  {% for label in "Savings Rate,Emergency Fund,Debt Ratio,Credit Utilization,Spending Consistency,Investments"|split:"," %}
+  <div class="breakdown-card">
+    <div class="bc-head"><span class="bc-name">{{ label }}</span></div>
+    <span class="bc-score" style="color:var(--text-3);">—</span>
+    <div class="an-bar-track" style="margin-top:10px;"><div class="an-bar-fill brand" style="width:0%;"></div></div>
+    <div style="font-size:.7rem;color:var(--text-3);margin-top:4px;">No data</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="an-grid-2">
+  <div>
+    <!-- Suggestions -->
+    <div class="an-card">
+      <div class="an-card-head"><h2><i class="fas fa-lightbulb"></i> How to improve</h2></div>
+      {% if suggestions %}
+      {% for s in suggestions %}
+      <div class="suggestion-item" style="border-left-color:{% if s.priority == 'HIGH' or s.priority == 'CRITICAL' %}var(--red){% elif s.priority == 'MEDIUM' %}var(--yellow){% else %}var(--brand){% endif %};">
+        <span class="sug-title">{{ s.title }}</span>
+        <p class="sug-desc">{{ s.description }}</p>
+        {% if s.action_url %}<a href="{{ s.action_url }}" class="btn xs" style="margin-top:8px;">{{ s.cta|default:"Take action" }}</a>{% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="an-empty"><i class="fas fa-lightbulb"></i><strong>Improvement tips pending</strong><p>Add more Finance data to unlock personalized suggestions.</p></div>
+      {% endif %}
+    </div>
+
+    <!-- Health trends chart -->
+    <div class="an-card" style="margin-top:16px;">
+      <div class="an-card-head"><h2><i class="fas fa-chart-line"></i> Health score history</h2></div>
+      {% if health_trends and health_trends.labels %}
+      <div class="chart-box"><canvas id="healthTrendsChart" height="130"></canvas></div>
+      {% else %}
+      <div class="an-empty"><i class="fas fa-chart-line"></i><strong>Trend data building</strong><p>Score history will appear after more Finance entries over multiple months.</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <!-- Score components weight table -->
+    <div class="an-card" style="margin-bottom:16px;">
+      <div class="an-card-head"><h2><i class="fas fa-scales-balanced"></i> Score components</h2></div>
+      <div style="font-size:.84rem;">
+        {% for row in "Savings Rate,250 pts,% of income saved each month|Emergency Fund,200 pts,Months of expenses covered|Debt Ratio,200 pts,EMI vs monthly income|Credit Utilization,150 pts,Card balance vs limit|Spending Consistency,100 pts,Month-to-month variance|Investment Ratio,100 pts,% income invested"|split:"|" %}
+        {% with parts=row|split:"," %}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-2);">{{ parts.0 }}</span>
+          <span style="font-family:var(--f-mono);font-weight:700;color:var(--brand);font-size:.8rem;">{{ parts.1 }}</span>
+        </div>
+        {% endwith %}
+        {% endfor %}
+      </div>
+      <div style="margin-top:12px;padding:10px;border-radius:var(--r-md);background:var(--brand-glow);border:1px solid var(--border-brand);">
+        <div style="font-size:.78rem;color:var(--brand);font-weight:700;">Total: 1,000 points</div>
+        <div style="font-size:.75rem;color:var(--text-2);margin-top:2px;">Score updates each time you add Finance data</div>
+      </div>
+    </div>
+
+    <!-- Benchmark -->
+    {% if benchmark %}
+    <div class="an-card" style="margin-bottom:16px;">
+      <div class="an-card-head"><h2><i class="fas fa-flag-checkered"></i> Benchmark comparison</h2></div>
+      {% for key, val in benchmark.items %}
+      <div class="bench-row">
+        <span style="color:var(--text-2);">{{ key|replace_underscore|title }}</span>
+        <span style="font-family:var(--f-mono);font-weight:700;">{{ val }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Action plan -->
+    {% if action_plan %}
+    <div class="an-card">
+      <div class="an-card-head"><h2><i class="fas fa-list-check"></i> Action plan</h2></div>
+      {% for i, step in action_plan %}
+      <div class="action-item">
+        <div class="action-num">{{ forloop.counter }}</div>
+        <div class="action-body">
+          <strong>{{ step.title|default:step }}</strong>
+          {% if step.description %}<p>{{ step.description }}</p>{% endif %}
+        </div>
+      </div>
+      {% empty %}
+      {% for step in action_plan %}
+      <div class="action-item">
+        <div class="action-num">{{ forloop.counter }}</div>
+        <div class="action-body">
+          <strong>{{ step.title|default:step }}</strong>
+          {% if step.description %}<p>{{ step.description }}</p>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+(function(){
+  const score = {{ score|default:0 }};
+  const ring = document.getElementById('healthRingFg');
+  if(ring){
+    const circumference = 376.99;
+    ring.style.strokeDashoffset = circumference - (circumference * score / 1000);
+    // Colour based on grade
+    ring.style.stroke = score >= 700 ? '#10B981' : score >= 500 ? '#00E5A0' : score >= 300 ? '#F59E0B' : '#EF4444';
+  }
+
+  {% if health_trends and health_trends.labels %}
+  const ht = {{ health_trends|safe }};
+  const ctx = document.getElementById('healthTrendsChart');
+  if(ctx && ht.labels){
+    new Chart(ctx,{
+      type:'line',
+      data:{labels:ht.labels,datasets:[{label:'Health score',data:ht.scores,borderColor:'#00C896',backgroundColor:'rgba(0,200,150,.08)',borderWidth:2,tension:0.4,fill:true,pointBackgroundColor:'#00C896',pointRadius:4}]},
+      options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{min:0,max:1000,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#5A6070'}},x:{grid:{display:false},ticks:{color:'#5A6070'}}}}
+    });
+  }
+  {% endif %}
+})();
+</script>
+{% endblock %}

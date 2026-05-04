@@ -1,0 +1,255 @@
+{% extends "finnova_autopilot/base_autopilot.html" %}
+{% block title %}Smart Bills — Autopilot — Finnova{% endblock %}
+
+{% block autopilot_extra_css %}
+<style>
+.bills-hero {
+  padding:26px 28px;
+  border-radius:var(--r-xl);
+  background:var(--surface);
+  border:1px solid var(--border-brand);
+  margin-bottom:20px;
+  display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;
+}
+.bills-hero h1 { font-size:1.4rem;color:var(--text);margin:8px 0 6px; }
+.bills-hero p  { font-size:.86rem;color:var(--text-2);margin:0; }
+.bills-metrics { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px; }
+.bills-metric { padding:16px 18px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--surface); }
+.bills-metric-label { font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);display:block;margin-bottom:4px; }
+.bills-metric-value { font-size:1.5rem;font-weight:800;color:var(--text);font-family:var(--mono); }
+.bills-layout { display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px; }
+.bills-panel { background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden; }
+.bills-filters { padding:14px 18px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end; }
+.bf-field { display:flex;flex-direction:column;gap:4px;flex:1;min-width:130px; }
+.bf-field label { font-size:.73rem;font-weight:700;color:var(--text-3); }
+.bf-field select,.bf-field input { padding:8px 11px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.84rem; }
+.bf-field select:focus,.bf-field input:focus { outline:none;border-color:var(--brand); }
+.bill-row {
+  display:grid;
+  grid-template-columns:2fr 1fr 120px 100px 140px;
+  align-items:center;gap:14px;
+  padding:14px 18px;
+  border-bottom:1px solid var(--border);
+  transition:background .15s;
+}
+.bill-row:last-child { border-bottom:none; }
+.bill-row:hover { background:var(--surface-2); }
+.bill-row.overdue { border-left:3px solid var(--red); }
+.bill-row.due-soon { border-left:3px solid var(--yellow); }
+.bill-row.paid   { border-left:3px solid var(--green); opacity:.7; }
+.bill-biller strong { display:block;font-size:.9rem;font-weight:700;color:var(--text); }
+.bill-biller span   { display:block;font-size:.75rem;color:var(--text-3);margin-top:1px; }
+.bill-badge { padding:3px 9px;border-radius:999px;font-size:.7rem;font-weight:800;text-align:center; }
+.bill-badge.PENDING  { background:var(--blue-bg);color:var(--blue); }
+.bill-badge.OVERDUE  { background:var(--red-bg);color:var(--red); }
+.bill-badge.PAID     { background:var(--green-bg);color:var(--green); }
+.bill-badge.FAILED   { background:var(--red-bg);color:var(--red); }
+.bill-badge.SKIPPED  { background:var(--surface-3);color:var(--text-3); }
+.bill-amount { font-family:var(--mono);font-weight:800;font-size:.95rem;color:var(--text); }
+.bill-actions { display:flex;gap:6px; }
+.ba { padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);font-size:.75rem;font-weight:700;cursor:pointer;text-decoration:none;transition:.15s; }
+.ba:hover { border-color:var(--brand);color:var(--brand); }
+.ba.primary { background:var(--brand);border-color:var(--brand);color:var(--bg); }
+.ba.danger  { background:var(--red-bg);border-color:rgba(244,63,94,.3);color:var(--red); }
+.autopay-dot { width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0; }
+.autopay-on  { background:var(--brand);box-shadow:0 0 5px var(--brand); }
+.autopay-off { background:var(--surface-3); }
+/* Add bill form panel */
+.add-bill-panel { background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:22px;position:sticky;top:84px; }
+.add-bill-panel h2 { margin:0 0 16px;font-size:1rem;color:var(--text); }
+.abf label { font-size:.78rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px; }
+.abf input,.abf select,.abf textarea { width:100%;padding:9px 12px;border-radius:var(--r-md);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.85rem;margin-bottom:12px; }
+.abf input:focus,.abf select:focus { outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-glow); }
+.abf-check { display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer; }
+.abf-check input { width:15px;height:15px;margin:0; }
+.abf-check span { font-size:.84rem;font-weight:600;color:var(--text-2); }
+.abf-row { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+@media(max-width:1100px){ .bills-layout{grid-template-columns:1fr} .add-bill-panel{position:static} }
+@media(max-width:900px){ .bill-row{grid-template-columns:1fr 1fr;gap:8px} .bill-actions{grid-column:1/-1} }
+@media(max-width:640px){ .bills-metrics{grid-template-columns:repeat(2,1fr)} }
+</style>
+{% endblock %}
+
+{% block autopilot_content %}
+<!-- Hero -->
+<div class="bills-hero">
+  <div>
+    <span class="mod-kicker">Autopilot · Smart Bills</span>
+    <h1>Smart bill tracker</h1>
+    <p>Track every recurring obligation. Autopilot watches due dates, flags overdue bills, and queues auto-pay actions for your review.</p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;">
+    <span class="badge {% if profile.approval_required %}badge-green{% else %}badge-yellow{% endif %}">
+      <i class="fas fa-{% if profile.approval_required %}shield-halved{% else %}exclamation-triangle{% endif %}"></i>
+      {% if profile.approval_required %}Approvals ON{% else %}Manual review{% endif %}
+    </span>
+  </div>
+</div>
+
+<!-- KPI strip -->
+<div class="bills-metrics">
+  <div class="bills-metric" style="border-color:rgba(244,63,94,.3);background:var(--red-bg);">
+    <span class="metric-l" style="color:var(--red);">Overdue</span>
+    <div class="metric-v" style="color:var(--red);">{{ stats.overdue_count }}</div>
+  </div>
+  <div class="bills-metric" style="border-color:rgba(245,158,11,.3);background:var(--yellow-bg);">
+    <span class="metric-l" style="color:var(--yellow);">Due in 7 days</span>
+    <div class="metric-v" style="color:var(--yellow);">{{ stats.due_soon_count }}</div>
+  </div>
+  <div class="bills-metric">
+    <span class="metric-l">Total pending</span>
+    <div class="metric-v">₹{{ stats.total_due|default:0|floatformat:2 }}</div>
+  </div>
+  <div class="bills-metric" style="border-color:var(--border-brand);background:var(--brand-glow);">
+    <span class="metric-l" style="color:var(--brand);">Auto-pay armed</span>
+    <div class="metric-v" style="color:var(--brand);">{{ stats.active_autopays }}</div>
+  </div>
+</div>
+
+<div class="bills-layout">
+  <!-- Bills list -->
+  <div>
+    <div class="bills-panel">
+      <!-- Filters -->
+      <form method="get" class="bills-filters">
+        <div class="bf-field">
+          <label>Status</label>
+          <select name="status">
+            <option value="">All</option>
+            <option value="pending"  {% if status_filter == "pending" %}selected{% endif %}>Pending</option>
+            <option value="overdue"  {% if status_filter == "overdue" %}selected{% endif %}>Overdue</option>
+            <option value="paid"     {% if status_filter == "paid" %}selected{% endif %}>Paid</option>
+            <option value="failed"   {% if status_filter == "failed" %}selected{% endif %}>Failed</option>
+          </select>
+        </div>
+        <div class="bf-field">
+          <label>Category</label>
+          <select name="category">
+            <option value="">All categories</option>
+            {% for value, label in bill_categories %}
+            <option value="{{ value }}" {% if category_filter == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="bf-field" style="flex:2;">
+          <label>Search biller</label>
+          <input type="search" name="search" value="{{ search_query }}" placeholder="Name, bill number, consumer ID…">
+        </div>
+        <div style="display:flex;gap:6px;align-items:flex-end;">
+          <button type="submit" class="btn" style="min-height:38px;padding:8px 16px;">Filter</button>
+          <a href="{% url 'autopilot:smart_bills' %}" class="btn-outline" style="min-height:38px;padding:8px 14px;">Reset</a>
+        </div>
+      </form>
+
+      <!-- Table header -->
+      <div class="bill-row" style="background:var(--surface-2);border-bottom:1px solid var(--border);">
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Biller</div>
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Due date</div>
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Status</div>
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Amount</div>
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Actions</div>
+      </div>
+
+      {% if bills %}
+      {% for bill in bills %}
+      <div class="bill-row {% if bill.status == 'OVERDUE' %}overdue{% elif bill.is_due_soon %}due-soon{% elif bill.status == 'PAID' %}paid{% endif %}">
+        <div class="bill-biller">
+          <strong>{{ bill.biller_name }}</strong>
+          <span>
+            {{ bill.get_biller_category_display }}
+            {% if bill.is_recurring %} · Recurring{% endif %}
+            &nbsp;
+            <span class="autopay-dot {% if bill.auto_pay %}autopay-on{% else %}autopay-off{% endif %}" title="{% if bill.auto_pay %}Auto-pay enabled{% else %}Manual pay{% endif %}"></span>
+            {% if bill.auto_pay %}<span style="font-size:.7rem;color:var(--brand);">Auto-pay</span>{% endif %}
+          </span>
+        </div>
+        <div style="font-size:.86rem;color:var(--text-2);">
+          {{ bill.due_date|date:"d M Y" }}
+          {% if bill.status == 'OVERDUE' %}
+          <div style="font-size:.72rem;color:var(--red);font-weight:700;margin-top:2px;">{{ bill.due_date|timesince }} overdue</div>
+          {% endif %}
+        </div>
+        <div><span class="bill-badge {{ bill.status }}">{{ bill.get_status_display }}</span></div>
+        <div class="bill-amount">₹{{ bill.amount|default:0|floatformat:2 }}</div>
+        <div class="bill-actions">
+          {% if bill.status == 'PENDING' or bill.status == 'OVERDUE' %}
+          <form method="post" action="{% url 'autopilot:mark_bill_paid' bill.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="ba primary" title="Mark as paid"><i class="fas fa-check"></i></button>
+          </form>
+          <form method="post" action="{% url 'autopilot:skip_bill' bill.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="ba" title="Skip this cycle"><i class="fas fa-forward"></i></button>
+          </form>
+          {% endif %}
+          <a href="{% url 'autopilot:edit_smart_bill' bill.id %}" class="ba" title="Edit"><i class="fas fa-pen"></i></a>
+          <a href="{% url 'autopilot:smart_bill_history' bill.id %}" class="ba" title="Payment history"><i class="fas fa-history"></i></a>
+          <form method="post" action="{% url 'autopilot:toggle_auto_pay' bill.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="ba" title="Toggle auto-pay" style="{% if bill.auto_pay %}border-color:var(--brand);color:var(--brand);{% endif %}">
+              <i class="fas fa-bolt"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty" style="border-radius:0;border:none;margin:0;padding:40px;">
+        <span class="empty-icon"><i class="fas fa-file-invoice"></i></span>
+        <h3>No bills found</h3>
+        <p>Add your first recurring bill using the form on the right.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Add bill form -->
+  <div>
+    <div class="add-bill-panel">
+      <h2><i class="fas fa-plus-circle" style="color:var(--brand);margin-right:8px;"></i>Add new bill</h2>
+      <form method="post" class="abf">
+        {% csrf_token %}
+        <div class="abf-row">
+          <div>
+            <label>Biller name *</label>
+            {{ form.biller_name }}
+          </div>
+          <div>
+            <label>Category</label>
+            {{ form.biller_category }}
+          </div>
+        </div>
+        <div class="abf-row">
+          <div>
+            <label>Amount *</label>
+            {{ form.amount }}
+          </div>
+          <div>
+            <label>Due date *</label>
+            {{ form.due_date }}
+          </div>
+        </div>
+        <label>Bill number</label>{{ form.bill_number }}
+        <label>Consumer number</label>{{ form.consumer_number }}
+        <div class="abf-row">
+          <div>
+            <label>Bill period</label>
+            {{ form.bill_period }}
+          </div>
+          <div>
+            <label>Recurrence</label>
+            {{ form.recurrence_pattern }}
+          </div>
+        </div>
+        <label>Auto-pay account</label>{{ form.auto_pay_account }}
+        <label>Days before due to trigger</label>{{ form.auto_pay_days_before }}
+        <label class="abf-check">{{ form.is_recurring }}<span>Recurring bill</span></label>
+        <label class="abf-check">{{ form.auto_pay }}<span>Enable auto-pay readiness</span></label>
+        <button type="submit" class="btn" style="width:100%;justify-content:center;padding:12px;">
+          <i class="fas fa-save"></i> Save bill
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

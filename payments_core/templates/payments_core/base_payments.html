@@ -1,0 +1,26 @@
+{% extends 'finnovaapp/base.html' %}
+{% load static %}
+{% load nav_extras %}
+{% block title %}{% block page_title %}Payments{% endblock %} — Finnova{% endblock %}
+{% block topbar_title %}Payments{% endblock %}
+{% block topbar_sub %}<span style="color:var(--text-3);font-size:.76rem;">Send money · Cards & UPI · Subscriptions</span>{% endblock %}
+
+{% block extra_css %}
+{% block payment_extra_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<nav class="mod-nav">
+  <div class="mod-nav-tabs">
+    <a href="{% url 'payments:payment_dashboard' %}" class="mod-tab {% if request.resolver_match.url_name == 'payment_dashboard' %}active{% endif %}"><i class="fas fa-gauge-high"></i> Overview</a>
+    <a href="{% url 'payments:transfer_money' %}" class="mod-tab {% if request.resolver_match.url_name == 'transfer_money' %}active{% endif %}"><i class="fas fa-paper-plane"></i> Send Money</a>
+    <a href="{% url 'payments:payment_history' %}" class="mod-tab {% if request.resolver_match.url_name == 'payment_history' %}active{% endif %}"><i class="fas fa-history"></i> History</a>
+    <a href="{% url 'payments:payment_methods' %}" class="mod-tab {% if request.resolver_match.url_name == 'payment_methods' %}active{% endif %}"><i class="fas fa-credit-card"></i> Cards & UPI</a>
+    <a href="{% url 'payments:subscription_list' %}" class="mod-tab {% if request.resolver_match.url_name == 'subscription_list' %}active{% endif %}"><i class="fas fa-rotate"></i> Subscriptions</a>
+  </div>
+  <div class="mod-nav-actions">
+{% block payment_actions %}{% endblock %}
+  </div>
+</nav>
+{% block payment_content %}{% endblock %}
+{% endblock %}

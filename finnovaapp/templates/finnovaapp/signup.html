@@ -1,0 +1,96 @@
+{% extends 'finnovaapp/base.html' %}
+{% block title %}Create Account — Finnova{% endblock %}
+
+{% block extra_css %}
+<style>
+.auth-page { min-height: calc(100vh - 130px); display:flex; align-items:center; padding:32px 0; }
+.auth-layout {
+  display: grid;
+  grid-template-columns: minmax(0,1.1fr) minmax(0,1fr);
+  gap: 0;
+  max-width: 920px; margin: 0 auto; width: 100%;
+  border-radius: var(--r-xl); overflow: hidden;
+  border: 1px solid var(--border);
+}
+.auth-form { padding: 44px; background: var(--surface); }
+.auth-form h1 { font-size: 1.4rem; color: var(--text); margin: 0 0 6px; }
+.auth-form > p { font-size: .85rem; color: var(--text-3); margin: 0 0 24px; }
+.auth-side {
+  padding: 48px 36px;
+  background: linear-gradient(160deg, #0D3B2E 0%, #091830 100%);
+  border-left: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.auth-side::before {
+  content: '';
+  position: absolute; top: -60px; right: -60px;
+  width: 240px; height: 240px;
+  background: radial-gradient(circle, rgba(0,200,150,.14) 0%, transparent 70%);
+}
+.auth-side h3 { font-size: 1.2rem; color: var(--text); margin: 0 0 8px; }
+.auth-side p  { font-size: .85rem; color: var(--text-2); margin: 0 0 24px; line-height:1.65; }
+.auth-feature { display:flex; gap:10px; margin-bottom:14px; }
+.af-icon { width:32px; height:32px; border-radius:8px; background:var(--surface); border:1px solid var(--border-brand); color:var(--brand); font-size:.78rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.af-text strong { display:block; font-size:.83rem; color:var(--text); }
+.af-text span   { font-size:.76rem; color:var(--text-3); }
+@media(max-width:720px){ .auth-layout{grid-template-columns:1fr} .auth-side{display:none} .auth-form{padding:28px 20px} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-layout">
+    <div class="auth-form">
+      <h1>Create your account</h1>
+      <p>Already have one? <a href="{% url 'finnovaapp:login' %}" style="color:var(--brand); font-weight:700;">Log in →</a></p>
+
+      {% if form.non_field_errors %}
+      <div class="alert alert-error" style="margin-bottom:16px;">
+        <i class="fas fa-circle-xmark"></i>
+        <div>{{ form.non_field_errors.0 }}</div>
+      </div>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form-group">
+          <label class="form-label">{{ field.label }}{% if field.field.required %} <span style="color:var(--red);">*</span>{% endif %}</label>
+          {{ field }}
+          {% if field.errors %}<div class="form-error">{{ field.errors.0 }}</div>{% endif %}
+          {% if field.help_text %}<div class="form-hint">{{ field.help_text }}</div>{% endif %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary btn-block" style="padding:13px; margin-top:4px;">
+          <i class="fas fa-user-plus"></i> Create free account
+        </button>
+        <p style="text-align:center; font-size:.76rem; color:var(--text-3); margin:12px 0 0;">
+          By signing up you agree to our <a href="{% url 'finnovaapp:terms_of_service' %}" style="color:var(--brand);">Terms</a> and <a href="{% url 'finnovaapp:privacy_policy' %}" style="color:var(--brand);">Privacy Policy</a>.
+        </p>
+      </form>
+    </div>
+
+    <div class="auth-side">
+      <div class="brand-icon" style="width:40px;height:40px;font-size:1rem;margin-bottom:16px;">F</div>
+      <h3>Everything your money needs</h3>
+      <p>One account unlocks Finance, AI Analytics, Autopilot, and Payments.</p>
+      <div class="auth-feature">
+        <div class="af-icon"><i class="fas fa-wallet"></i></div>
+        <div class="af-text"><strong>Finance tracking</strong><span>Accounts, budgets, goals, expenses</span></div>
+      </div>
+      <div class="auth-feature">
+        <div class="af-icon"><i class="fas fa-brain"></i></div>
+        <div class="af-text"><strong>AI insights</strong><span>Pattern analysis on your real data</span></div>
+      </div>
+      <div class="auth-feature">
+        <div class="af-icon"><i class="fas fa-robot"></i></div>
+        <div class="af-text"><strong>Autopilot</strong><span>Smart bills, savings guidance, alerts</span></div>
+      </div>
+      <div class="auth-feature">
+        <div class="af-icon"><i class="fas fa-credit-card"></i></div>
+        <div class="af-text"><strong>Payments</strong><span>UPI transfers, subscriptions, history</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

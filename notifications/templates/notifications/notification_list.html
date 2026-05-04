@@ -1,0 +1,132 @@
+{% extends "notifications/base_notifications.html" %}
+{% block title %}Notifications — Finnova{% endblock %}
+
+{% block notification_content %}
+<style>
+.notif-layout { display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px; }
+.notif-panel  { background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden; }
+.notif-item   { display:flex;align-items:flex-start;gap:14px;padding:16px 18px;border-bottom:1px solid var(--border);transition:background .15s; }
+.notif-item:last-child { border-bottom:none; }
+.notif-item:hover { background:var(--surface-2); }
+.notif-item.unread { background:rgba(59,130,246,.04); }
+.notif-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px; }
+.notif-body { flex:1;min-width:0; }
+.notif-title { font-weight:700;font-size:.9rem;color:var(--text);margin:0 0 2px; }
+.notif-msg   { font-size:.82rem;color:var(--text-2);margin:0 0 6px; }
+.notif-meta  { font-size:.74rem;color:var(--text-3); }
+.notif-chip  { padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700; }
+.notif-acts  { display:flex;gap:6px;margin-top:8px; }
+.na { padding:4px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);font-size:.74rem;font-weight:700;text-decoration:none;cursor:pointer;transition:.15s; }
+.na:hover { border-color:var(--brand);color:var(--brand); }
+@media(max-width:1100px){ .notif-layout{grid-template-columns:1fr} }
+</style>
+
+<div  class="mod-hero">
+  <div>
+    <span style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--text-3);">Notifications</span>
+    <h1 style="font-size:1.4rem;color:var(--text);margin:8px 0 5px;">Notifications</h1>
+    <p style="font-size:.86rem;color:var(--text-2);margin:0;">{{ notification_stats.total }} total · <strong style="color:{% if notification_stats.unread %}var(--blue){% else %}var(--green){% endif %};">{{ notification_stats.unread }} unread</strong>{% if notification_stats.action_required %} · <strong style="color:var(--yellow);">{{ notification_stats.action_required }} action required</strong>{% endif %}</p>
+  </div>
+  {% if notification_stats.unread %}
+  <form method="post" action="{% url 'notifications:mark_all_read' %}">{% csrf_token %}
+    <button type="submit" class="btn btn-ghost btn-sm"><i class="fas fa-check-double"></i> Mark all read</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="notif-layout">
+  <div class="notif-panel">
+    {% if notifications %}
+    {% for notif in notifications %}
+    <div class="notif-item {% if not notif.is_read %}unread{% endif %}">
+      <span class="notif-dot" style="background:{% if notif.severity == 'CRITICAL' %}var(--red){% elif notif.severity == 'WARNING' %}var(--yellow){% elif notif.severity == 'INFO' or notif.severity == 'SUCCESS' %}var(--green){% else %}var(--brand){% endif %};{% if notif.severity == 'CRITICAL' %}box-shadow:0 0 5px var(--red);{% endif %}"></span>
+      <div class="notif-body">
+        <p class="notif-title">{{ notif.title }}</p>
+        {% if notif.message %}<p class="notif-msg">{{ notif.message|truncatechars:120 }}</p>{% endif %}
+        <div class="notif-meta">
+          {{ notif.created_at|timesince }} ago ·
+          <span class="notif-chip" style="background:var(--surface-3);color:var(--text-3);">{{ notif.category }}</span>
+          {% if notif.action_required and not notif.action_completed %} · <span class="notif-chip" style="background:var(--yellow-bg);color:var(--yellow);">Action required</span>{% endif %}
+        </div>
+        <div class="notif-acts">
+          {% if notif.action_url and notif.action_required and not notif.action_completed %}
+          <a href="{{ notif.action_url }}" class="na" style="background:var(--brand);border-color:var(--brand);color:var(--bg);">Take action</a>
+          {% endif %}
+          {% if not notif.is_read %}
+          <button class="na" onclick="markNotifRead('{{ notif.id }}', this)">Mark read</button>
+          {% endif %}
+          <a href="{% url 'notifications:notification_detail_item' notif.id %}" class="na">Details</a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% if page_obj.has_other_pages %}
+    <div style="display:flex;justify-content:center;gap:6px;padding:14px;border-top:1px solid var(--border);">
+      {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="na"><i class="fas fa-chevron-left"></i></a>{% endif %}
+      <span style="padding:5px 12px;border-radius:8px;background:var(--surface-3);color:var(--text-2);font-size:.84rem;">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="na"><i class="fas fa-chevron-right"></i></a>{% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div style="padding:48px;text-align:center;">
+      <i class="fas fa-bell-slash" style="font-size:2rem;color:var(--text-3);margin-bottom:14px;display:block;"></i>
+      <h3 style="color:var(--text);margin:0 0 6px;">You're all caught up</h3>
+      <p style="color:var(--text-3);font-size:.86rem;">No notifications at this time.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right: by category -->
+  <div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;">
+      <h3 style="margin:0 0 14px;font-size:.9rem;color:var(--text);">Unread by category</h3>
+      {% for cat in unread_counts %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:.84rem;color:var(--text-2);">{{ cat.category }}</span>
+        <span style="font-family:var(--mono);font-weight:700;font-size:.82rem;background:var(--blue-bg);color:var(--blue);padding:2px 8px;border-radius:999px;">{{ cat.count }}</span>
+      </div>
+      {% empty %}
+      <p style="font-size:.84rem;color:var(--text-3);margin:0;">All notifications read ✓</p>
+      {% endfor %}
+    </div>
+    {% if important_alerts %}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;">
+      <h3 style="margin:0 0 12px;font-size:.9rem;color:var(--text);"><i class="fas fa-triangle-exclamation" style="color:var(--yellow);margin-right:6px;"></i>Needs attention</h3>
+      {% for n in important_alerts|slice:":4" %}
+      <div style="padding:9px 0;border-bottom:1px solid var(--border);">
+        <div style="font-size:.84rem;font-weight:700;color:var(--text);">{{ n.title|truncatechars:35 }}</div>
+        <div style="font-size:.74rem;color:var(--text-3);">{{ n.created_at|timesince }} ago</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function markNotifRead(id, btn) {
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+  const token = csrfToken ? csrfToken.value : getCookie('csrftoken');
+  fetch('/notifications/api/' + id + '/mark_read/', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'X-CSRFToken': token, 'Content-Type': 'application/json' }
+  }).then(r => {
+    if (r.ok) {
+      const row = btn.closest('.notif-item');
+      if (row) {
+        row.classList.remove('unread');
+        row.style.opacity = '0.75';
+        btn.remove();
+      }
+      refreshNotifBadge();
+    }
+  }).catch(() => {
+    // Fallback: reload page
+    window.location.reload();
+  });
+}
+</script>
+{% endblock %}

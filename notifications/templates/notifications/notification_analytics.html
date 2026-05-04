@@ -1,0 +1,21 @@
+{% extends "notifications/base_notifications.html" %}
+{% block title %}Analytics — Notifications — Finnova{% endblock %}
+
+{% block notification_content %}
+<div class="page-header"><div><h1>Notification Analytics</h1><p>Volume and engagement stats for your notifications.</p></div></div>
+<div class="metric-grid" style="margin-bottom:20px;">
+  <div class="metric"><div class="metric-label">Total sent</div><div class="metric-value">{{ notification_stats.total }}</div></div>
+  <div class="metric"><div class="metric-label">Unread</div><div class="metric-value" style="color:var(--blue);">{{ notification_stats.unread }}</div></div>
+  <div class="metric"><div class="metric-label">Action required</div><div class="metric-value" style="color:var(--yellow);">{{ notification_stats.action_required }}</div></div>
+  <div class="metric" style="border-color:rgba(244,63,94,.3);background:var(--red-bg);"><div class="metric-label" style="color:var(--red);">Critical</div><div class="metric-value" style="color:var(--red);">{{ notification_stats.critical }}</div></div>
+</div>
+<div class="card">
+  <div class="card-header"><h2>By category</h2></div>
+  {% for cat in unread_counts %}
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border);">
+    <span style="font-size:.88rem;color:var(--text-2);">{{ cat.category }}</span>
+    <span style="font-family:var(--mono);font-weight:800;font-size:.9rem;color:var(--text);">{{ cat.count }}</span>
+  </div>
+  {% empty %}<div style="padding:24px;text-align:center;color:var(--text-3);">No category data yet.</div>{% endfor %}
+</div>
+{% endblock %}

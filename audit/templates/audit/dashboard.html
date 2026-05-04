@@ -1,0 +1,124 @@
+{% extends 'audit/base_audit.html' %}
+{% load static %}
+{% block title %}Audit Dashboard — Finnova{% endblock %}
+
+{% block audit_content %}
+<div class="page-header">
+  <div>
+    <h1>Audit Dashboard</h1>
+    <p>Security events, compliance status, and risk monitoring — updated in real time.</p>
+  </div>
+  <div class="page-actions">
+    <a href="{% url 'audit:reports' %}" class="btn btn-ghost btn-sm"><i class="fas fa-file-alt"></i> Reports</a>
+    <a href="{% url 'audit:log_list' %}" class="btn btn-primary btn-sm"><i class="fas fa-list"></i> All logs</a>
+  </div>
+</div>
+
+<!-- KPI strip -->
+<div class="metric-grid" style="margin-bottom:18px;">
+  <div class="metric" {% if stats.critical_alerts %}style="border-color:rgba(244,63,94,.4);background:var(--red-bg);"{% endif %}>
+    <div class="metric-label" {% if stats.critical_alerts %}style="color:var(--red);"{% endif %}>Critical alerts</div>
+    <div class="metric-value" {% if stats.critical_alerts %}style="color:var(--red);"{% endif %}>{{ stats.critical_alerts|default:0 }}</div>
+    <div class="metric-sub">Requires attention</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Logs today</div>
+    <div class="metric-value">{{ stats.total_logs|default:0 }}</div>
+    <div class="metric-sub">{% if stats.logs_increase %}+{{ stats.logs_increase }}% vs yesterday{% endif %}</div>
+  </div>
+  <div class="metric" {% if stats.high_risk_users %}style="border-color:rgba(245,158,11,.4);background:var(--yellow-bg);"{% endif %}>
+    <div class="metric-label" {% if stats.high_risk_users %}style="color:var(--yellow);"{% endif %}>High risk users</div>
+    <div class="metric-value" {% if stats.high_risk_users %}style="color:var(--yellow);"{% endif %}>{{ stats.high_risk_users|default:0 }}</div>
+    <div class="metric-sub">Flagged profiles</div>
+  </div>
+  <div class="metric" style="border-color:var(--border-brand);background:var(--brand-glow);">
+    <div class="metric-label" style="color:var(--brand);">Compliance score</div>
+    <div class="metric-value" style="color:var(--brand);">{{ stats.compliance_score|default:0 }}%</div>
+    <div class="metric-sub">Current status</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1.6fr 1fr;gap:18px;">
+  <!-- Recent activity -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <h2 style="margin:0;font-size:.96rem;color:var(--text);"><i class="fas fa-list" style="color:var(--brand);margin-right:6px;"></i> Recent activity</h2>
+      <a href="{% url 'audit:log_list' %}" class="btn btn-ghost btn-xs">View all</a>
+    </div>
+    {% if recent_logs %}
+    <div class="table-wrap" style="border-radius:0;border:none;">
+      <table>
+        <thead>
+          <tr>
+            <th>Action</th>
+            <th>User</th>
+            <th>Module</th>
+            <th>Severity</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in recent_logs %}
+          <tr>
+            <td><strong class="td-primary">{{ log.action|truncatechars:40 }}</strong></td>
+            <td style="color:var(--text-2);">{{ log.actor.username|default:"System" }}</td>
+            <td><span class="badge badge-neutral" style="font-size:.68rem;">{{ log.source|default:"core" }}</span></td>
+            <td>
+              <span class="badge {% if log.severity == 'CRITICAL' %}badge-red{% elif log.severity == 'HIGH' %}badge-yellow{% else %}badge-neutral{% endif %}" style="font-size:.68rem;">
+                {{ log.severity|default:"INFO" }}
+              </span>
+            </td>
+            <td class="td-mono" style="font-size:.76rem;">{{ log.created_at|date:"d M, H:i" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty" style="border:none;border-radius:0;">
+      <span class="empty-icon"><i class="fas fa-history"></i></span>
+      <h3>No logs yet</h3>
+      <p>Audit events will appear here as users interact with the system.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right column -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <!-- Open security alerts -->
+    <div class="card" style="padding:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <h2 style="margin:0;font-size:.96rem;color:var(--text);">Open alerts</h2>
+        <a href="{% url 'audit:alert_list' %}" class="btn btn-ghost btn-xs">All</a>
+      </div>
+      {% if open_alerts %}
+      <div style="display:grid;gap:8px;">
+        {% for alert in open_alerts %}
+        <div style="padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);border-left:3px solid {% if alert.severity == 'CRITICAL' %}var(--red){% elif alert.severity == 'HIGH' %}#F97316{% else %}var(--yellow){% endif %};">
+          <div style="font-weight:700;font-size:.86rem;color:var(--text);">{{ alert.title|truncatechars:50 }}</div>
+          <div style="font-size:.74rem;color:var(--text-3);margin-top:2px;">{{ alert.detected_at|timesince }} ago · {{ alert.severity }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty" style="border:none;padding:12px 0;">
+        <span style="font-size:1.6rem;display:block;margin-bottom:8px;">✓</span>
+        <h3 style="font-size:.9rem;">No open alerts</h3>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Quick links -->
+    <div class="card" style="padding:20px;">
+      <h2 style="margin:0 0 14px;font-size:.96rem;color:var(--text);">Quick actions</h2>
+      <div style="display:grid;gap:8px;">
+        <a href="{% url 'audit:alert_list' %}" class="btn btn-ghost btn-sm"><i class="fas fa-shield-halved"></i> Security alerts</a>
+        <a href="{% url 'audit:incidents' %}" class="btn btn-ghost btn-sm"><i class="fas fa-triangle-exclamation"></i> Incidents</a>
+        <a href="{% url 'audit:user_risk' %}" class="btn btn-ghost btn-sm"><i class="fas fa-users"></i> User risk</a>
+        <a href="{% url 'audit:compliance' %}" class="btn btn-ghost btn-sm"><i class="fas fa-clipboard-check"></i> Compliance</a>
+        <a href="{% url 'audit:monitoring' %}" class="btn btn-ghost btn-sm"><i class="fas fa-eye"></i> Live monitoring</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

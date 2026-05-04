@@ -1,0 +1,187 @@
+{% extends "finnova_autopilot/base_autopilot.html" %}
+{% block title %}Alerts — Autopilot — Finnova{% endblock %}
+
+{% block autopilot_extra_css %}
+<style>
+.al-hero { padding:24px 26px;border-radius:var(--r-xl);background:linear-gradient(135deg,#1a0A0A 0%,#2A1420 100%);border:1px solid rgba(244,63,94,.3);margin-bottom:20px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap; }
+.al-kpis { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px; }
+.al-kpi  { padding:16px 18px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--surface); }
+.al-kpi-l{ font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);display:block;margin-bottom:4px; }
+.al-kpi-v{ font-size:1.5rem;font-weight:800;color:var(--text);font-family:var(--mono); }
+.al-panel { background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden; }
+.al-filters{ padding:14px 18px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end; }
+.alf { display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px; }
+.alf label { font-size:.72rem;font-weight:700;color:var(--text-3); }
+.alf select,.alf input { padding:8px 11px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.84rem; }
+.alf select:focus,.alf input:focus { outline:none;border-color:var(--brand); }
+.al-row { display:flex;align-items:flex-start;gap:14px;padding:16px 18px;border-bottom:1px solid var(--border);transition:background .15s; }
+.al-row:last-child { border-bottom:none; }
+.al-row:hover { background:var(--surface-2); }
+.al-row.unread { background:rgba(244,63,94,.04); }
+.al-sev-dot { width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:5px; }
+.sev-CRITICAL { background:var(--red);box-shadow:0 0 6px var(--red); }
+.sev-HIGH    { background:#F97316; }
+.sev-MEDIUM  { background:var(--yellow); }
+.sev-LOW,.sev-INFO { background:var(--brand); }
+.al-body { flex:1;min-width:0; }
+.al-title-row { display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px; }
+.al-title { font-weight:700;font-size:.9rem;color:var(--text);margin:0; }
+.al-time  { font-size:.74rem;color:var(--text-3);flex-shrink:0;margin-top:2px; }
+.al-msg   { font-size:.83rem;color:var(--text-2);margin:0 0 10px;line-height:1.5; }
+.al-chips { display:flex;gap:6px;flex-wrap:wrap; }
+.al-chip  { padding:3px 9px;border-radius:999px;font-size:.7rem;font-weight:700;background:var(--surface-3);color:var(--text-3); }
+.al-chip.unread { background:var(--blue-bg);color:var(--blue); }
+.al-chip.CRITICAL { background:var(--red-bg);color:var(--red); }
+.al-chip.HIGH { background:rgba(249,115,22,.12);color:#F97316; }
+.al-chip.MEDIUM { background:var(--yellow-bg);color:var(--yellow); }
+.al-acts { display:flex;gap:6px;margin-top:10px; }
+.aa { padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);font-size:.75rem;font-weight:700;cursor:pointer;text-decoration:none;transition:.15s; }
+.aa:hover { border-color:var(--brand);color:var(--brand); }
+.aa.primary { background:var(--brand);border-color:var(--brand);color:var(--bg); }
+.aa.danger  { background:var(--red-bg);border-color:rgba(244,63,94,.3);color:var(--red); }
+@media(max-width:640px){ .al-kpis{grid-template-columns:repeat(2,1fr)} }
+</style>
+{% endblock %}
+
+{% block autopilot_content %}
+<!-- Hero -->
+<div class="al-hero">
+  <div>
+    <span style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--red);">Autopilot · Alerts</span>
+    <h1 style="font-size:1.4rem;color:var(--text);margin:8px 0 6px;">Alerts</h1>
+    <p style="font-size:.86rem;color:var(--text-2);margin:0;">Risk signals, budget warnings, and Autopilot flags. Review, acknowledge, and decide the next action.</p>
+  </div>
+  {% if stats.unread %}
+  <form method="post" action="{% url 'autopilot:mark_all_alerts_read' %}">
+    {% csrf_token %}
+    <button type="submit" class="btn-ghost"><i class="fas fa-check-double"></i> Mark all read</button>
+  </form>
+  {% endif %}
+</div>
+
+<!-- KPIs -->
+<div class="al-kpis">
+  <div class="al-kpi">
+    <span class="al-kpi-l">Total alerts</span>
+    <div class="al-kpi-v">{{ stats.total }}</div>
+  </div>
+  <div class="al-kpi" style="border-color:rgba(59,130,246,.3);background:var(--blue-bg);">
+    <span class="al-kpi-l" style="color:var(--blue);">Unread</span>
+    <div class="al-kpi-v" style="color:var(--blue);">{{ stats.unread }}</div>
+  </div>
+  <div class="al-kpi" style="border-color:rgba(244,63,94,.3);background:var(--red-bg);">
+    <span class="al-kpi-l" style="color:var(--red);">Critical</span>
+    <div class="al-kpi-v" style="color:var(--red);">{{ stats.critical }}</div>
+  </div>
+  <div class="al-kpi" style="border-color:rgba(249,115,22,.3);background:rgba(249,115,22,.08);">
+    <span class="al-kpi-l" style="color:#F97316;">High</span>
+    <div class="al-kpi-v" style="color:#F97316;">{{ stats.high }}</div>
+  </div>
+</div>
+
+<div class="al-panel">
+  <!-- Filters -->
+  <form method="get" class="al-filters">
+    <div class="alf">
+      <label>Status</label>
+      <select name="status">
+        <option value="">All</option>
+        <option value="unread"  {% if status_filter == "unread" %}selected{% endif %}>Unread</option>
+        <option value="read"    {% if status_filter == "read" %}selected{% endif %}>Read</option>
+      </select>
+    </div>
+    <div class="alf">
+      <label>Severity</label>
+      <select name="severity">
+        <option value="">All</option>
+        <option value="CRITICAL" {% if severity_filter == "CRITICAL" %}selected{% endif %}>Critical</option>
+        <option value="HIGH"     {% if severity_filter == "HIGH" %}selected{% endif %}>High</option>
+        <option value="MEDIUM"   {% if severity_filter == "MEDIUM" %}selected{% endif %}>Medium</option>
+        <option value="LOW"      {% if severity_filter == "LOW" %}selected{% endif %}>Low</option>
+        <option value="INFO"     {% if severity_filter == "INFO" %}selected{% endif %}>Info</option>
+      </select>
+    </div>
+    <div class="alf">
+      <label>Category</label>
+      <select name="category">
+        <option value="">All</option>
+        {% for val, label in alert_categories %}
+        <option value="{{ val }}" {% if category_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="alf">
+      <label>Source</label>
+      <select name="source">
+        <option value="">All</option>
+        {% for val, label in alert_sources %}
+        <option value="{{ val }}" {% if source_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="alf" style="flex:2;">
+      <label>Search</label>
+      <input type="search" name="search" value="{{ search_query }}" placeholder="Title, message, source…">
+    </div>
+    <div style="display:flex;gap:6px;align-items:flex-end;">
+      <button type="submit" class="btn" style="min-height:38px;padding:8px 14px;">Filter</button>
+      <a href="{% url 'autopilot:alerts' %}" class="btn-outline" style="min-height:38px;padding:8px 12px;">Reset</a>
+    </div>
+  </form>
+
+  <!-- Header row -->
+  <div style="display:flex;gap:14px;padding:10px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);">
+    <div style="width:9px;flex-shrink:0;"></div>
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);flex:1;">Alert</div>
+  </div>
+
+  {% if page_obj.object_list %}
+  {% for alert in page_obj %}
+  <div class="al-row {% if not alert.is_read %}unread{% endif %}">
+    <span class="al-sev-dot sev-{{ alert.severity }}"></span>
+    <div class="al-body">
+      <div class="al-title-row">
+        <p class="al-title">{{ alert.title }}</p>
+        <span class="al-time"><i class="fas fa-clock"></i> {{ alert.alert_time|timesince }} ago</span>
+      </div>
+      <p class="al-msg">{{ alert.message|truncatechars:140 }}</p>
+      <div class="al-chips">
+        <span class="al-chip">{{ alert.get_category_display }}</span>
+        {% if not alert.is_read %}<span class="al-chip unread">Unread</span>{% endif %}
+        {% if alert.severity == 'CRITICAL' or alert.severity == 'HIGH' %}<span class="al-chip {{ alert.severity }}">{{ alert.severity }}</span>{% endif %}
+        {% if alert.source %}<span class="al-chip">{{ alert.get_source_display }}</span>{% endif %}
+      </div>
+      <div class="al-acts">
+        {% if not alert.is_read %}
+        <form method="post" action="{% url 'autopilot:acknowledge_alert' alert.id %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="aa primary"><i class="fas fa-check"></i> Acknowledge</button>
+        </form>
+        {% endif %}
+        {% if alert.action_url %}<a href="{{ alert.action_url }}" class="aa"><i class="fas fa-arrow-right"></i> Take action</a>{% endif %}
+        <form method="post" action="{% url 'autopilot:delete_alert' alert.id %}" style="display:inline;" onsubmit="return confirm('Delete this alert?')">
+          {% csrf_token %}
+          <button type="submit" class="aa danger"><i class="fas fa-trash"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  {% if page_obj.has_other_pages %}
+  <div style="display:flex;justify-content:center;gap:6px;padding:16px;border-top:1px solid var(--border);">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="aa"><i class="fas fa-chevron-left"></i></a>{% endif %}
+    <span style="padding:5px 12px;border-radius:8px;background:var(--surface-3);color:var(--text-2);font-size:.84rem;">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="aa"><i class="fas fa-chevron-right"></i></a>{% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty" style="border-radius:0;border:none;padding:48px;">
+    <span class="empty-icon"><i class="fas fa-shield-check"></i></span>
+    <h3>All clear</h3>
+    <p>No alerts match your current filters. Autopilot will raise alerts when it detects patterns that need your attention.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

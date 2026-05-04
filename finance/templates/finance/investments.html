@@ -1,0 +1,165 @@
+{% extends "finance/base.html" %}
+{% block title %}Investments — Finance — Finnova{% endblock %}
+
+{% block finance_content %}
+<style>
+.inv-layout { display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px; }
+.inv-grid   { display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px; }
+.inv-card { padding:20px 22px;border-radius:var(--r-xl);border:1px solid var(--border);background:var(--surface);transition:border-color .2s,transform .15s; }
+.inv-card:hover { border-color:var(--border-2);transform:translateY(-2px); }
+.inv-card.ACTIVE   { border-left:3px solid var(--green); }
+.inv-card.MATURED  { border-left:3px solid var(--blue); }
+.inv-card.REDEEMED { border-left:3px solid var(--text-3);opacity:.7; }
+.inv-top { display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px; }
+.inv-icon { width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0; }
+.inv-name { font-weight:800;font-size:.95rem;color:var(--text);margin:0 0 2px; }
+.inv-type { font-size:.74rem;color:var(--text-3); }
+.inv-st   { padding:3px 9px;border-radius:999px;font-size:.7rem;font-weight:800; }
+.inv-st.ACTIVE   { background:var(--green-bg);color:var(--green); }
+.inv-st.MATURED  { background:var(--blue-bg);color:var(--blue); }
+.inv-st.REDEEMED { background:var(--surface-3);color:var(--text-3); }
+.inv-return { font-family:var(--mono);font-size:1.3rem;font-weight:800;margin-bottom:2px; }
+.inv-meta { display:grid;gap:5px;font-size:.76rem;color:var(--text-3);margin:10px 0 12px; }
+.inv-meta-row { display:flex;justify-content:space-between; }
+.inv-actions { display:flex;gap:7px;padding-top:10px;border-top:1px solid var(--border); }
+.ia  { padding:5px 11px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);font-size:.75rem;font-weight:700;cursor:pointer;text-decoration:none;transition:.15s; }
+.ia:hover { border-color:var(--brand);color:var(--brand); }
+.add-panel { background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:22px;position:sticky;top:84px; }
+.add-panel h2 { margin:0 0 16px;font-size:1rem;color:var(--text); }
+.af label { font-size:.78rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px; }
+.af input,.af select { width:100%;padding:9px 12px;border-radius:var(--r-md);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.85rem;margin-bottom:12px; }
+.af input:focus,.af select:focus { outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-glow); }
+.af-row { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+.asset-breakdown { display:grid;gap:8px;margin-top:14px; }
+.ab-row { display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border); }
+.ab-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+.ab-name { font-size:.82rem;font-weight:600;color:var(--text-2);flex:1; }
+.ab-val  { font-family:var(--mono);font-size:.8rem;font-weight:700; }
+@media(max-width:1100px){ .inv-layout{grid-template-columns:1fr} .add-panel{position:static} }
+@media(max-width:640px){ .metric-grid{grid-template-columns:repeat(2,1fr)} }
+</style>
+
+<!-- Hero -->
+<div  class="mod-hero">
+  <div>
+    <span style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--brand);">Finance · Investments</span>
+    <h1 style="font-size:1.4rem;color:var(--text);margin:8px 0 6px;">Investments</h1>
+    <p style="font-size:.86rem;color:var(--text-2);margin:0;">Track your portfolio alongside cash flow. Investment data feeds your financial health score and Analytics.</p>
+  </div>
+  <a href="{{ analytics_url }}" class="btn-outline"><i class="fas fa-chart-line"></i> Analytics</a>
+</div>
+
+<!-- KPIs -->
+<div class="metric-grid" style="margin-bottom:20px;">
+  <div class="metric">
+    <div class="metric-label">Active holdings</div>
+    <div class="metric-value">{{ stats.active }}</div>
+    <div class="metric-sub">{{ stats.total }} total</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Total invested</div>
+    <div class="metric-value">₹{{ stats.total_invested|default:0|floatformat:0 }}</div>
+    <div class="metric-sub">Capital deployed</div>
+  </div>
+  <div class="metric" style="border-color:var(--border-brand);background:var(--brand-glow);">
+    <div class="metric-label" style="color:var(--brand);">Current value</div>
+    <div class="metric-value" style="color:var(--brand);">₹{{ stats.total_current|default:0|floatformat:0 }}</div>
+    <div class="metric-sub" style="color:var(--brand);">Mark-to-market</div>
+  </div>
+  <div class="metric" style="border-color:{% if stats.total_return >= 0 %}rgba(16,185,129,.3){% else %}rgba(244,63,94,.3){% endif %};background:{% if stats.total_return >= 0 %}var(--green-bg){% else %}var(--red-bg){% endif %};">
+    <div class="metric-label" style="color:{% if stats.total_return >= 0 %}var(--green){% else %}var(--red){% endif %};">Total return</div>
+    <div class="metric-value" style="color:{% if stats.total_return >= 0 %}var(--green){% else %}var(--red){% endif %};">{% if stats.total_return >= 0 %}+{% endif %}₹{{ stats.total_return|default:0|floatformat:0 }}</div>
+    <div class="metric-sub" style="color:{% if stats.total_return >= 0 %}var(--green){% else %}var(--red){% endif %};">{{ stats.overall_return_percentage|default:0|floatformat:1 }}%</div>
+  </div>
+</div>
+
+<div class="inv-layout">
+  <div>
+    {% if investments %}
+    <div class="inv-grid">
+      {% for inv in investments %}
+      {% with ret=inv.current_value|default:inv.invested_amount %}
+      <div class="inv-card {{ inv.status }}">
+        <div class="inv-top">
+          <div class="inv-icon" style="background:{% if inv.instrument == 'EQUITY' or inv.instrument == 'MUTUAL_FUND' %}var(--brand-glow);color:var(--brand){% elif inv.instrument == 'FIXED_DEPOSIT' %}var(--blue-bg);color:var(--blue){% elif inv.instrument == 'GOLD' %}rgba(245,158,11,.12);color:var(--yellow){% else %}var(--surface-3);color:var(--text-2){% endif %};">
+            <i class="fas fa-{% if inv.instrument == 'EQUITY' %}chart-line{% elif inv.instrument == 'MUTUAL_FUND' %}chart-pie{% elif inv.instrument == 'FIXED_DEPOSIT' %}lock{% elif inv.instrument == 'GOLD' %}coins{% elif inv.instrument == 'REAL_ESTATE' %}building{% else %}wallet{% endif %}"></i>
+          </div>
+          <div style="flex:1;margin-left:10px;min-width:0;">
+            <p class="inv-name">{{ inv.name }}</p>
+            <p class="inv-type">{{ inv.get_instrument_display }}</p>
+          </div>
+          <span class="inv-st {{ inv.status }}">{{ inv.get_status_display }}</span>
+        </div>
+        <div>
+          <div class="inv-return" style="color:{% if inv.current_value >= inv.invested_amount %}var(--green){% else %}var(--red){% endif %};">
+            ₹{{ inv.current_value|default:0|floatformat:0 }}
+          </div>
+          <div style="font-size:.78rem;color:var(--text-3);">invested ₹{{ inv.invested_amount|default:0|floatformat:0 }}</div>
+        </div>
+        <div class="inv-meta">
+          {% if inv.purchase_date %}<div class="inv-meta-row"><span>Purchased</span><span style="color:var(--text-2);">{{ inv.purchase_date|date:"d M Y" }}</span></div>{% endif %}
+          {% if inv.expected_return_rate %}<div class="inv-meta-row"><span>Expected return</span><span style="color:var(--green);">{{ inv.expected_return_rate }}% p.a.</span></div>{% endif %}
+          {% if inv.maturity_date %}<div class="inv-meta-row"><span>Matures</span><span>{{ inv.maturity_date|date:"M Y" }}</span></div>{% endif %}
+        </div>
+        <div class="inv-actions">
+          <a href="{% url 'finance:investment_detail' inv.id %}" class="ia"><i class="fas fa-chart-line"></i> Details</a>
+        </div>
+      </div>
+      {% endwith %}
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">
+      <span class="empty-icon"><i class="fas fa-chart-pie"></i></span>
+      <h3>No investments tracked</h3>
+      <p>Add mutual funds, stocks, FDs, or gold to see your portfolio performance.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Add investment + breakdown -->
+  <div>
+    <div class="add-panel">
+      <h2><i class="fas fa-plus-circle" style="color:var(--brand);margin-right:8px;"></i>Add investment</h2>
+      <form method="post" class="af">
+        {% csrf_token %}
+        <label>Investment name *</label>
+        <input type="text" name="name" placeholder="Axis Bluechip Fund, HDFC FD…" required>
+        <label>Instrument type</label>
+        <select name="instrument">
+          {% for val, label in form.fields.instrument.choices %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+        </select>
+        <div class="af-row">
+          <div><label>Amount invested ₹ *</label><input type="number" step="0.01" min="1" name="invested_amount" placeholder="0" required></div>
+          <div><label>Current value ₹</label><input type="number" step="0.01" min="0" name="current_value" placeholder="Same as invested"></div>
+        </div>
+        <div class="af-row">
+          <div><label>Purchase date</label><input type="date" name="purchase_date" value="{% now 'Y-m-d' %}"></div>
+          <div><label>Expected return %</label><input type="number" step="0.01" min="0" name="expected_return_rate" placeholder="12.5"></div>
+        </div>
+        <label>Maturity date (if any)</label>
+        <input type="date" name="maturity_date">
+        <button type="submit" class="btn" style="width:100%;justify-content:center;padding:11px;"><i class="fas fa-save"></i> Add investment</button>
+      </form>
+    </div>
+
+    {% if asset_breakdown %}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;margin-top:16px;">
+      <h3 style="margin:0 0 14px;font-size:.9rem;color:var(--text);">Asset allocation</h3>
+      <div class="asset-breakdown">
+        {% for row in asset_breakdown %}
+        <div class="ab-row">
+          <span class="ab-dot" style="background:{% cycle 'var(--brand)' 'var(--blue)' 'var(--yellow)' '#6366F1' '#F97316' %};"></span>
+          <span class="ab-name">{{ row.label }}</span>
+          <div style="text-align:right;">
+            <div class="ab-val" style="color:var(--text);">₹{{ row.total_current|default:0|floatformat:0 }}</div>
+            <div style="font-size:.72rem;color:var(--text-3);">{{ row.count }} holding{{ row.count|pluralize }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

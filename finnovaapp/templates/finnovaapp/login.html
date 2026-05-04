@@ -1,0 +1,109 @@
+{% extends 'finnovaapp/base.html' %}
+{% block title %}Log in — Finnova{% endblock %}
+
+{% block extra_css %}
+<style>
+.auth-page { min-height: calc(100vh - 130px); display: flex; align-items: center; padding: 32px 0; }
+.auth-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 0;
+  max-width: 920px;
+  margin: 0 auto;
+  width: 100%;
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.auth-side {
+  padding: 52px 44px;
+  background:var(--surface);
+  border-right: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.auth-side::before {
+  content: '';
+  position: absolute; bottom: -80px; right: -80px;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(0,200,150,.18) 0%, transparent 70%);
+}
+.auth-side h2 { font-size: 1.6rem; color: var(--text); margin: 20px 0 12px; letter-spacing:-.02em; }
+.auth-side p  { font-size: .9rem; color: var(--text-2); line-height: 1.7; margin: 0 0 28px; }
+.auth-point { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
+.auth-point-dot { width:24px; height:24px; border-radius:7px; background:var(--brand-glow); border:1px solid var(--border-brand); color:var(--brand); font-size:.7rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+.auth-point-text strong { display:block; font-size:.85rem; color:var(--text); }
+.auth-point-text span   { font-size:.78rem; color:var(--text-3); }
+
+.auth-form { padding: 48px 44px; background: var(--surface); }
+.auth-form h1 { font-size: 1.4rem; color: var(--text); margin: 0 0 6px; }
+.auth-form > p { font-size: .85rem; color: var(--text-3); margin: 0 0 28px; }
+.auth-divider { display:flex; align-items:center; gap:12px; margin:20px 0; }
+.auth-divider::before, .auth-divider::after { content:''; flex:1; height:1px; background:var(--border); }
+.auth-divider span { font-size:.76rem; color:var(--text-3); font-weight:600; }
+
+@media(max-width:720px) {
+  .auth-layout { grid-template-columns: 1fr; }
+  .auth-side { display: none; }
+  .auth-form { padding: 32px 24px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-layout">
+    <div class="auth-side">
+      <div class="brand-icon" style="width:44px; height:44px; font-size:1.2rem;">F</div>
+      <h2>Welcome back to your money OS</h2>
+      <p>Finnova keeps Finance, Analytics, and Autopilot in sync — so you always know exactly where things stand.</p>
+      <div class="auth-point">
+        <div class="auth-point-dot"><i class="fas fa-wallet"></i></div>
+        <div class="auth-point-text"><strong>Finance</strong><span>Track income, expenses, budgets & goals</span></div>
+      </div>
+      <div class="auth-point">
+        <div class="auth-point-dot"><i class="fas fa-chart-line"></i></div>
+        <div class="auth-point-text"><strong>Analytics</strong><span>AI insights from your actual data</span></div>
+      </div>
+      <div class="auth-point">
+        <div class="auth-point-dot"><i class="fas fa-robot"></i></div>
+        <div class="auth-point-text"><strong>Autopilot</strong><span>Alerts, bill tracking & recommendations</span></div>
+      </div>
+    </div>
+
+    <div class="auth-form">
+      <h1>Log in</h1>
+      <p>Don't have an account? <a href="{% url 'finnovaapp:signup' %}" style="color:var(--brand); font-weight:700;">Sign up free →</a></p>
+
+      {% if form.non_field_errors %}
+      <div class="alert alert-error" style="margin-bottom:16px;">
+        <i class="fas fa-circle-xmark"></i>
+        <div>{{ form.non_field_errors.0 }}</div>
+      </div>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          {{ form.username }}
+          {% if form.username.errors %}<div class="form-error">{{ form.username.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          {{ form.password }}
+          {% if form.password.errors %}<div class="form-error">{{ form.password.errors.0 }}</div>{% endif %}
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:.84rem; color:var(--text-2);">
+            <input type="checkbox" name="remember_me" style="width:15px; height:15px;"> Remember me
+          </label>
+          <a href="{% url 'finnovaapp:password_reset' %}" style="font-size:.82rem; color:var(--brand); font-weight:600;">Forgot password?</a>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" style="padding:13px;">
+          <i class="fas fa-right-to-bracket"></i> Log in to Finnova
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

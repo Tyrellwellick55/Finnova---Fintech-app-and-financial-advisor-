@@ -1,0 +1,53 @@
+{% extends 'audit/base_audit.html' %}
+{% block title %}Incidents — Audit — Finnova{% endblock %}
+
+{% block audit_content %}
+<div class="audit-header">
+  <div><h1 class="audit-title"><i class="fas fa-fire" style="color:#F97316;"></i> Incident Center</h1>
+  <p class="audit-breadcrumb"><a href="{% url 'audit:dashboard' %}">Audit</a> → Incidents</p></div>
+</div>
+
+<div class="audit-card">
+  <div class="audit-card-header">
+    <h2 style="margin:0;font-size:.96rem;color:var(--text);">Correlated incidents (last 30 days)</h2>
+    <span style="font-size:.8rem;color:var(--text-3);">{{ incidents|length }} correlation{{ incidents|length|pluralize }}</span>
+  </div>
+
+  <form method="get" style="display:flex;flex-wrap:wrap;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);">
+    <select name="severity" style="padding:8px 11px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.84rem;">
+      <option value="">All severities</option>
+      {% for sev in severities %}<option value="{{ sev }}" {% if selected_severity == sev %}selected{% endif %}>{{ sev }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="btn btn-ghost btn-sm">Filter</button>
+    <a href="{% url 'audit:incidents' %}" class="btn btn-ghost btn-sm">Reset</a>
+  </form>
+
+  {% if incidents %}
+  {% for inc in incidents %}
+  <div style="padding:14px 18px;border-bottom:1px solid var(--border);transition:background .15s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
+    <div style="display:flex;align-items:flex-start;gap:14px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:{% if inc.max_severity == 'CRITICAL' %}var(--red-bg);color:var(--red){% elif inc.max_severity == 'HIGH' %}rgba(249,115,22,.12);color:#F97316{% elif inc.max_severity == 'WARNING' %}var(--yellow-bg);color:var(--yellow){% else %}var(--surface-3);color:var(--text-3){% endif %};display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;">
+        <i class="fas fa-link"></i>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:3px;flex-wrap:wrap;">
+          <code style="font-family:var(--mono);font-size:.8rem;color:var(--text-2);">{{ inc.correlation_id|truncatechars:24 }}</code>
+          {% if inc.max_severity %}<span style="padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700;background:{% if inc.max_severity == 'CRITICAL' %}var(--red-bg);color:var(--red){% elif inc.max_severity == 'HIGH' %}rgba(249,115,22,.12);color:#F97316{% elif inc.max_severity == 'WARNING' %}var(--yellow-bg);color:var(--yellow){% else %}var(--surface-3);color:var(--text-3){% endif %};">{{ inc.max_severity }}</span>{% endif %}
+          {% if inc.module %}<span style="padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700;background:var(--blue-bg);color:var(--blue);">{{ inc.module }}</span>{% endif %}
+          {% if inc.event_type %}<span style="font-size:.78rem;color:var(--text-3);">{{ inc.event_type }}</span>{% endif %}
+        </div>
+        <div style="font-size:.8rem;color:var(--text-3);">
+          {{ inc.count }} event{{ inc.count|pluralize }} · First seen {{ inc.first_seen|timesince }} ago · Last seen {{ inc.last_seen|timesince }} ago
+        </div>
+      </div>
+      <div>
+        <a href="{% url 'audit:log_list' %}?correlation={{ inc.correlation_id }}" class="btn btn-ghost btn-xs">View logs</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div style="padding:48px;text-align:center;color:var(--text-3);">No correlated incidents in the last 30 days.</div>
+  {% endif %}
+</div>
+{% endblock %}

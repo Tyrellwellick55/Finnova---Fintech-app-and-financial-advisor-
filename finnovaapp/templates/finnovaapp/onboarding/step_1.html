@@ -1,0 +1,63 @@
+{% extends "finnovaapp/onboarding/base.html" %}
+{% block onboarding_title %}What kind of business do you run?{% endblock %}
+{% block onboarding_subtitle %}Finnova shapes itself around your work. Answer honestly — you can change this later.{% endblock %}
+{% block step_heading %}Your business type{% endblock %}
+{% block step_description %}This decides which modules are most prominent, how your financial health is weighted, and what the AI focuses on.{% endblock %}
+
+{% block step_body %}
+<style>
+.biz-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; margin-bottom:20px; }
+.biz-card { border:2px solid var(--border-2); border-radius:var(--r-lg); padding:16px; cursor:pointer; transition:.15s; }
+.biz-card.active { border-color:var(--brand); background:var(--brand-glow); }
+.biz-card input { display:none; }
+.biz-card-icon { font-size:1.6rem; margin-bottom:8px; display:block; }
+.biz-card strong { display:block; font-size:.9rem; color:var(--text); margin-bottom:4px; }
+.biz-card span { font-size:.78rem; color:var(--text-3); line-height:1.5; }
+</style>
+
+<div class="biz-grid">
+  {% for btype in business_types %}
+  <label class="biz-card">
+    <input type="radio" name="business_type" value="{{ btype.value }}" {% if forloop.first %}checked{% endif %}>
+    <span class="biz-card-icon">{{ btype.icon }}</span>
+    <strong>{{ btype.label }}</strong>
+    <span>{{ btype.desc }}</span>
+  </label>
+  {% endfor %}
+</div>
+
+<div class="form-section-grid">
+  <div class="form-group">
+    <label class="form-label">Business / brand name</label>
+    <input name="business_name" class="form-control" type="text" placeholder="e.g. Priya Designs, Techwave Solutions" value="{{ user.profile.occupation|default_if_none:'' }}">
+  </div>
+  <div class="form-group">
+    <label class="form-label">How long in business?</label>
+    <select name="business_age" class="form-control">
+      <option value="new">Just starting out</option>
+      <option value="1y">Less than 1 year</option>
+      <option value="2y">1–2 years</option>
+      <option value="5y">2–5 years</option>
+      <option value="5yp">5+ years</option>
+    </select>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Fix :has() for Firefox — add .active class via JS
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.biz-card').forEach(function(card) {
+    var radio = card.querySelector('input[type="radio"]');
+    if (!radio) return;
+    if (radio.checked) card.classList.add('active');
+    card.addEventListener('click', function() {
+      document.querySelectorAll('.biz-card').forEach(function(c){ c.classList.remove('active'); });
+      card.classList.add('active');
+    });
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'audit/base_audit.html' %}
+{% block title %}{{ managed_user.username }} — User Detail — Audit — Finnova{% endblock %}
+
+{% block audit_content %}
+<div class="audit-header">
+  <div>
+    <p class="audit-breadcrumb"><a href="{% url 'audit:dashboard' %}">Audit</a> → <a href="{% url 'audit:user_management' %}">Users</a> → {{ managed_user.username }}</p>
+    <h1 class="audit-title" style="margin-top:6px;"><i class="fas fa-user" style="color:var(--brand);"></i> {{ managed_user.get_full_name|default:managed_user.username }}</h1>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <form method="post" action="{% url 'audit:toggle_user_status' managed_user.id %}" onsubmit="return confirm('Toggle user status?')">
+      {% csrf_token %}
+      <button type="submit" class="btn {% if managed_user.is_active %}btn-ghost{% else %}btn-primary{% endif %} btn-sm">{% if managed_user.is_active %}<i class="fas fa-user-slash"></i> Disable{% else %}<i class="fas fa-user-check"></i> Enable{% endif %}</button>
+    </form>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1.5fr;gap:18px;">
+  <div>
+    <div class="audit-card" style="margin-bottom:14px;">
+      <div class="audit-card-header"><h2 style="margin:0;font-size:.96rem;color:var(--text);">Account info</h2></div>
+      <div style="display:grid;gap:8px;padding:4px 0;font-size:.86rem;">
+        
+        
+        
+        
+        
+        
+        <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Username</span><strong>{{ managed_user.username }}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Email</span><strong>{{ managed_user.email|default:"—" }}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Status</span><strong style="color:{% if managed_user.is_active %}var(--green){% else %}var(--red){% endif %};">{% if managed_user.is_active %}Active{% else %}Disabled{% endif %}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Staff</span><strong>{% if managed_user.is_staff %}Yes{% else %}No{% endif %}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 18px;"><span style="color:var(--text-3);">Joined</span><strong>{{ managed_user.date_joined|date:"d M Y" }}</strong></div>
+      </div>
+    </div>
+    {% if risk_flags %}
+    <div class="audit-card">
+      <div class="audit-card-header"><h2 style="margin:0;font-size:.96rem;color:var(--text);">Risk flags</h2></div>
+      {% for flag in risk_flags %}
+      <div style="padding:12px 18px;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <strong style="font-size:.87rem;color:var(--text);">{{ flag.risk_type }}</strong>
+          <span style="font-family:var(--mono);font-size:.82rem;color:{% if flag.risk_score >= 70 %}var(--red){% elif flag.risk_score >= 40 %}var(--yellow){% else %}var(--green){% endif %};">{{ flag.risk_score }}%</span>
+        </div>
+        <p style="font-size:.8rem;color:var(--text-3);margin:0;">{{ flag.description|truncatechars:80 }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="audit-card">
+    <div class="audit-card-header"><h2 style="margin:0;font-size:.96rem;color:var(--text);">Audit trail (last 50)</h2></div>
+    {% if logs %}
+    {% for log in logs %}
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border);">
+      <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;background:{% if log.severity == 'CRITICAL' %}var(--red){% elif log.severity == 'HIGH' %}#F97316{% elif log.severity == 'WARNING' %}var(--yellow){% else %}var(--brand){% endif %};"></span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.86rem;font-weight:600;color:var(--text);">{{ log.action }}</div>
+        <div style="font-size:.76rem;color:var(--text-3);">{{ log.description|truncatechars:80 }}</div>
+      </div>
+      <div style="font-size:.74rem;color:var(--text-3);flex-shrink:0;">{{ log.created_at|timesince }} ago</div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div style="padding:32px;text-align:center;color:var(--text-3);">No audit logs for this user.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

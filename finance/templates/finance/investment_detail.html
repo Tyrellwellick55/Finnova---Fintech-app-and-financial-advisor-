@@ -1,0 +1,47 @@
+{% extends "finance/base.html" %}
+{% block title %}{{ investment.name }} — Investments — Finance — Finnova{% endblock %}
+
+{% block finance_content %}
+<div class="page-header">
+  <div>
+    <a href="{% url 'finance:investments' %}" style="font-size:.82rem;color:var(--brand);font-weight:700;text-decoration:none;"><i class="fas fa-arrow-left"></i> Investments</a>
+    <h1 style="margin-top:8px;">{{ investment.name }}</h1>
+    <p>{{ investment.get_instrument_display }} · {{ investment.get_status_display }}</p>
+  </div>
+  <a href="{{ analytics_url }}" class="btn btn-ghost btn-sm"><i class="fas fa-chart-line"></i> Analytics</a>
+</div>
+<div class="metric-grid" style="margin-bottom:20px;">
+  <div class="metric"><div class="metric-label">Invested</div><div class="metric-value">₹{{ investment.invested_amount|default:0|floatformat:0 }}</div></div>
+  <div class="metric" style="border-color:var(--border-brand);background:var(--brand-glow);">
+    <div class="metric-label" style="color:var(--brand);">Current value</div>
+    <div class="metric-value" style="color:var(--brand);">₹{{ investment.current_value|default:0|floatformat:0 }}</div>
+  </div>
+  <div class="metric" {% if investment.current_value >= investment.invested_amount %}style="border-color:rgba(16,185,129,.3);background:var(--green-bg);"{% else %}style="border-color:rgba(244,63,94,.3);background:var(--red-bg);"{% endif %}>
+    <div class="metric-label" style="color:{% if investment.current_value >= investment.invested_amount %}var(--green){% else %}var(--red){% endif %};">Return</div>
+    <div class="metric-value" style="color:{% if investment.current_value >= investment.invested_amount %}var(--green){% else %}var(--red){% endif %};">{% if investment.current_value >= investment.invested_amount %}+{% endif %}₹{{ investment.current_value|default:0|floatformat:0 }}</div>
+  </div>
+  <div class="metric"><div class="metric-label">Holding period</div><div class="metric-value">{{ holding_period }} days</div></div>
+</div>
+<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:18px;">
+  <div class="card">
+    <div class="card-header"><h2>Details</h2></div>
+    <div style="display:grid;gap:8px;font-size:.86rem;">
+      {% if investment.purchase_date %}<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Purchased</span><strong>{{ investment.purchase_date|date:"d M Y" }}</strong></div>{% endif %}
+      {% if investment.expected_return_rate %}<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Expected return</span><strong style="color:var(--green);">{{ investment.expected_return_rate }}% p.a.</strong></div>{% endif %}
+      {% if investment.maturity_date %}<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Matures</span><strong>{{ investment.maturity_date|date:"d M Y" }}</strong></div>{% endif %}
+      {% if investment.notes %}<div style="padding:8px 0;"><span style="color:var(--text-3);display:block;margin-bottom:4px;">Notes</span><p style="margin:0;font-size:.84rem;color:var(--text-2);">{{ investment.notes }}</p></div>{% endif %}
+    </div>
+  </div>
+  <div>
+    {% if ai_insights %}
+    <div class="card">
+      <div class="card-header"><h2><i class="fas fa-lightbulb" style="color:var(--yellow);margin-right:7px;"></i>AI insights</h2></div>
+      {% for ins in ai_insights %}
+      <div style="padding:10px 12px;margin-bottom:8px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+        <strong style="font-size:.84rem;color:var(--text);display:block;margin-bottom:2px;">{{ ins.title }}</strong>
+        <p style="font-size:.78rem;color:var(--text-3);margin:0;">{{ ins.description|truncatechars:90 }}</p>
+      </div>{% endfor %}
+    </div>{% endif %}
+  </div>
+</div>
+{% endblock %}

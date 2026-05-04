@@ -1,0 +1,30 @@
+{% extends "agency/portal/base.html" %}
+{% block title %}{{ invoice.invoice_number }} — Finnova Portal{% endblock %}
+
+{% block portal_content %}
+<div style="max-width:680px;margin:0 auto;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+    <div><a href="{% url 'agency:client_invoice_list' %}" style="font-size:.84rem;color:var(--brand);font-weight:700;text-decoration:none;"><i class="fas fa-arrow-left"></i> All invoices</a>
+    <h1 style="font-size:1.35rem;margin:8px 0 3px;">{{ invoice.invoice_number }}</h1>
+    <p style="color:var(--text-2);font-size:.88rem;margin:0;">{{ invoice.title|default:"Invoice" }}</p></div>
+    {% if invoice.status != 'PAID' %}
+    <a href="{% url 'agency:client_invoice_pay' invoice.id %}"  class="btn"><i class="fas fa-credit-card"></i> Pay now</a>
+    {% endif %}
+  </div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:28px;">
+    <div style="display:flex;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:16px;">
+      <div><div style="font-size:.76rem;color:var(--text-3);margin-bottom:2px;">From</div><strong>{{ invoice.client.company_name|default:invoice.client.name }}</strong></div>
+      <div style="text-align:right;"><div style="font-size:2rem;font-weight:800;font-family:var(--mono);color:var(--brand);">₹{{ invoice.amount|default:0|floatformat:2 }}</div>
+      <span style="padding:4px 12px;border-radius:999px;font-size:.76rem;font-weight:800;background:{% if invoice.status == 'PAID' %}var(--green-bg);color:var(--green){% elif invoice.status == 'OVERDUE' %}var(--red-bg);color:var(--red){% elif invoice.status == 'SENT' %}var(--blue-bg);color:var(--blue){% else %}var(--surface-3);color:var(--text-3){% endif %};">{{ invoice.get_status_display }}</span></div>
+    </div>
+    <div style="display:grid;gap:8px;font-size:.86rem;">
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Invoice #</span><strong style="font-family:var(--mono);">{{ invoice.invoice_number }}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Issued</span><strong>{{ invoice.issued_date|date:"d M Y" }}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Due date</span><strong style="color:{% if invoice.is_overdue %}var(--red){% else %}var(--text){% endif %};">{{ invoice.due_date|date:"d M Y" }}</strong></div>
+      {% if invoice.project %}<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Project</span><strong>{{ invoice.project.name }}</strong></div>{% endif %}
+      {% if invoice.paid_date %}<div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="color:var(--text-3);">Paid on</span><strong style="color:var(--green);">{{ invoice.paid_date|date:"d M Y" }}</strong></div>{% endif %}
+    </div>
+    {% if invoice.notes %}<div style="margin-top:20px;padding:14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);font-size:.85rem;color:var(--text-2);">{{ invoice.notes }}</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

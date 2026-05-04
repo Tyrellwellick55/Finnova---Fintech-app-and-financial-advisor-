@@ -1,0 +1,81 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Client Portal — Finnova Agency{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #0A0F1E; --bg-2: #0F1629; --surface: #1A2340; --surface-2: #212C47; --surface-3: #273054;
+      --brand: #00C896; --brand-glow: rgba(0,200,150,.18); --border-brand: rgba(0,200,150,.3);
+      --border: rgba(255,255,255,.07); --border-2: rgba(255,255,255,.12);
+      --text: #F0F4FF; --text-2: #A8B4D0; --text-3: #5D6B8A;
+      --green: #10B981; --green-bg: rgba(16,185,129,.12);
+      --red: #F43F5E; --red-bg: rgba(244,63,94,.12);
+      --yellow: #F59E0B; --yellow-bg: rgba(245,158,11,.12);
+      --r-md: 14px; --r-lg: 18px; --r-xl: 24px;
+      --shadow: 0 4px 24px rgba(0,0,0,.4);
+      --font: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --mono: 'DM Mono', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    .portal-header {
+      padding: 16px 28px;
+      background: rgba(10,15,30,.85); backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .portal-brand { display: flex; align-items: center; gap: 12px; }
+    .portal-brand-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--brand), #6366F1); display: flex; align-items: center; justify-content: center; color: var(--bg); font-weight: 800; font-size: .9rem; }
+    .portal-brand strong { font-size: .96rem; color: var(--text); display: block; }
+    .portal-brand span   { font-size: .72rem; color: var(--text-3); display: block; }
+    .portal-main { max-width: 1100px; margin: 0 auto; padding: 28px 20px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); padding: 22px; margin-bottom: 16px; }
+    .btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 18px; border-radius: var(--r-md); border: 1px solid transparent; font-weight: 700; font-size: .86rem; cursor: pointer; transition: all .15s; text-decoration: none; font-family: var(--font); }
+    .btn-primary { background: var(--brand); color: var(--bg); }
+    .btn-outline { background: transparent; border-color: var(--border-2); color: var(--text-2); }
+    .badge { display: inline-flex; padding: 3px 9px; border-radius: 999px; font-size: .7rem; font-weight: 800; }
+    .badge-green  { background: var(--green-bg); color: var(--green); }
+    .badge-red    { background: var(--red-bg); color: var(--red); }
+    .badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+    .badge-neutral{ background: var(--surface-3); color: var(--text-3); }
+    .empty-state  { padding: 40px 20px; text-align: center; color: var(--text-3); }
+    .empty-state i { font-size: 2.2rem; display: block; margin-bottom: 12px; color: var(--surface-3); }
+    .empty-state h3 { font-size: 1rem; color: var(--text-2); margin-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+    th { padding: 10px 14px; background: var(--surface-2); color: var(--text-3); font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid var(--border); text-align: left; }
+    td { padding: 13px 14px; border-bottom: 1px solid var(--border); color: var(--text-2); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface-2); }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <header class="portal-header">
+    <div class="portal-brand">
+      <div class="portal-brand-icon">F</div>
+      <div>
+        <strong>{% block portal_name %}Client Portal{% endblock %}</strong>
+        <span>Powered by Finnova</span>
+      </div>
+    </div>
+    {% block portal_header_right %}{% endblock %}
+  </header>
+  <main class="portal-main">
+    {% if messages %}
+    {% for msg in messages %}
+    <div style="display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-radius:var(--r-md);margin-bottom:12px;{% if msg.tags == 'success' %}background:var(--green-bg);color:#6EE7B7;{% elif msg.tags == 'error' %}background:var(--red-bg);color:#FDA4AF;{% else %}background:rgba(59,130,246,.12);color:#93C5FD;{% endif %}">
+      <i class="fas fa-circle-info"></i><span>{{ msg }}</span>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

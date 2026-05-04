@@ -1,0 +1,85 @@
+{% extends 'audit/base_audit.html' %}
+{% block title %}Compliance — Audit — Finnova{% endblock %}
+
+{% block audit_content %}
+<div class="audit-header">
+  <div><h1 class="audit-title"><i class="fas fa-clipboard-check" style="color:var(--brand);"></i> Compliance</h1>
+  <p class="audit-breadcrumb"><a href="{% url 'audit:dashboard' %}">Audit</a> → Compliance</p></div>
+  <a href="{% url 'audit:add_compliance' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Add record</a>
+</div>
+
+{% if overdue_items %}
+<div style="padding:14px 18px;border-radius:var(--r-lg);background:var(--red-bg);border:1px solid rgba(244,63,94,.3);margin-bottom:18px;display:flex;align-items:center;gap:12px;">
+  <i class="fas fa-exclamation-triangle" style="color:var(--red);font-size:1.2rem;flex-shrink:0;"></i>
+  <span style="font-size:.88rem;font-weight:700;color:var(--red);">{{ overdue_items|length }} overdue compliance item{{ overdue_items|length|pluralize }} — immediate attention required</span>
+</div>
+{% endif %}
+
+<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:18px;">
+  <div>
+    <!-- By type -->
+    <div class="audit-card" style="margin-bottom:16px;">
+      <div class="audit-card-header"><h2 style="margin:0;font-size:.96rem;color:var(--text);">Compliance by type</h2></div>
+      {% for type_name, counts in compliance_by_type.items %}
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <strong style="font-size:.9rem;color:var(--text);">{{ type_name }}</strong>
+          <div style="display:flex;gap:6px;">
+            {% if counts.pending %}<span style="padding:2px 8px;border-radius:999px;font-size:.72rem;font-weight:700;background:var(--yellow-bg);color:var(--yellow);">{{ counts.pending }} pending</span>{% endif %}
+            {% if counts.overdue %}<span style="padding:2px 8px;border-radius:999px;font-size:.72rem;font-weight:700;background:var(--red-bg);color:var(--red);">{{ counts.overdue }} overdue</span>{% endif %}
+            {% if counts.approved %}<span style="padding:2px 8px;border-radius:999px;font-size:.72rem;font-weight:700;background:var(--green-bg);color:var(--green);">{{ counts.approved }} done</span>{% endif %}
+          </div>
+        </div>
+        <div style="height:5px;border-radius:999px;background:var(--surface-3);overflow:hidden;">
+          {% if counts.total %}<div style="height:100%;border-radius:inherit;width:{% widthratio counts.approved counts.total 100 %}%;background:var(--green);"></div>{% endif %}
+        </div>
+      </div>
+      {% empty %}
+      <div style="padding:24px;text-align:center;color:var(--text-3);">No compliance records yet.</div>
+      {% endfor %}
+    </div>
+
+    <!-- Upcoming deadlines -->
+    {% if upcoming_deadlines %}
+    <div class="audit-card">
+      <div class="audit-card-header"><h2 style="margin:0;font-size:.96rem;color:var(--text);">Due in 30 days</h2></div>
+      {% for rec in upcoming_deadlines %}
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.88rem;font-weight:700;color:var(--text);">{{ rec.requirement }}</div>
+          <div style="font-size:.76rem;color:var(--text-3);">{{ rec.compliance_type }} {% if rec.user %}· {{ rec.user.username }}{% endif %}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:.82rem;font-weight:700;color:{% if rec.due_date <= today %}var(--red){% else %}var(--yellow){% endif %};">{{ rec.due_date|date:"d M Y" }}</div>
+          <a href="{% url 'audit:verify_compliance' rec.id %}" style="font-size:.74rem;color:var(--brand);font-weight:700;text-decoration:none;">Verify →</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <!-- Recent verifications -->
+    {% if recent_verifications %}
+    <div class="audit-card" style="margin-bottom:14px;">
+      <div class="audit-card-header"><h2 style="margin:0;font-size:.96rem;color:var(--text);">Recent verifications</h2></div>
+      {% for rec in recent_verifications %}
+      <div style="padding:12px 18px;border-bottom:1px solid var(--border);">
+        <div style="font-size:.86rem;font-weight:700;color:var(--text);">{{ rec.requirement }}</div>
+        <div style="font-size:.76rem;color:var(--text-3);">Verified {{ rec.verification_date|timesince }} ago {% if rec.verified_by %}by {{ rec.verified_by.username }}{% endif %}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Quick add compliance -->
+    <div class="audit-card">
+      <div class="audit-card-header"><h2 style="margin:0;font-size:.96rem;color:var(--text);"><i class="fas fa-plus-circle" style="color:var(--brand);margin-right:8px;"></i>Quick add</h2></div>
+      <div style="padding:16px 18px;">
+        <a href="{% url 'audit:add_compliance' %}" class="btn btn-primary" style="width:100%;justify-content:center;"><i class="fas fa-clipboard-plus"></i> Create compliance record</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends 'payments_core/base_payments.html' %}
+{% block title %}Subscriptions — Payments — Finnova{% endblock %}
+{% block payment_content %}
+<div class="page-header"><div><h1>Subscriptions</h1><p>{{ stats.active_count }} active · ₹{{ stats.monthly_spend|default:0|floatformat:0 }}/month total</p></div>
+<a href="{% url 'payments:create_subscription' %}" class="btn"><i class="fas fa-plus"></i> New subscription</a></div>
+<div class="metric-grid" style="margin-bottom:20px;">
+  <div class="metric"><div class="metric-label">Active</div><div class="metric-value">{{ stats.active_count }}</div></div>
+  <div class="metric"><div class="metric-label">Monthly total</div><div class="metric-value">₹{{ stats.monthly_spend|default:0|floatformat:0 }}</div></div>
+  <div class="metric"><div class="metric-label">Due this week</div><div class="metric-value" {% if stats.due_this_week %}style="color:var(--yellow);"{% endif %}>{{ stats.due_this_week }}</div></div>
+  <div class="metric"><div class="metric-label">Paused</div><div class="metric-value" style="color:var(--text-3);">{{ stats.paused_count }}</div></div>
+</div>
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;">
+  {% if subscriptions %}{% for sub in subscriptions %}
+  <div style="display:flex;align-items:center;gap:14px;padding:15px 18px;border-bottom:1px solid var(--border);transition:background .15s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
+    <div style="width:38px;height:38px;border-radius:10px;background:var(--brand-glow);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;"><i class="fas fa-rotate"></i></div>
+    <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:.9rem;color:var(--text);">{{ sub.name }}</div>
+    <div style="font-size:.76rem;color:var(--text-3);">{{ sub.get_frequency_display }} · Next: {{ sub.next_billing_date|date:"d M Y" }}</div></div>
+    <div style="text-align:right;flex-shrink:0;"><div style="font-family:var(--mono);font-weight:800;font-size:.95rem;">₹{{ sub.amount|default:0|floatformat:0 }}</div>
+    <span style="padding:3px 8px;border-radius:999px;font-size:.7rem;font-weight:700;background:{% if sub.status == 'ACTIVE' %}var(--green-bg);color:var(--green){% else %}var(--yellow-bg);color:var(--yellow){% endif %};">{{ sub.status }}</span></div>
+    <form method="post" action="{% url 'payments:cancel_subscription' sub.id %}" onsubmit="return confirm('Cancel this subscription?')">{% csrf_token %}
+      <button type="submit" class="btn btn-ghost btn-xs" style="color:var(--red);border-color:rgba(244,63,94,.2);"><i class="fas fa-xmark"></i></button>
+    </form>
+  </div>{% endfor %}{% else %}
+  <div style="padding:48px;text-align:center;color:var(--text-3);">No subscriptions yet.</div>{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends 'finnovaapp/base.html' %}
+{% block title %}Select Workspace — Finnova{% endblock %}
+{% block content %}
+<style>
+.org-wrap{max-width:740px;margin:0 auto;padding:32px 0;}
+.org-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:22px;}
+.org-card{padding:22px;border-radius:18px;border:1px solid var(--border);background:var(--surface);text-decoration:none;transition:.2s;display:block;}
+.org-card:hover{box-shadow:var(--shadow);border-color:var(--brand);}
+.org-card.current{border-color:var(--brand);background:linear-gradient(135deg,#f0fdf4,var(--green-bg));}
+.org-icon{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--brand),var(--blue));color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:14px;}
+.org-name{font-size:1rem;font-weight:800;color:var(--text);margin:0 0 4px;}
+.org-seg{font-size:.82rem;color:var(--text-3);}
+.org-badge{display:inline-block;margin-top:8px;padding:2px 9px;border-radius:999px;font-size:.72rem;font-weight:700;background:var(--green-bg);color:var(--green);}
+</style>
+
+<div class="org-wrap">
+    <div class="page-header">
+        <div class="page-title">
+            <h1>Select workspace</h1>
+            <p>Choose an organization or continue in personal mode.</p>
+        </div>
+        <a href="{% url 'finnovaapp:org_create' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New workspace</a>
+    </div>
+
+    <div class="org-grid">
+        <a href="{% url 'finnovaapp:clear_org' %}" class="org-card {% if not current_organization %}current{% endif %}">
+            <div class="org-icon" style="background:linear-gradient(135deg,#475569,#334155);"><i class="fas fa-user"></i></div>
+            <p class="org-name">Personal mode</p>
+            <p class="org-seg">No shared workspace — just you.</p>
+            {% if not current_organization %}<span class="org-badge">Active</span>{% endif %}
+        </a>
+        {% for org in organizations %}
+        <a href="{% url 'finnovaapp:set_org' org.id %}" class="org-card {% if current_organization.id == org.id %}current{% endif %}">
+            <div class="org-icon"><i class="fas fa-building"></i></div>
+            <p class="org-name">{{ org.name }}</p>
+            {% if org.segment %}<p class="org-seg">{{ org.get_segment_display }}</p>{% endif %}
+            {% if current_organization.id == org.id %}<span class="org-badge">Active</span>{% endif %}
+        </a>
+        {% empty %}
+        {% endfor %}
+    </div>
+
+    {% if not organizations %}
+    <div class="empty-state" style="margin-top:22px;">
+        <i class="fas fa-building" style="font-size:2rem;color:var(--border-2);display:block;margin-bottom:10px;"></i>
+        <strong>No organizations yet</strong>
+        <p style="margin:6px 0 0;color:var(--text-3);">Create a workspace to share Finance and Autopilot controls with a team.</p>
+        <a href="{% url 'finnovaapp:org_create' %}" class="btn btn-primary btn-sm" style="margin-top:14px;"><i class="fas fa-plus"></i> Create workspace</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

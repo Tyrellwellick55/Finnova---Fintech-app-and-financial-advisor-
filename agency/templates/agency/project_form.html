@@ -1,0 +1,34 @@
+{% extends "agency/base.html" %}
+{% block title %}{% if mode == 'edit' %}Edit Project{% else %}New Project{% endif %} — Agency — Finnova{% endblock %}
+
+{% block agency_content %}
+<div class="page-header">
+  <div><h1>{% if mode == 'edit' %}Edit {{ project.name }}{% else %}New project{% endif %}</h1>
+  <p>{% if mode == 'edit' %}Update project scope and retainer details.{% else %}Link a new workstream to a client.{% endif %}</p></div>
+  <a href="{% url 'agency:projects_list' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Projects</a>
+</div>
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;">
+  <div class="card">
+    <form method="post">{% csrf_token %}
+      {% for field in form %}
+      <div class="form-group">
+        <label class="form-label">{{ field.label }}{% if field.field.required %} <span style="color:var(--red);">*</span>{% endif %}</label>
+        {{ field }}
+        {% if field.errors %}<p style="color:var(--red);font-size:.78rem;margin:4px 0 0;">{{ field.errors.0 }}</p>{% endif %}
+      </div>
+      {% endfor %}
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> {% if mode == 'edit' %}Save changes{% else %}Create project{% endif %}</button>
+        <a href="{% url 'agency:projects_list' %}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+  <div class="card">
+    <div class="card-header"><h2>About projects</h2></div>
+    <div style="display:grid;gap:10px;font-size:.84rem;color:var(--text-2);">
+      <div style="padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border-left:3px solid var(--brand);">Monthly retainer is the recurring amount you charge the client each month.</div>
+      <div style="padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border-left:3px solid var(--yellow);">After saving, create invoices from the Receivables section and attach them to this project.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

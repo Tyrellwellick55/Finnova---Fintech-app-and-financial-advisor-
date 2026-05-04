@@ -1,0 +1,241 @@
+{% extends 'agency/base.html' %}
+{% load humanize %}
+{% block title %}Control Tower — {{ org.name }} — Finnova{% endblock %}
+
+{% block agency_content %}
+<style>
+/* Page-specific layout only */
+.ct-layout   { display:grid;grid-template-columns:minmax(0,1.6fr) 300px;gap:18px; }
+.ct-row      { display:grid;grid-template-columns:1fr auto;align-items:center;gap:14px;padding:13px 18px;border-bottom:1px solid var(--border);transition:background .15s; }
+.ct-row:last-child { border-bottom:none; }
+.ct-row:hover{ background:var(--surface-2); }
+.ct-row.receive { border-left:3px solid var(--green); }
+.ct-row.pay     { border-left:3px solid var(--red); }
+.ct-row.overdue { border-left:3px solid var(--red);background:var(--red-bg); }
+.ct-pill { padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:800; }
+.ct-btn  { padding:4px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);font-size:.74rem;font-weight:700;text-decoration:none;transition:.15s;cursor:pointer; }
+.ct-btn:hover { border-color:var(--brand);color:var(--brand); }
+.ct-btn.green { background:var(--green-bg);border-color:rgba(16,185,129,.3);color:var(--green); }
+.ct-btn.red   { background:var(--red-bg);border-color:rgba(244,63,94,.3);color:var(--red); }
+.ct-meta { font-size:.76rem;color:var(--text-3);margin-top:2px; }
+.ql-link { display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);text-decoration:none;color:var(--text-2);font-size:.84rem;font-weight:600;transition:.15s; }
+.ql-link:hover { border-color:var(--brand);color:var(--brand); }
+@media(max-width:1100px){ .ct-layout{grid-template-columns:1fr} }
+</style>
+
+<!-- Hero -->
+<div class="mod-hero">
+  <div>
+    <span class="mod-kicker">Agency · Command</span>
+    <h1>Control Tower</h1>
+    <p>{{ org.name }} · {{ total_clients }} client{{ total_clients|pluralize }} · {{ active_projects }} active project{{ active_projects|pluralize }}</p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a href="{% url 'agency:invoice_create' %}" class="btn"><i class="fas fa-plus"></i> New invoice</a>
+    {% if pending_approvals %}
+    <a href="{% url 'autopilot:approvals' %}" class="btn-ghost" style="background:var(--yellow-bg);border-color:rgba(245,158,11,.3);color:var(--yellow);"><i class="fas fa-clock"></i> {{ pending_approvals }} approval{{ pending_approvals|pluralize }} waiting</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- KPI strip row 1 -->
+<div class="metrics" style="margin-bottom:12px;">
+  <div class="metric" style="border-color:var(--border-brand);background:var(--brand-glow);">
+    <span class="metric-label" style="color:var(--brand);">Wallet balance</span>
+    <span class="metric-value" style="color:var(--brand);">₹{{ total_balance|default:0|floatformat:0|intcomma }}</span>
+    <span class="metric-sub">Available now</span>
+  </div>
+  <div class="metric" style="{% if due_next_14 %}border-color:rgba(16,185,129,.3);background:var(--green-bg);{% endif %}">
+    <span class="metric-label" style="{% if due_next_14 %}color:var(--green);{% endif %}">Incoming (14d)</span>
+    <span class="metric-value" style="{% if due_next_14 %}color:var(--green);{% endif %}">₹{{ due_next_14|default:0|floatformat:0|intcomma }}</span>
+    <span class="metric-sub">Invoice receipts due</span>
+  </div>
+  <div class="metric" style="{% if overdue_receivables %}border-color:rgba(244,63,94,.3);background:var(--red-bg);{% endif %}">
+    <span class="metric-label" style="{% if overdue_receivables %}color:var(--red);{% endif %}">Overdue (receive)</span>
+    <span class="metric-value" style="{% if overdue_receivables %}color:var(--red);{% endif %}">₹{{ overdue_receivables|default:0|floatformat:0|intcomma }}</span>
+    <span class="metric-sub">Past-due invoices</span>
+  </div>
+  <div class="metric" style="{% if overdue_payables %}border-color:rgba(245,158,11,.3);background:var(--yellow-bg);{% endif %}">
+    <span class="metric-label" style="{% if overdue_payables %}color:var(--yellow);{% endif %}">Overdue (pay)</span>
+    <span class="metric-value" style="{% if overdue_payables %}color:var(--yellow);{% endif %}">₹{{ overdue_payables|default:0|floatformat:0|intcomma }}</span>
+    <span class="metric-sub">Bills past due</span>
+  </div>
+</div>
+
+<!-- KPI strip row 2 -->
+<div class="metrics">
+  <div class="metric">
+    <span class="metric-label">Safe to spend (14d)</span>
+    <span class="metric-value" style="color:{% if safe_to_spend_14 > 0 %}var(--brand){% else %}var(--red){% endif %};">₹{{ safe_to_spend_14|default:0|floatformat:0|intcomma }}</span>
+    <span class="metric-sub">Cash + income − bills</span>
+  </div>
+  <div class="metric">
+    <span class="metric-label">Safe to spend (30d)</span>
+    <span class="metric-value">₹{{ safe_to_spend_30|default:0|floatformat:0|intcomma }}</span>
+    <span class="metric-sub">Includes payroll est.</span>
+  </div>
+  <div class="metric" style="{% if runway_months and runway_months < 3 %}border-color:rgba(244,63,94,.3);background:var(--red-bg);{% elif runway_months and runway_months < 6 %}border-color:rgba(245,158,11,.3);background:var(--yellow-bg);{% endif %}">
+    <span class="metric-label" style="{% if runway_months and runway_months < 3 %}color:var(--red);{% elif runway_months and runway_months < 6 %}color:var(--yellow);{% endif %}">Runway</span>
+    <span class="metric-value" style="{% if runway_months and runway_months < 3 %}color:var(--red);{% elif runway_months and runway_months < 6 %}color:var(--yellow);{% endif %}">{% if runway_months %}{{ runway_months }}mo{% else %}—{% endif %}</span>
+    <span class="metric-sub">At current burn rate</span>
+  </div>
+  <div class="metric">
+    <span class="metric-label">Incoming (30d)</span>
+    <span class="metric-value">₹{{ due_next_30|default:0|floatformat:0|intcomma }}</span>
+    <span class="metric-sub">All open invoices</span>
+  </div>
+</div>
+
+<div class="ct-layout" style="margin-top:18px;">
+  <div>
+    <!-- Open invoices -->
+    <div class="panel">
+      <div class="panel-head">
+        <h2><i class="fas fa-file-invoice-dollar" style="color:var(--green);"></i> Open receivables</h2>
+        <a href="{% url 'agency:receivables_dashboard' %}" class="btn-outline" style="font-size:.78rem;">All invoices →</a>
+      </div>
+      {% if open_invoices %}
+        {% for inv in open_invoices %}
+        <div class="ct-row {% if inv.status == 'OVERDUE' %}overdue{% else %}receive{% endif %}">
+          <div>
+            <div style="font-weight:700;font-size:.88rem;color:var(--text);">
+              {{ inv.client.company_name|default:inv.client.name }}
+              <span style="font-size:.76rem;font-family:var(--mono);color:var(--text-3);"> · {{ inv.invoice_number }}</span>
+            </div>
+            <div class="ct-meta">
+              {% if inv.status == 'OVERDUE' %}
+              <span style="color:var(--red);font-weight:700;"><i class="fas fa-exclamation-circle"></i> {{ inv.due_date|timesince }} overdue</span>
+              {% else %}
+              Due {{ inv.due_date|date:"d M Y" }}
+              {% endif %}
+              {% if inv.project %} · {{ inv.project.name|truncatechars:22 }}{% endif %}
+            </div>
+            <div style="display:flex;gap:6px;margin-top:7px;">
+              <form method="post" action="{% url 'agency:invoice_mark_paid' inv.id %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="ct-btn green"><i class="fas fa-check"></i> Mark paid</button>
+              </form>
+              <form method="post" action="{% url 'agency:invoice_remind' inv.id %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="ct-btn"><i class="fas fa-bell"></i> Remind</button>
+              </form>
+              <a href="{% url 'agency:invoice_pdf' inv.id %}" class="ct-btn" target="_blank"><i class="fas fa-file-pdf"></i> PDF</a>
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-family:var(--mono);font-weight:800;font-size:1rem;color:{% if inv.status == 'OVERDUE' %}var(--red){% else %}var(--green){% endif %};">₹{{ inv.amount|default:0|floatformat:0|intcomma }}</div>
+            <span class="ct-pill" style="background:{% if inv.status == 'OVERDUE' %}var(--red-bg);color:var(--red){% else %}var(--blue-bg);color:var(--blue){% endif %};">{{ inv.get_status_display }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="list-item" style="justify-content:center;flex-direction:column;text-align:center;padding:28px;color:var(--text-3);">
+        <i class="fas fa-check-circle" style="font-size:1.6rem;color:var(--green);display:block;margin-bottom:10px;"></i>
+        No open invoices. <a href="{% url 'agency:invoice_create' %}" style="color:var(--brand);font-weight:700;">Create one →</a>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Upcoming payables -->
+    <div class="panel" style="margin-top:14px;">
+      <div class="panel-head">
+        <h2><i class="fas fa-file-invoice" style="color:var(--red);"></i> Upcoming payables</h2>
+        <a href="{% url 'autopilot:smart_bills' %}" class="btn-outline" style="font-size:.78rem;">All bills →</a>
+      </div>
+      {% if upcoming_bills %}
+        {% for bill in upcoming_bills %}
+        <div class="ct-row {% if bill.status == 'OVERDUE' %}overdue{% else %}pay{% endif %}">
+          <div>
+            <div style="font-weight:700;font-size:.88rem;color:var(--text);">
+              {{ bill.biller_name }}
+              {% if bill.auto_pay %}<span style="font-size:.7rem;color:var(--brand);"><i class="fas fa-bolt"></i> Auto-pay</span>{% endif %}
+            </div>
+            <div class="ct-meta">
+              {% if bill.status == 'OVERDUE' %}
+              <span style="color:var(--red);font-weight:700;">{{ bill.due_date|timesince }} overdue</span>
+              {% else %}Due {{ bill.due_date|date:"d M Y" }}{% endif %}
+               · {{ bill.get_biller_category_display }}
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-family:var(--mono);font-weight:800;font-size:1rem;color:var(--red);">₹{{ bill.amount|default:0|floatformat:0|intcomma }}</div>
+            <span class="ct-pill" style="background:{% if bill.status == 'OVERDUE' %}var(--red-bg);color:var(--red){% else %}var(--yellow-bg);color:var(--yellow){% endif %};">{{ bill.get_status_display }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="list-item" style="justify-content:center;flex-direction:column;text-align:center;padding:28px;color:var(--text-3);">
+        <i class="fas fa-check-circle" style="font-size:1.6rem;color:var(--green);display:block;margin-bottom:10px;"></i>
+        No upcoming bills due. <a href="{% url 'autopilot:smart_bills' %}" style="color:var(--brand);font-weight:700;">Add bills →</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right sidebar -->
+  <div>
+    <!-- Cash position summary -->
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-head">
+        <h3 style="margin:0;font-size:.9rem;"><i class="fas fa-calculator" style="color:var(--brand);margin-right:7px;"></i>Cash position</h3>
+      </div>
+      <div style="display:grid;gap:8px;font-size:.84rem;padding:14px 18px;">
+        <div class="list-item" style="padding:7px 0;border:none;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-3);">Wallet balance</span>
+          <strong style="color:var(--brand);font-family:var(--mono);">₹{{ total_balance|default:0|floatformat:0|intcomma }}</strong>
+        </div>
+        <div class="list-item" style="padding:7px 0;border:none;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-3);">+ Due in 30d</span>
+          <strong style="color:var(--green);font-family:var(--mono);">+₹{{ due_next_30|default:0|floatformat:0|intcomma }}</strong>
+        </div>
+        <div class="list-item" style="padding:7px 0;border:none;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-3);">− Bills due</span>
+          <strong style="color:var(--red);font-family:var(--mono);">−₹{{ upcoming_payables_14|default:0|floatformat:0|intcomma }}</strong>
+        </div>
+        {% if form.initial.monthly_payroll_estimate %}
+        <div class="list-item" style="padding:7px 0;border:none;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-3);">− Payroll est.</span>
+          <strong style="color:var(--red);font-family:var(--mono);">−₹{{ form.initial.monthly_payroll_estimate|default:0|floatformat:0|intcomma }}</strong>
+        </div>
+        {% endif %}
+        <div class="list-item" style="padding:10px 0 0;border:none;">
+          <span style="font-weight:700;color:var(--text);">Net 30d position</span>
+          <strong style="font-family:var(--mono);font-size:1.1rem;color:{% if safe_to_spend_30 > 0 %}var(--brand){% else %}var(--red){% endif %};">₹{{ safe_to_spend_30|default:0|floatformat:0|intcomma }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payroll estimate form -->
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-head">
+        <h3 style="margin:0;font-size:.88rem;"><i class="fas fa-users" style="color:var(--text-3);margin-right:7px;"></i>Monthly payroll estimate</h3>
+      </div>
+      <div style="padding:14px 18px;">
+        <form method="post">{% csrf_token %}
+          <input type="number" step="0.01" min="0" name="monthly_payroll_estimate"
+            value="{{ form.initial.monthly_payroll_estimate|default:0 }}"
+            style="width:100%;padding:9px 12px;border-radius:var(--r-md);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.85rem;margin-bottom:10px;">
+          <button type="submit" class="btn-ghost" style="width:100%;"><i class="fas fa-save"></i> Update estimate</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Quick links -->
+    <div class="panel">
+      <div class="panel-head"><h3 style="margin:0;font-size:.88rem;">Quick actions</h3></div>
+      <div style="display:grid;gap:7px;padding:14px 18px;">
+        <a href="{% url 'agency:invoice_create' %}" class="ql-link"><i class="fas fa-plus" style="width:14px;color:var(--brand);"></i> New invoice</a>
+        <a href="{% url 'agency:generate_retainer_invoices' %}" class="ql-link" onclick="return confirm('Generate retainer invoices for all active projects this month?')"><i class="fas fa-rotate" style="width:14px;color:var(--brand);"></i> Generate retainer invoices</a>
+        <a href="{% url 'agency:clients_list' %}" class="ql-link"><i class="fas fa-users" style="width:14px;"></i> Clients ({{ total_clients }})</a>
+        <a href="{% url 'agency:projects_list' %}" class="ql-link"><i class="fas fa-briefcase" style="width:14px;"></i> Projects ({{ active_projects }} active)</a>
+        <a href="{% url 'agency:receivables_dashboard' %}" class="ql-link"><i class="fas fa-file-invoice-dollar" style="width:14px;"></i> All receivables</a>
+        <a href="{% url 'autopilot:smart_bills' %}" class="ql-link"><i class="fas fa-file-invoice" style="width:14px;"></i> Smart bills</a>
+        {% if pending_approvals %}
+        <a href="{% url 'autopilot:approvals' %}" class="ql-link" style="border-color:rgba(245,158,11,.3);background:var(--yellow-bg);color:var(--yellow);"><i class="fas fa-check-double" style="width:14px;"></i> {{ pending_approvals }} approval{{ pending_approvals|pluralize }}</a>
+        {% endif %}
+        <a href="{% url 'payments:payment_dashboard' %}" class="ql-link"><i class="fas fa-wallet" style="width:14px;"></i> Payments wallet</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

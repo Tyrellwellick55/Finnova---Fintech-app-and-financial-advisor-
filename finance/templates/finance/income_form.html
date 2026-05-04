@@ -1,0 +1,39 @@
+{% extends "finance/base.html" %}
+{% block title %}{{ page_title|default:"Income" }} — Finance — Finnova{% endblock %}
+
+{% block finance_content %}
+<div class="page-header">
+  <div><h1>{{ page_title|default:"Add income" }}</h1><p>Record income at the source so the rest of Finnova works from clean cash-flow data.</p></div>
+  <a href="{% url 'finance:income_list' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Income</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;">
+  <div class="card">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors.0 }}</div>{% endif %}
+      <div class="form-row">
+        {% for field in form %}
+        <div class="form-group">
+          <label class="form-label">{{ field.label }}{% if field.field.required %} <span style="color:var(--red);">*</span>{% endif %}</label>
+          {{ field }}
+          {% if field.errors %}<p style="color:var(--red);font-size:.78rem;margin:4px 0 0;">{{ field.errors.0 }}</p>{% endif %}
+          {% if field.help_text %}<small style="color:var(--text-3);font-size:.76rem;">{{ field.help_text }}</small>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px;">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save income</button>
+        <a href="{% url 'finance:income_list' %}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+  <div class="card">
+    <div class="card-header"><h2>Tips</h2></div>
+    <div style="display:grid;gap:10px;font-size:.84rem;color:var(--text-2);">
+      <div style="padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border-left:3px solid var(--green);">Mark income as Verified once you confirm the amount has landed.</div>
+      <div style="padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border-left:3px solid var(--brand);">Enable Recurring if this income repeats monthly — Autopilot uses this for cash-flow predictions.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

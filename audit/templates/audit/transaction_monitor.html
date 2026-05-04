@@ -1,0 +1,75 @@
+{% extends "audit/base_audit.html" %}
+{% block title %}Transaction Monitor — Audit — Finnova{% endblock %}
+
+{% block content %}
+{{ block.super }}
+<div class="audit-container">
+  <div class="audit-header">
+    <div>
+      <h1 class="audit-title"><i class="fas fa-radar" style="color:var(--brand);"></i> Transaction Monitor</h1>
+      <p class="audit-breadcrumb"><a href="{% url 'finnovaapp:dashboard' %}">Dashboard</a> › <a href="{% url 'audit:dashboard' %}">Audit</a> › Monitor</p>
+    </div>
+    <a href="{% url 'audit:dashboard' %}" class="audit-btn btn-outline"><i class="fas fa-arrow-left"></i> Back</a>
+  </div>
+
+  {% if transaction %}
+  <div class="metrics" style="margin-bottom:20px;">
+    <div class="metric"><span class="metric-label">Amount</span><span class="metric-value">₹{{ transaction.amount|default:0|floatformat:2 }}</span></div>
+    <div class="metric"><span class="metric-label">Status</span><span class="metric-value">{{ transaction.status }}</span></div>
+    <div class="metric"><span class="metric-label">Type</span><span class="metric-value" style="font-size:1.1rem;">{{ transaction.transaction_type }}</span></div>
+    <div class="metric"><span class="metric-label">Date</span><span class="metric-value" style="font-size:1rem;">{{ transaction.transaction_date|date:"d M Y, H:i" }}</span></div>
+  </div>
+
+  <div class="g2">
+    <div class="panel">
+      <div class="panel-head"><div><h2>Transaction details</h2></div></div>
+      <div style="display:grid;gap:8px;font-size:.88rem;">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Reference</span><span style="font-family:var(--mono);font-weight:700;">{{ transaction.reference|default:"—" }}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Description</span><span>{{ transaction.description|default:"—" }}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Account</span><span>{{ transaction.account.account_number|default:"—" }}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="color:var(--text-3);">Transaction ID</span><span style="font-family:var(--mono);font-size:.8rem;">{{ transaction.id }}</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div><h2>Risk assessment</h2></div></div>
+      {% if risk_analysis %}
+      <div style="text-align:center;padding:16px 0;">
+        <div style="font-size:2.5rem;font-weight:800;color:{% if risk_analysis.risk_level == 'HIGH' or risk_analysis.risk_level == 'CRITICAL' %}var(--red){% elif risk_analysis.risk_level == 'MEDIUM' %}var(--yellow){% else %}var(--green){% endif %};">
+          {{ risk_analysis.risk_score|default:0 }}
+        </div>
+        <div style="font-size:.8rem;color:var(--text-3);margin-top:4px;">Risk score (0–100)</div>
+        <span class="badge {% if risk_analysis.risk_level == 'HIGH' or risk_analysis.risk_level == 'CRITICAL' %}badge-red{% elif risk_analysis.risk_level == 'MEDIUM' %}badge-yellow{% else %}badge-green{% endif %}" style="margin-top:10px;display:inline-block;">{{ risk_analysis.risk_level|default:"LOW" }}</span>
+      </div>
+      {% if risk_analysis.flags %}
+      <div style="margin-top:12px;">
+        {% for flag in risk_analysis.flags %}
+        <div class="alert-info alert-info-warning" style="margin-bottom:6px;font-size:.82rem;"><i class="fas fa-flag"></i><div>{{ flag }}</div></div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% else %}
+      <div class="empty-state" style="padding:20px;border:none;"><div class="empty-state-icon"><i class="fas fa-shield-halved"></i></div><h3>No risk signals</h3></div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if fraud_assessment %}
+  <div class="panel" style="margin-top:16px;">
+    <div class="panel-head"><div><h2>Fraud assessment</h2><p>AI-powered fraud detection signals for this transaction</p></div></div>
+    <div class="g2">
+      {% for key, value in fraud_assessment.items %}
+      <div style="padding:10px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);">{{ key }}</div>
+        <div style="font-size:.9rem;font-weight:600;color:var(--text);margin-top:4px;">{{ value }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state"><div class="empty-state-icon"><i class="fas fa-magnifying-glass"></i></div><h3>Transaction not found</h3><p>The requested transaction could not be located.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

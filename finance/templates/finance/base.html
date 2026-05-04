@@ -1,0 +1,28 @@
+{% extends 'finnovaapp/base.html' %}
+{% load static %}
+{% load nav_extras %}
+{% block title %}{% block page_title %}Finance{% endblock %} — Finnova{% endblock %}
+{% block topbar_title %}Finance{% endblock %}
+{% block topbar_sub %}<span style="color:var(--text-3);font-size:.76rem;">Income · Expenses · Budgets · Goals</span>{% endblock %}
+
+{% block extra_css %}
+{% block finance_extra_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<nav class="mod-nav">
+  <div class="mod-nav-tabs">
+    <a href="{% url 'finance:finance_dashboard' %}" class="mod-tab {% if request.resolver_match.url_name == 'finance_dashboard' %}active{% endif %}"><i class="fas fa-gauge-high"></i> Overview</a>
+    <a href="{% url 'finance:transaction_center' %}" class="mod-tab {% if request.resolver_match.url_name == 'transaction_center' %}active{% endif %}"><i class="fas fa-arrow-right-arrow-left"></i> Transactions</a>
+    <a href="{% url 'finance:income_list' %}" class="mod-tab {% if request.resolver_match.url_name == 'income_list' %}active{% endif %}"><i class="fas fa-arrow-down"></i> Income</a>
+    <a href="{% url 'finance:expense_list' %}" class="mod-tab {% if request.resolver_match.url_name == 'expense_list' %}active{% endif %}"><i class="fas fa-arrow-up"></i> Expenses</a>
+    <a href="{% url 'finance:budget_list' %}" class="mod-tab {% if request.resolver_match.url_name == 'budget_list' %}active{% endif %}"><i class="fas fa-sliders"></i> Budgets</a>
+    <a href="{% url 'finance:financial_goals' %}" class="mod-tab {% if request.resolver_match.url_name == 'financial_goals' %}active{% endif %}"><i class="fas fa-bullseye"></i> Goals</a>
+    <a href="{% url 'finance:reports' %}" class="mod-tab {% if request.resolver_match.url_name == 'reports' %}active{% endif %}"><i class="fas fa-chart-bar"></i> Reports</a>
+  </div>
+  <div class="mod-nav-actions">
+{% block finance_actions %}{% endblock %}
+  </div>
+</nav>
+{% block finance_content %}{% endblock %}
+{% endblock %}

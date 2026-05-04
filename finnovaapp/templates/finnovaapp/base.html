@@ -1,0 +1,378 @@
+{% load static %}
+{% load nav_extras %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <script>(function(){var t=localStorage.getItem('fv-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Finnova{% endblock %}</title>
+  <!-- Fonts: Bricolage Grotesque (headings) + Outfit (body) + JetBrains Mono (numbers) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..60,400;12..60,500;12..60,600;12..60,700;12..60,800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'finnovaapp/css/finnova-design.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- E1: Toast notification system -->
+<div id="toast-container" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;"></div>
+<script>
+function showToast(msg, type) {
+  var colors = {success:'var(--green)',error:'var(--red)',info:'var(--brand)',warning:'var(--yellow)'};
+  var icons  = {success:'fa-check-circle',error:'fa-circle-xmark',info:'fa-circle-info',warning:'fa-triangle-exclamation'};
+  var t = type || 'info';
+  var el = document.createElement('div');
+  el.style.cssText = 'display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface-2);border:1px solid var(--border-2);border-left:3px solid '+colors[t]+';border-radius:var(--r-lg);font-size:.84rem;color:var(--text);pointer-events:auto;box-shadow:0 4px 20px rgba(0,0,0,.4);animation:toastIn .2s ease;max-width:340px;';
+  el.innerHTML = '<i class="fas '+icons[t]+'" style="color:'+colors[t]+';font-size:.9rem;flex-shrink:0;"></i><span>'+msg+'</span>';
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(function(){el.style.opacity='0';el.style.transform='translateX(20px)';el.style.transition='.25s ease';setTimeout(function(){el.remove();},280);},3200);
+}
+window.Finnova = window.Finnova || {};
+window.Finnova.toast = showToast;
+</script>
+<style>@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}</style>
+
+{% if shell_mode == 'app' and request.user.is_authenticated %}
+<!-- ── APP SHELL ─────────────────────────────────────────── -->
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+<div class="shell">
+
+  <aside class="sidebar" id="sidebar">
+    <!-- Brand -->
+    <div class="sb-brand">
+      <a href="{% url 'finnovaapp:dashboard' %}" style="display:flex;align-items:center;gap:11px;text-decoration:none;">
+        <span class="sb-logo">Fn</span>
+        <span>
+          <span class="sb-name">Finnova</span>
+          <span class="sb-tagline">Financial OS</span>
+        </span>
+      </a>
+    </div>
+
+    <!-- Workspace -->
+    <a href="{% url 'finnovaapp:org_select' %}" class="sb-workspace" style="text-decoration:none;display:flex;align-items:center;gap:9px;">
+      <span class="sb-ws-dot"></span>
+      <span>
+        <span class="sb-ws-name">{% if current_organization %}{{ current_organization.name|truncatechars:20 }}{% else %}Personal{% endif %}</span>
+        <span class="sb-ws-sub">{% if current_organization %}Business workspace{% else %}Private mode{% endif %}</span>
+      </span>
+      <i class="fas fa-chevron-down sb-ws-chevron"></i>
+    </a>
+
+    <nav class="sb-nav">
+      <!-- Overview -->
+      <div class="sb-section">
+        <a href="{% url 'finnovaapp:dashboard' %}" class="sb-item {% if request.resolver_match.url_name == 'dashboard' and request.resolver_match.namespace == 'finnovaapp' %}active{% endif %}">
+          <span class="sb-icon"><i class="fas fa-gauge-high"></i></span>Dashboard
+          {% if snapshot.pending_approvals_count %}<span class="sb-badge">{{ snapshot.pending_approvals_count }}</span>{% endif %}
+        </a>
+        <a href="{% url 'notifications:notification_list' %}" class="sb-item {% if request.resolver_match.namespace == 'notifications' %}active{% endif %}">
+          <span class="sb-icon"><i class="fas fa-bell"></i></span>Notifications
+          {% if total_unread %}<span class="sb-badge" id="sidebar-notif-badge">{{ total_unread }}</span>{% endif %}
+        </a>
+      </div>
+
+      {% if shell_modules.agency %}
+      <!-- Agency -->
+      <div class="sb-section">
+        <p class="sb-label">Agency</p>
+        <a href="{% url 'agency:control_tower' %}" class="sb-item {% if request.resolver_match.namespace == 'agency' %}active{% endif %}">
+          <span class="sb-icon"><i class="fas fa-tower-control"></i></span>Control Tower
+        </a>
+        <a href="{% url 'agency:clients_list' %}" class="sb-item">
+          <span class="sb-icon"><i class="fas fa-address-book"></i></span>Clients
+        </a>
+        <a href="{% url 'agency:receivables_dashboard' %}" class="sb-item">
+          <span class="sb-icon"><i class="fas fa-file-invoice-dollar"></i></span>Receivables
+        </a>
+        <a href="{% url 'agency:invoice_create' %}" class="sb-item">
+          <span class="sb-icon"><i class="fas fa-plus-circle"></i></span>New Invoice
+        </a>
+      </div>
+      {% endif %}
+
+      {% if shell_modules.finance %}
+      <!-- Finance -->
+      <div class="sb-section">
+        <p class="sb-label">Finance</p>
+        <a href="{% url 'finance:finance_dashboard' %}" class="sb-item {% if request.resolver_match.namespace == 'finance' %}active{% endif %}">
+          <span class="sb-icon"><i class="fas fa-wallet"></i></span>Overview
+        </a>
+        <a href="{% url 'finance:transaction_center' %}" class="sb-item">
+          <span class="sb-icon"><i class="fas fa-arrow-right-arrow-left"></i></span>Transactions
+        </a>
+        <a href="{% url 'finance:budget_list' %}" class="sb-item">
+          <span class="sb-icon"><i class="fas fa-sliders"></i></span>Budgets
+        </a>
+        <a href="{% url 'finance:financial_goals' %}" class="sb-item">
+          <span class="sb-icon"><i class="fas fa-bullseye"></i></span>Goals
+        </a>
+      </div>
+      {% endif %}
+
+      {% if shell_modules.autopilot %}
+      <!-- Autopilot -->
+      <div class="sb-section">
+        <p class="sb-label">Autopilot</p>
+        <a href="{% url 'autopilot:autopilot_dashboard' %}" class="sb-item {% if request.resolver_match.namespace == 'autopilot' %}active{% endif %}">
+          <span class="sb-icon"><i class="fas fa-robot"></i></span>Autopilot
+          {% if pending_approvals_count %}<span class="sb-badge">{{ pending_approvals_count }}</span>{% endif %}
+        </a>
+        <a href="{% url 'autopilot:approvals' %}" class="sb-item">
+          <span class="sb-icon"><i class="fas fa-check-double"></i></span>Approvals
+        </a>
+        <a href="{% url 'autopilot:savings' %}" class="sb-item">
+          <span class="sb-icon"><i class="fas fa-piggy-bank"></i></span>Savings
+        </a>
+        <a href="{% url 'autopilot:smart_bills' %}" class="sb-item">
+          <span class="sb-icon"><i class="fas fa-file-invoice"></i></span>Smart Bills
+        </a>
+      </div>
+      {% endif %}
+
+      {% if shell_modules.analytics %}
+      <!-- AI -->
+      <div class="sb-section">
+        <p class="sb-label">Intelligence</p>
+        <a href="{% url 'analytics-ai:ai_chat' %}" class="sb-item {% if request.resolver_match.url_name == 'ai_chat' %}active{% endif %}">
+          <span class="sb-icon" style="background:rgba(124,111,255,.1);color:var(--accent);"><i class="fas fa-comment-dots"></i></span>Ask AI
+          <span class="sb-badge brand">AI</span>
+        </a>
+        <a href="{% url 'analytics-ai:ai_dashboard' %}" class="sb-item">
+          <span class="sb-icon"><i class="fas fa-chart-line"></i></span>Insights
+        </a>
+        <a href="{% url 'analytics-ai:financial_health_dashboard' %}" class="sb-item">
+          <span class="sb-icon"><i class="fas fa-heartbeat"></i></span>Health Score
+        </a>
+      </div>
+      {% endif %}
+
+      {% if shell_modules.payments %}
+      <!-- Payments -->
+      <div class="sb-section">
+        <p class="sb-label">Payments</p>
+        <a href="{% url 'payments:payment_dashboard' %}" class="sb-item {% if request.resolver_match.namespace == 'payments' %}active{% endif %}">
+          <span class="sb-icon"><i class="fas fa-credit-card"></i></span>Payments
+        </a>
+        <a href="{% url 'payments:transfer_money' %}" class="sb-item">
+          <span class="sb-icon"><i class="fas fa-paper-plane"></i></span>Send Money
+        </a>
+        <a href="{% url 'payments:payment_methods' %}" class="sb-item">
+          <span class="sb-icon"><i class="fas fa-wallet"></i></span>Cards & UPI
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- Platform -->
+      <div class="sb-section">
+        <p class="sb-label">Platform</p>
+      {% if request.user.is_staff or request.user.is_superuser or shell_modules.audit %}
+        <a href="{% url 'audit:gst_dashboard' %}" class="sb-item {% if request.resolver_match.url_name == 'gst_dashboard' %}active{% endif %}">
+          <span class="sb-icon"><i class="fas fa-file-invoice"></i></span>GST
+        </a>
+        {% if request.user.is_staff or request.user.is_superuser %}
+        <a href="{% url 'audit:dashboard' %}" class="sb-item {% if request.resolver_match.namespace == 'audit' %}active{% endif %}">
+          <span class="sb-icon"><i class="fas fa-shield-halved"></i></span>Audit
+          {% if security_alerts_count %}<span class="sb-badge">{{ security_alerts_count }}</span>{% endif %}
+        </a>
+        {% endif %}
+      {% endif %}
+        {% if current_organization %}
+        <a href="{% url 'finnovaapp:org_members' %}" class="sb-item">
+          <span class="sb-icon"><i class="fas fa-users"></i></span>Team
+        </a>
+        {% endif %}
+        <a href="{% url 'finnovaapp:settings' %}" class="sb-item {% if request.resolver_match.url_name == 'settings' %}active{% endif %}">
+          <span class="sb-icon"><i class="fas fa-gear"></i></span>Settings
+        </a>
+      </div>
+    </nav>
+
+    <!-- User footer -->
+    <div class="sb-footer">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <a href="{% url 'finnovaapp:logout' %}" class="sb-user" style="flex:1;text-decoration:none;">
+          <span class="sb-avatar">{{ request.user.first_name|first|default:request.user.username|first|upper }}</span>
+          <span>
+            <span class="sb-user-name">{{ request.user.get_full_name|default:request.user.username|truncatechars:18 }}</span>
+            <span class="sb-user-email">{{ request.user.email|truncatechars:20 }}</span>
+          </span>
+          <i class="fas fa-right-from-bracket" style="margin-left:auto;color:var(--text-3);font-size:.76rem;"></i>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main-wrap">
+    <header class="topbar">
+      <div class="tb-left">
+        <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()" style="display:none;">
+          <i class="fas fa-bars" style="font-size:.9rem;"></i>
+        </button>
+        <div class="tb-breadcrumb">
+          <strong>{% block topbar_title %}Finnova{% endblock %}</strong>
+          {% block topbar_sub %}<span class="tb-sep">/</span><span>Dashboard</span>{% endblock %}
+        </div>
+      </div>
+      <div class="tb-right">
+        <!-- Notification pill -->
+        <a href="{% url 'notifications:notification_list' %}" class="tb-pill">
+          <span class="tb-notif-dot {% if not total_unread %}ok{% endif %}"></span>
+          <span id="notif-count" {% if not total_unread %}style="display:none"{% endif %}>{{ total_unread|default:0 }} alerts</span>
+          {% if not total_unread %}<span>All clear</span>{% endif %}
+        </a>
+        <!-- Quick action -->
+        {% if shell_modules.agency %}
+        <a href="{% url 'agency:invoice_create' %}" class="tb-pill cta">
+          <i class="fas fa-plus" style="font-size:.75rem;"></i> Invoice
+        </a>
+        {% elif shell_modules.finance %}
+        <a href="{% url 'finance:add_income' %}" class="tb-pill cta">
+          <i class="fas fa-plus" style="font-size:.75rem;"></i> Income
+        </a>
+        {% endif %}
+        <!-- Theme toggle -->
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" id="themeToggle">
+          <i class="fas fa-moon" id="theme-icon" style="font-size:.82rem;"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="page-content">
+{% else %}
+<!-- ── PUBLIC SHELL ────────────────────────────────────────────── -->
+<nav style="position:sticky;top:0;z-index:200;padding:14px 32px;display:flex;align-items:center;justify-content:space-between;background:rgba(8,12,20,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);">
+  <a href="{% url 'finnovaapp:landing' %}" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+    <span style="width:32px;height:32px;border-radius:9px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-family:var(--f-head);font-weight:900;font-size:.9rem;color:var(--bg);box-shadow:var(--glow-brand);">Fn</span>
+    <span style="font-family:var(--f-head);font-weight:800;font-size:.96rem;color:var(--text);letter-spacing:-.02em;">Finnova</span>
+  </a>
+  <div style="display:flex;gap:8px;align-items:center;">
+    {% if user.is_authenticated %}
+    <a href="{% url 'finnovaapp:dashboard' %}" class="btn sm">Open app →</a>
+    {% else %}
+    <a href="{% url 'finnovaapp:login' %}" class="btn-outline sm">Log in</a>
+    <a href="{% url 'finnovaapp:signup' %}" class="btn sm">Get started</a>
+    {% endif %}
+  </div>
+</nav>
+<div style="min-height:calc(100vh - 58px);">
+{% endif %}
+{% if messages %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  {% for msg in messages %}
+  window.Finnova.toast("{{ msg|escapejs }}", "{% if 'success' in msg.tags %}success{% elif 'error' in msg.tags or 'danger' in msg.tags %}error{% elif 'warning' in msg.tags %}warning{% else %}info{% endif %}");
+  {% endfor %}
+});
+</script>
+{% endif %}
+{% block content %}{% endblock %}
+{% if shell_mode == 'app' and request.user.is_authenticated %}
+    </main>
+  </div>
+</div>
+{% else %}
+</div>
+{% endif %}
+
+<script>
+// ── Theme ─────────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const cur = html.getAttribute('data-theme');
+  const nxt = cur === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', nxt);
+  localStorage.setItem('fv-theme', nxt);
+  const ico = document.getElementById('theme-icon');
+  if (ico) ico.className = nxt === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+}
+// init icon
+(function(){
+  const t = localStorage.getItem('fv-theme') || 'dark';
+  const ico = document.getElementById('theme-icon');
+  if (ico) ico.className = t === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+})();
+
+// ── Mobile sidebar ────────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// ── Notification polling ──────────────────────────────────────
+(function pollNotifs() {
+  function refresh() {
+    fetch('/notifications/api/unread-count/', {credentials:'same-origin'})
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return;
+        const cnt = d.unread_count || 0;
+        const badge = document.getElementById('sidebar-notif-badge');
+        const countEl = document.getElementById('notif-count');
+        const dot = document.querySelector('.tb-notif-dot');
+        if (badge) { badge.textContent = cnt; badge.style.display = cnt ? '' : 'none'; }
+        if (countEl) { countEl.textContent = cnt + ' alerts'; countEl.style.display = cnt ? '' : 'none'; }
+        if (dot) { dot.className = 'tb-notif-dot' + (cnt ? '' : ' ok'); }
+      }).catch(() => {});
+  }
+  setTimeout(refresh, 5000);
+  setInterval(refresh, 60000);
+})();
+
+// ── Live stats ────────────────────────────────────────────────
+(function liveStats() {
+  function upd(id, val) {
+    const el = document.getElementById(id);
+    if (el && val !== undefined && val !== null) {
+      el.textContent = val;
+      el.style.transition = 'color .3s';
+      el.style.color = 'var(--brand)';
+      setTimeout(() => el.style.color = '', 700);
+    }
+  }
+  function go() {
+    fetch('/api/user-stats/', {credentials:'same-origin'})
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return;
+        const f = d.finance || {}, p = d.payments || {}, ai = d.analytics || {};
+        if (f.month_income  !== undefined) upd('live-income',  '₹'+parseFloat(f.month_income).toLocaleString('en-IN',{minimumFractionDigits:2}));
+        if (f.month_expense !== undefined) upd('live-expense', '₹'+parseFloat(f.month_expense).toLocaleString('en-IN',{minimumFractionDigits:2}));
+        if (p.balance       !== undefined) upd('live-balance', '₹'+parseFloat(p.balance).toLocaleString('en-IN',{minimumFractionDigits:2}));
+        if (ai.health_score !== undefined) upd('live-health',  ai.health_score);
+      }).catch(() => {});
+  }
+  setTimeout(go, 3000);
+  setInterval(go, 90000);
+})();
+
+// ── Overlay CSS ───────────────────────────────────────────────
+document.head.insertAdjacentHTML('beforeend',
+  '<style>.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:499;}.overlay.show{display:block;}</style>'
+);
+
+// ── Responsive menu button ────────────────────────────────────
+(function(){
+  if (window.innerWidth <= 768) {
+    const btn = document.getElementById('menuBtn');
+    if (btn) btn.style.display = 'flex';
+  }
+  window.addEventListener('resize', () => {
+    const btn = document.getElementById('menuBtn');
+    if (!btn) return;
+    btn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+  });
+})();
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

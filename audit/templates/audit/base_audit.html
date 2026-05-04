@@ -1,0 +1,33 @@
+{% extends 'finnovaapp/base.html' %}
+{% load static %}
+{% load nav_extras %}
+{% block title %}{% block page_title %}Audit{% endblock %} — Finnova{% endblock %}
+{% block topbar_title %}Audit & Compliance{% endblock %}
+{% block topbar_sub %}<span style="color:var(--text-3);font-size:.76rem;">Security · Logs · GST · Compliance</span>{% endblock %}
+
+{% block extra_css %}
+{% block audit_extra_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<nav class="mod-nav">
+  <div class="mod-nav-tabs">
+    <a href="{% url 'audit:dashboard' %}" class="mod-tab {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><i class="fas fa-gauge-high"></i> Overview</a>
+    <a href="{% url 'audit:gst_dashboard' %}" class="mod-tab {% if request.resolver_match.url_name == 'gst_dashboard' %}active{% endif %}"><i class="fas fa-file-invoice"></i> GST</a>
+    <a href="{% url 'audit:compliance' %}" class="mod-tab {% if request.resolver_match.url_name == 'compliance' %}active{% endif %}"><i class="fas fa-check-circle"></i> Compliance</a>
+    <a href="{% url 'audit:log_list' %}" class="mod-tab {% if request.resolver_match.url_name == 'log_list' %}active{% endif %}"><i class="fas fa-list"></i> Audit Logs</a>
+    {% if request.user.is_staff or request.user.is_superuser %}
+    <a href="{% url 'audit:alert_list' %}" class="mod-tab {% if request.resolver_match.url_name == 'security_alerts' %}active{% endif %}"><i class="fas fa-shield-halved"></i> Security</a>
+    <a href="{% url 'audit:reports' %}" class="mod-tab {% if request.resolver_match.url_name == 'reports' %}active{% endif %}"><i class="fas fa-chart-bar"></i> Reports</a>
+    <a href="{% url 'audit:user_management' %}" class="mod-tab {% if request.resolver_match.url_name == 'user_management' %}active{% endif %}"><i class="fas fa-users"></i> Users</a>
+    <a href="{% url 'audit:user_risk' %}" class="mod-tab {% if request.resolver_match.url_name == 'user_risk' %}active{% endif %}"><i class="fas fa-flag"></i> Risk</a>
+    <a href="{% url 'audit:system_controls' %}" class="mod-tab {% if request.resolver_match.url_name == 'system_controls' %}active{% endif %}"><i class="fas fa-sliders"></i> Controls</a>
+    <a href="{% url 'audit:monitoring' %}" class="mod-tab {% if request.resolver_match.url_name == 'monitoring' %}active{% endif %}"><i class="fas fa-eye"></i> Monitoring</a>
+    {% endif %}
+  </div>
+  <div class="mod-nav-actions">
+{% block audit_actions %}{% endblock %}
+  </div>
+</nav>
+{% block audit_content %}{% endblock %}
+{% endblock %}

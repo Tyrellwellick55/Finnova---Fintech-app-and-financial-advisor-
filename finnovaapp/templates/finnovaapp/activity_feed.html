@@ -1,0 +1,81 @@
+{% extends 'finnovaapp/base.html' %}
+{% load static %}
+
+{% block title %}Activity Feed | Finnova{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1100px; margin: 0 auto; padding: 24px;">
+  <div class="card" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 18px 18px; margin-bottom: 16px;">
+    <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+      <div>
+        <h2 style="margin:0; font-size: 20px;">Activity Feed</h2>
+        <div style="opacity:0.8; font-size: 13px; margin-top: 4px;">
+          Organization: <strong>{{ organization.name }}</strong>
+        </div>
+      </div>
+      <div style="display:flex; gap: 10px; align-items:center; flex-wrap: wrap;">
+        <a class="btn" href="{% url 'finnovaapp:dashboard' %}" style="text-decoration:none; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);">
+          <i class="fa-solid fa-arrow-left"></i> Dashboard
+        </a>
+      </div>
+    </div>
+
+    <form method="get" style="margin-top: 14px; display:flex; gap: 10px; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 220px;">
+        <label style="display:block; font-size: 12px; opacity:0.8; margin-bottom: 6px;">Event type</label>
+        <select name="type" style="width:100%; padding: 10px 12px; border-radius: 12px; background: rgba(0,0,0,0.2); color: inherit; border: 1px solid rgba(255,255,255,0.12);">
+          <option value="">All</option>
+          {% for t in event_types %}
+            <option value="{{ t }}" {% if selected_type == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="flex: 1; min-width: 220px;">
+        <label style="display:block; font-size: 12px; opacity:0.8; margin-bottom: 6px;">Actor contains</label>
+        <input name="actor" value="{{ actor_q }}" placeholder="e.g. pritesh" style="width:100%; padding: 10px 12px; border-radius: 12px; background: rgba(0,0,0,0.2); color: inherit; border: 1px solid rgba(255,255,255,0.12);" />
+      </div>
+      <div style="display:flex; align-items:flex-end; gap: 10px;">
+        <button type="submit" style="padding: 10px 14px; border-radius: 12px; background: var(--brand); color: white; border: none;">
+          <i class="fa-solid fa-filter"></i> Filter
+        </button>
+        <a href="{% url 'finnovaapp:activity_feed' %}" style="padding: 10px 14px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); text-decoration:none; color: inherit;">
+          Reset
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <div class="card" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 10px 0;">
+    {% if events %}
+      <div style="display:flex; flex-direction: column;">
+        {% for ev in events %}
+          <div style="padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+            <div style="display:flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+              <div>
+                <div style="font-weight: 700; font-size: 14px;">{{ ev.event_type }}</div>
+                <div style="opacity:0.8; font-size: 12px; margin-top: 4px;">
+                  {% if ev.actor %}<i class="fa-regular fa-user"></i> {{ ev.actor.username }}{% else %}<i class="fa-regular fa-user"></i> System{% endif %}
+                  &nbsp; • &nbsp;
+                  <i class="fa-regular fa-clock"></i> {{ ev.created_at|date:"d M Y, H:i" }}
+                </div>
+              </div>
+              <div style="opacity:0.85; font-size: 12px;">
+                <span style="padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.04);">{{ ev.correlation_id }}</span>
+              </div>
+            </div>
+
+            {% if ev.metadata %}
+              <details style="margin-top: 10px;">
+                <summary style="cursor:pointer; opacity:0.9;">Details</summary>
+                <pre style="margin-top: 10px; white-space: pre-wrap; word-break: break-word; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.10); border-radius: 12px; padding: 12px;">{{ ev.metadata|safe }}</pre>
+              </details>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div style="padding: 18px; opacity:0.8;">No events found.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,126 @@
+{% extends "finance/base.html" %}
+{% block title %}Budgets — Finance — Finnova{% endblock %}
+
+{% block finance_content %}
+<div class="page-header">
+  <div>
+    <h1>Budgets</h1>
+    <p>Spending boundaries that protect your financial plan — and feed Autopilot risk signals.</p>
+  </div>
+  <div class="page-actions">
+    <a href="{% url 'finance:add_budget' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New budget</a>
+  </div>
+</div>
+
+<!-- KPI strip -->
+<div class="metric-grid mb-20" style="margin-bottom:18px;">
+  <div class="metric">
+    <div class="metric-label">Active budgets</div>
+    <div class="metric-value">{{ stats.active|default:0 }}</div>
+    <div class="metric-sub">Currently running</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Total budgeted</div>
+    <div class="metric-value">₹{{ stats.total_budgeted|default:0|floatformat:0 }}</div>
+    <div class="metric-sub">Across all active budgets</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Total spent</div>
+    <div class="metric-value" style="color:{% if stats.overall_utilization > 90 %}var(--red){% elif stats.overall_utilization > 70 %}var(--yellow){% else %}var(--text){% endif %};">₹{{ stats.total_spent|default:0|floatformat:0 }}</div>
+    <div class="metric-sub">Against budget</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Utilization</div>
+    <div class="metric-value" style="color:{% if stats.overall_utilization > 90 %}var(--red){% elif stats.overall_utilization > 70 %}var(--yellow){% else %}var(--green){% endif %};">{{ stats.overall_utilization|default:0|floatformat:1 }}%</div>
+    <div class="metric-sub">Overall spend rate</div>
+  </div>
+</div>
+
+<!-- Filter bar -->
+<form method="get" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:flex-end;">
+  <div class="finance-field">
+    <label>Status</label>
+    <select name="status">
+      <option value="">All</option>
+      <option value="active" {% if request.GET.status == "active" %}selected{% endif %}>Active</option>
+      <option value="paused" {% if request.GET.status == "paused" %}selected{% endif %}>Paused</option>
+      <option value="exceeded" {% if request.GET.status == "exceeded" %}selected{% endif %}>Exceeded</option>
+    </select>
+  </div>
+  <div style="display:flex;gap:8px;align-items:flex-end;">
+    <button type="submit" class="btn btn-ghost btn-sm"><i class="fas fa-filter"></i> Filter</button>
+    <a href="{% url 'finance:budget_list' %}" class="btn btn-ghost btn-sm">Reset</a>
+  </div>
+</form>
+
+
+      {# B3: Empty state — no budgets yet #}
+      {% if not budgets %}
+      <div class="empty-state" style="padding:56px 20px;">
+        <div class="empty-icon"><i class="fas fa-sliders"></i></div>
+        <h3>No budgets set</h3>
+        <p>Budgets tell Autopilot when you're spending too fast. Set one and it will alert you before you overspend.</p>
+        <a href="{% url 'finance:add_budget' %}" class="btn"><i class="fas fa-plus"></i> Create budget</a>
+      </div>
+      {% endif %}
+      {% if budgets %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
+  {% for b in budgets %}
+  <div class="card" style="padding:20px;{% if b.is_exceeded %}border-color:rgba(244,63,94,.4);{% elif b.is_near_limit %}border-color:rgba(245,158,11,.4);{% endif %}">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;">
+      <div>
+        <h3 style="margin:0 0 3px;font-size:.96rem;color:var(--text);">{{ b.name }}</h3>
+        <span style="font-size:.75rem;color:var(--text-3);">{{ b.primary_category_label|default:"General" }}</span>
+      </div>
+      <span class="badge {% if b.is_exceeded %}badge-red{% elif b.is_near_limit %}badge-yellow{% else %}badge-green{% endif %}">
+        {{ b.get_status_display }}
+      </span>
+    </div>
+
+    <!-- Amounts -->
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+      <span style="font-size:1.3rem;font-weight:800;color:var(--text);font-family:var(--mono);">₹{{ b.current_spending|default:0|floatformat:0 }}</span>
+      <span style="font-size:.82rem;color:var(--text-3);">of ₹{{ b.amount|default:0|floatformat:0 }}</span>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-track" style="margin-bottom:14px;">
+      <div class="progress-fill {% if b.is_exceeded %}danger{% elif b.is_near_limit %}warning{% endif %}"
+           style="width:{% if b.progress_display > 100 %}100{% else %}{{ b.progress_display|default:0|floatformat:0 }}{% endif %}%;"></div>
+    </div>
+
+    <!-- Remaining -->
+    <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--text-3);margin-bottom:16px;">
+      <span>{{ b.progress_display|default:0|floatformat:1 }}% used</span>
+      <span>
+        {% if b.is_exceeded %}
+        <span style="color:var(--red);">₹{{ b.remaining_amount|floatformat:0 }} over limit</span>
+        {% else %}
+        ₹{{ b.remaining_amount|default:0|floatformat:0 }} remaining
+        {% endif %}
+      </span>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:8px;">
+      <a href="{% url 'finance:budget_detail' b.id %}" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;">Open</a>
+      <form method="post" action="{% url 'finance:toggle_budget' b.id %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-ghost btn-sm">
+          {% if b.is_active %}<i class="fas fa-pause"></i>{% else %}<i class="fas fa-play"></i>{% endif %}
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty">
+  <span class="empty-icon"><i class="fas fa-sliders"></i></span>
+  <h3>No budgets yet</h3>
+  <p>Create a budget to set spending boundaries. Autopilot uses budgets to detect overspending before it happens.</p>
+  <a href="{% url 'finance:add_budget' %}" class="btn btn-primary" style="margin-top:16px;"><i class="fas fa-plus"></i> Create first budget</a>
+</div>
+{% endif %}
+{% endblock %}

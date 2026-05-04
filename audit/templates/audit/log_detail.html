@@ -1,0 +1,312 @@
+﻿<!-- templates/audit/log_detail.html -->
+{% extends 'audit/base_audit.html' %}
+
+{% block title %}Audit Log Detail - FINNOVA{% endblock %}
+
+{% block audit_content %}
+<div class="audit-container">
+    <!-- Header -->
+    <div class="audit-header">
+        <div>
+            <h1 class="audit-title">
+                <i class="fas fa-file-alt"></i> Audit Log Detail
+            </h1>
+            <p class="audit-breadcrumb">
+                <a href="{% url 'finnovaapp:dashboard' %}">Home</a> / 
+                <a href="{% url 'audit:dashboard' %}">Audit</a> / 
+                <a href="{% url 'audit:log_list' %}">Logs</a> / 
+                <span>Detail</span>
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'audit:log_list' %}" class="audit-btn btn-outline">
+                <i class="fas fa-arrow-left"></i> Back to Logs
+            </a>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 25px;">
+        <!-- Main Log Details -->
+        <div>
+            <div class="audit-card">
+                <div class="audit-card-header">
+                    <h5 class="audit-card-title">
+                        <i class="fas fa-info-circle"></i> Event Information
+                    </h5>
+                    <span class="badge badge-{{ log.severity|lower }}">
+                        {{ log.severity }} Severity
+                    </span>
+                </div>
+                <div class="audit-card-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <div style="margin-bottom: 20px;">
+                                <div style="font-size: 12px; color: var(--text-3); margin-bottom: 5px;">Event ID</div>
+                                <div style="font-family: monospace; background: var(--surface-2); padding: 10px; border-radius: 6px;">
+                                    {{ log.id }}
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 20px;">
+                                <div style="font-size: 12px; color: var(--text-3); margin-bottom: 5px;">Timestamp</div>
+                                <div style="font-weight: 600;">{{ log.created_at|date:"F d, Y H:i:s" }}</div>
+                                <div style="font-size: 13px; color: var(--text-3);">{{ log.created_at|timesince }} ago</div>
+                            </div>
+                            <div style="margin-bottom: 20px;">
+                                <div style="font-size: 12px; color: var(--text-3); margin-bottom: 5px;">Action</div>
+                                <span class="badge" style="background: var(--border); color: var(--text-2); font-size: 14px; padding: 8px 16px;">
+                                    {{ log.action }}
+                                </span>
+                            </div>
+                            <div style="margin-bottom: 20px;">
+                                <div style="font-size: 12px; color: var(--text-3); margin-bottom: 5px;">Source</div>
+                                <div>{{ log.source }}</div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div style="margin-bottom: 20px;">
+                                <div style="font-size: 12px; color: var(--text-3); margin-bottom: 5px;">Status</div>
+                                {% if log.is_success %}
+                                <span style="color: var(--green);">
+                                    <i class="fas fa-check-circle"></i> Success
+                                </span>
+                                {% else %}
+                                <span style="color: var(--red);">
+                                    <i class="fas fa-times-circle"></i> Failed
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if log.error_message %}
+                            <div style="margin-bottom: 20px;">
+                                <div style="font-size: 12px; color: var(--text-3); margin-bottom: 5px;">Error Message</div>
+                                <div style="background: #fed7d7; color: #c53030; padding: 12px; border-radius: 6px;">
+                                    {{ log.error_message }}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <div style="margin-bottom: 20px;">
+                                <div style="font-size: 12px; color: var(--text-3); margin-bottom: 5px;">Correlation ID</div>
+                                <div style="font-family: monospace;">
+                                    {{ log.correlation_id|default:"Not set" }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <div style="font-size: 12px; color: var(--text-3); margin-bottom: 5px;">Description</div>
+                        <div style="background: var(--surface-2); padding: 15px; border-radius: 8px;">
+                            {{ log.description }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actor Details -->
+            <div class="audit-card">
+                <div class="audit-card-header">
+                    <h5 class="audit-card-title">
+                        <i class="fas fa-user"></i> Actor Details
+                    </h5>
+                </div>
+                <div class="audit-card-body">
+                    {% if log.actor %}
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <span style="color:var(--text); font-size: 20px; font-weight: 600;">
+                                {{ log.actor.username|slice:":1"|upper }}
+                            </span>
+                        </div>
+                        <div>
+                            <div style="font-size: 18px; font-weight: 600;">{{ log.actor.username }}</div>
+                            <div style="color: var(--text-3);">{{ log.actor.email }}</div>
+                            <div style="margin-top: 10px;">
+                                <span class="badge badge-blue">IP: {{ log.actor_ip|default:"Unknown" }}</span>
+                                <span class="badge badge-blue" style="margin-left: 10px;">User Agent: {{ log.actor_user_agent|truncatechars:50|default:"Unknown" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div style="text-align: center; padding: 20px;">
+                        <i class="fas fa-cog" style="font-size: 32px; color: #cbd5e0;"></i>
+                        <p style="color: var(--text-3); margin-top: 10px;">System Generated Event</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Target Details -->
+            {% if log.target_user %}
+            <div class="audit-card">
+                <div class="audit-card-header">
+                    <h5 class="audit-card-title">
+                        <i class="fas fa-user-circle"></i> Target User
+                    </h5>
+                    <a href="{% url 'audit:user_detail' log.target_user.id %}" class="audit-btn btn-outline" style="padding: 6px 12px;">
+                        <i class="fas fa-eye"></i> View Profile
+                    </a>
+                </div>
+                <div class="audit-card-body">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 40px; height: 40px; background: var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <span style="color: var(--text-2); font-size: 16px; font-weight: 600;">
+                                {{ log.target_user.username|slice:":1"|upper }}
+                            </span>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600;">{{ log.target_user.username }}</div>
+                            <div style="color: var(--text-3); font-size: 13px;">{{ log.target_user.email }}</div>
+                        </div>
+                    </div>
+                    {% if log.target_model and log.target_id %}
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eef2f6;">
+                        <div style="font-size: 12px; color: var(--text-3);">Target Entity</div>
+                        <div>{{ log.target_model }}: {{ log.target_id }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Related Transaction -->
+            {% if related_transaction %}
+            <div class="audit-card">
+                <div class="audit-card-header">
+                    <h5 class="audit-card-title">
+                        <i class="fas fa-money-bill-wave"></i> Related Transaction
+                    </h5>
+                </div>
+                <div class="audit-card-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <div style="font-size: 12px; color: var(--text-3);">Transaction ID</div>
+                            <div style="font-family: monospace;">{{ related_transaction.id }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--text-3);">Amount</div>
+                            <div style="font-size: 18px; font-weight: 600;">${{ related_transaction.amount|default:0|floatformat:2 }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--text-3);">Status</div>
+                            <span class="badge badge-{{ related_transaction.status|lower }}">{{ related_transaction.status }}</span>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--text-3);">Date</div>
+                            <div>{{ related_transaction.transaction_date|date:"Y-m-d H:i" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Metadata -->
+            {% if log.metadata %}
+            <div class="audit-card">
+                <div class="audit-card-header">
+                    <h5 class="audit-card-title">
+                        <i class="fas fa-code"></i> Metadata
+                    </h5>
+                    <button class="audit-btn btn-outline" onclick="toggleMetadata()" style="padding: 6px 12px;">
+                        <i class="fas fa-expand"></i> Expand
+                    </button>
+                </div>
+                <div class="audit-card-body">
+                    <pre style="background: var(--text-2); color: var(--border); padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 12px; max-height: 300px;" id="metadataContainer">
+{{ log.metadata|pprint }}
+                    </pre>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div>
+            <!-- Related Logs -->
+            <div class="audit-card">
+                <div class="audit-card-header">
+                    <h5 class="audit-card-title">
+                        <i class="fas fa-link"></i> Related Events
+                    </h5>
+                </div>
+                <div class="audit-card-body" style="padding: 0;">
+                    <div style="padding: 15px; border-bottom: 1px solid #eef2f6; background: var(--surface-2);">
+                        <span style="font-weight: 600;">Same Day Activity</span>
+                    </div>
+                    {% for related in related_logs %}
+                    <div style="padding: 15px; border-bottom: 1px solid #eef2f6;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span style="font-size: 12px; color: var(--text-3);">{{ related.created_at|time:"H:i:s" }}</span>
+                            <span class="badge badge-{{ related.severity|lower }}">{{ related.severity }}</span>
+                        </div>
+                        <div style="font-weight: 600; margin-bottom: 5px;">{{ related.action }}</div>
+                        <div style="font-size: 13px; color: var(--text-3);">{{ related.description|truncatechars:60 }}</div>
+                        <div style="margin-top: 10px;">
+                            <a href="{% url 'audit:log_detail' related.id %}" class="audit-btn btn-outline" style="padding: 4px 8px; font-size: 11px;">
+                                View Event
+                            </a>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div style="text-align: center; padding: 40px;">
+                        <i class="fas fa-link" style="font-size: 24px; color: #cbd5e0;"></i>
+                        <p style="color: var(--text-3); margin-top: 10px;">No related events found</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Audit Trail Summary -->
+            <div class="audit-card">
+                <div class="audit-card-header">
+                    <h5 class="audit-card-title">
+                        <i class="fas fa-trail"></i> Event Chain
+                    </h5>
+                </div>
+                <div class="audit-card-body">
+                    <div style="position: relative; padding-left: 20px;">
+                        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--border);"></div>
+                        
+                        {% if log.parent_event %}
+                        <div style="position: relative; margin-bottom: 20px;">
+                            <div style="position: absolute; left: -24px; top: 8px; width: 10px; height: 10px; background: var(--brand); border-radius: 50%; border: 2px solid white;"></div>
+                            <div style="font-size: 12px; color: var(--text-3);">Parent Event</div>
+                            <div style="font-weight: 600;">{{ log.parent_event.action }}</div>
+                            <div style="font-size: 11px;">{{ log.parent_event.created_at|timesince }} ago</div>
+                            <a href="{% url 'audit:log_detail' log.parent_event.id %}" style="font-size: 11px;">View</a>
+                        </div>
+                        {% endif %}
+                        
+                        <div style="position: relative; margin-bottom: 20px;">
+                            <div style="position: absolute; left: -24px; top: 8px; width: 12px; height: 12px; background: #48bb78; border-radius: 50%; border: 2px solid white;"></div>
+                            <div style="font-size: 12px; color: var(--text-3);">Current Event</div>
+                            <div style="font-weight: 600;">{{ log.action }}</div>
+                            <div style="font-size: 11px;">{{ log.created_at|timesince }} ago</div>
+                        </div>
+                        
+                        {% if log.child_events.exists %}
+                        <div style="position: relative;">
+                            <div style="position: absolute; left: -24px; top: 8px; width: 10px; height: 10px; background: #ed8936; border-radius: 50%; border: 2px solid white;"></div>
+                            <div style="font-size: 12px; color: var(--text-3);">Child Events</div>
+                            <div style="font-size: 11px;">{{ log.child_events.count }} subsequent events</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleMetadata() {
+        const container = document.getElementById('metadataContainer');
+        if (container.style.maxHeight === '300px') {
+            container.style.maxHeight = 'none';
+        } else {
+            container.style.maxHeight = '300px';
+        }
+    }
+</script>
+{% endblock %}

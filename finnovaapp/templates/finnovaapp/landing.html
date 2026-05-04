@@ -1,0 +1,268 @@
+{% extends 'finnovaapp/base.html' %}
+{% block title %}Finnova — AI financial brain for Indian businesses{% endblock %}
+
+{% block extra_css %}
+<style>
+.land-hero {
+  padding: 90px 0 72px;
+  text-align: center;
+  position: relative;
+}
+.land-hero-glow {
+  position: absolute; top: -80px; left: 50%;
+  transform: translateX(-50%);
+  width: 700px; height: 420px;
+  background: radial-gradient(ellipse, rgba(0,200,150,.13) 0%, transparent 70%);
+  pointer-events: none;
+}
+.land-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 16px; border-radius: 999px;
+  background: var(--brand-glow); border: 1px solid var(--border-brand);
+  color: var(--brand); font-size: .78rem; font-weight: 700;
+  margin-bottom: 22px;
+}
+.land-badge span { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); animation: fv-pulse 2s infinite; }
+.land-h1 {
+  font-size: clamp(2.2rem, 5vw, 3.8rem);
+  font-weight: 800; color: var(--text);
+  letter-spacing: -.03em; line-height: 1.1;
+  max-width: 800px; margin: 0 auto 20px;
+}
+.land-h1 em { color: var(--brand); font-style: normal; }
+.land-sub {
+  font-size: clamp(.96rem, 1.8vw, 1.1rem);
+  color: var(--text-2); max-width: 52ch;
+  margin: 0 auto 36px; line-height: 1.7;
+}
+.land-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.land-btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 13px 28px; border-radius: var(--r-lg);
+  background: var(--brand); color: var(--bg);
+  font-weight: 800; font-size: 1rem; text-decoration: none; transition: .15s;
+}
+.land-btn-primary:hover { background: #00DFA0; }
+.land-btn-outline {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 13px 28px; border-radius: var(--r-lg);
+  background: transparent; color: var(--text-2);
+  border: 1px solid var(--border-2);
+  font-weight: 700; font-size: 1rem; text-decoration: none; transition: .15s;
+}
+.land-btn-outline:hover { border-color: var(--brand); color: var(--brand); }
+
+/* Stats */
+.land-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 1px; background: var(--border);
+  border: 1px solid var(--border); border-radius: var(--r-xl);
+  overflow: hidden; margin: 56px 0;
+}
+.stat-box { padding: 28px 20px; background: var(--surface); text-align: center; }
+.stat-num  { display: block; font-size: 2rem; font-weight: 800; font-family: var(--mono); color: var(--text); margin-bottom: 4px; }
+.stat-lbl  { font-size: .8rem; color: var(--text-3); font-weight: 600; }
+
+/* Section */
+.land-section { margin: 72px 0; }
+.land-eyebrow  { display: inline-block; font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .14em; color: var(--brand); margin-bottom: 10px; }
+.land-section-h { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 800; color: var(--text); letter-spacing: -.02em; margin: 0 0 10px; }
+.land-section-p { font-size: .96rem; color: var(--text-2); max-width: 54ch; line-height: 1.7; }
+
+/* How it works */
+.land-steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-top: 36px; }
+.land-step {
+  padding: 22px 18px; border-radius: var(--r-xl);
+  border: 1px solid var(--border); background: var(--surface);
+  position: relative; transition: border-color .2s, transform .2s;
+}
+.land-step:hover { border-color: var(--brand); transform: translateY(-3px); }
+.land-step-num {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--brand-glow); border: 1px solid var(--border-brand);
+  color: var(--brand); font-weight: 800; font-size: .9rem;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.land-step h3 { font-size: .9rem; color: var(--text); margin: 0 0 6px; font-weight: 700; }
+.land-step p  { font-size: .8rem; color: var(--text-3); margin: 0; line-height: 1.55; }
+.land-step-arrow {
+  position: absolute; right: -20px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3); font-size: .8rem; z-index: 1;
+}
+.land-step:last-child .land-step-arrow { display: none; }
+
+/* Features grid */
+.land-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 32px; }
+.land-feature {
+  padding: 26px 22px; border-radius: var(--r-xl);
+  border: 1px solid var(--border); background: var(--surface);
+  transition: border-color .2s, transform .2s;
+}
+.land-feature:hover { border-color: var(--border-2); transform: translateY(-2px); }
+.lf-icon {
+  width: 48px; height: 48px; border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; margin-bottom: 16px;
+}
+.land-feature h3 { font-size: .96rem; color: var(--text); margin: 0 0 8px; font-weight: 700; }
+.land-feature p  { font-size: .83rem; color: var(--text-3); margin: 0; line-height: 1.6; }
+
+/* CTA */
+.land-cta {
+  padding: 60px 48px; border-radius: var(--r-xl);
+  background: linear-gradient(135deg, var(--surface) 0%, var(--bg-3) 100%);
+  border: 1px solid var(--border-brand);
+  text-align: center; margin: 72px 0;
+  position: relative; overflow: hidden;
+}
+.land-cta::before {
+  content: ''; position: absolute; top: -100px; left: 50%;
+  transform: translateX(-50%); width: 500px; height: 300px;
+  background: radial-gradient(ellipse, rgba(0,200,150,.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+.land-cta h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); color: var(--text); margin: 0 0 12px; font-weight: 800; letter-spacing: -.02em; }
+.land-cta p  { color: var(--text-2); margin: 0 auto 28px; max-width: 48ch; }
+
+@media(max-width:900px)  { .land-stats{grid-template-columns:repeat(2,1fr)} .land-features{grid-template-columns:1fr} .land-steps{grid-template-columns:1fr} .land-step-arrow{display:none} }
+@media(max-width:640px)  { .land-stats{grid-template-columns:1fr} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="land-hero">
+  <div class="land-hero-glow"></div>
+  <div class="land-badge"><span></span>GST-ready · AI-powered · Built for India</div>
+  <h1 class="land-h1">The only platform that combines <em>invoicing + autopilot + AI</em> for Indian freelancers.</h1>
+  <p class="land-sub">Raise invoices. Client pays. Autopilot splits your income — GST reserved, tax provisioned, savings allocated. Ask AI about your finances in plain English. <strong style="color:var(--brand);">Zero CA needed.</strong></p>
+  <div class="land-btns">
+    {% if user.is_authenticated %}
+    <a href="{% url 'finnovaapp:dashboard' %}" class="land-btn-primary"><i class="fas fa-gauge-high"></i> Go to dashboard</a>
+    {% else %}
+    <a href="{% url 'finnovaapp:signup' %}" class="land-btn-primary"><i class="fas fa-rocket"></i> Get started free</a>
+    <a href="{% url 'finnovaapp:login' %}" class="land-btn-outline"><i class="fas fa-sign-in-alt"></i> Log in</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Stats strip -->
+<div class="land-stats">
+  <div class="stat-box"><span class="stat-num">8</span><span class="stat-lbl">Integrated modules</span></div>
+  <div class="stat-box"><span class="stat-num">50+</span><span class="stat-lbl">Data models</span></div>
+  <div class="stat-box"><span class="stat-num">GST</span><span class="stat-lbl">Auto-calculated</span></div>
+  <div class="stat-box"><span class="stat-num">AI</span><span class="stat-lbl">Knows your numbers</span></div>
+</div>
+
+<!-- How it works -->
+<div class="land-section">
+  <span class="land-eyebrow">How it works</span>
+  <h2 class="land-section-h">One chain. Every rupee tracked.</h2>
+  <p class="land-section-p">From the moment a client pays to the moment you understand your business — Finnova handles every step automatically.</p>
+
+  <div class="land-steps">
+    <div class="land-step">
+      <div class="land-step-num"><i class="fas fa-file-invoice"></i></div>
+      <h3>Raise invoice</h3>
+      <p>Add a client, create a project, generate a GST-compliant invoice in 30 seconds.</p>
+      <span class="land-step-arrow"><i class="fas fa-chevron-right"></i></span>
+    </div>
+    <div class="land-step">
+      <div class="land-step-num"><i class="fas fa-credit-card"></i></div>
+      <h3>Client pays online</h3>
+      <p>Client receives a portal link. Pays via UPI or card. Razorpay handles the transaction.</p>
+      <span class="land-step-arrow"><i class="fas fa-chevron-right"></i></span>
+    </div>
+    <div class="land-step" style="border-color:var(--border-brand);">
+      <div class="land-step-num"><i class="fas fa-robot"></i></div>
+      <h3>Autopilot splits it</h3>
+      <p>GST locked. Tax reserved. Savings goal funded. Bills covered. Your actual spendable shown.</p>
+      <span class="land-step-arrow"><i class="fas fa-chevron-right"></i></span>
+    </div>
+    <div class="land-step">
+      <div class="land-step-num"><i class="fas fa-wallet"></i></div>
+      <h3>Finance records truth</h3>
+      <p>Income logged. Budget updated. Health score recalculated. All automatic.</p>
+      <span class="land-step-arrow"><i class="fas fa-chevron-right"></i></span>
+    </div>
+    <div class="land-step">
+      <div class="land-step-num"><i class="fas fa-brain"></i></div>
+      <h3>AI answers anything</h3>
+      <p>"Can I hire?" "What's my GST?" "Why did my margin drop?" — real answers, real data.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Features -->
+<div class="land-section">
+  <span class="land-eyebrow">Features</span>
+  <h2 class="land-section-h">Everything you'd pay a CA to manage — automated.</h2>
+  <p class="land-section-p">Finnova combines invoicing, payments, bookkeeping, tax compliance, and AI intelligence in one platform built for India.</p>
+
+  <div class="land-features">
+    <div class="land-feature">
+      <div class="lf-icon" style="background:var(--green-bg);color:var(--green);"><i class="fas fa-file-invoice-dollar"></i></div>
+      <h3>Client invoicing & portal</h3>
+      <p>Raise GST-compliant invoices. Clients pay online through a branded portal. Track overdue amounts automatically.</p>
+    </div>
+    <div class="land-feature">
+      <div class="lf-icon" style="background:var(--brand-glow);color:var(--brand);"><i class="fas fa-robot"></i></div>
+      <h3>Income autopilot</h3>
+      <p>Every rupee that arrives gets a plan — GST reserved, tax set aside, savings contributed, bills covered, spendable shown. One tap to approve.</p>
+    </div>
+    <div class="land-feature">
+      <div class="lf-icon" style="background:rgba(99,102,241,.12);color:#6366F1;"><i class="fas fa-comment-dots"></i></div>
+      <h3>AI that knows your data</h3>
+      <p>Ask any question about your finances. The AI reads your actual income, expenses, invoices, and goals to answer from real numbers.</p>
+    </div>
+    <div class="land-feature">
+      <div class="lf-icon" style="background:var(--red-bg);color:var(--red);"><i class="fas fa-file-invoice"></i></div>
+      <h3>GST auto-calculation</h3>
+      <p>Collected, input tax credit, and net payable — calculated from your transactions automatically. Filing deadline countdown included.</p>
+    </div>
+    <div class="land-feature">
+      <div class="lf-icon" style="background:var(--blue-bg);color:var(--blue);"><i class="fas fa-chart-line"></i></div>
+      <h3>Financial health score</h3>
+      <p>A single score out of 1000 that tells you how your business is doing — and exactly what to fix to improve it.</p>
+    </div>
+    <div class="land-feature">
+      <div class="lf-icon" style="background:var(--yellow-bg);color:var(--yellow);"><i class="fas fa-shield-halved"></i></div>
+      <h3>Audit trail & compliance</h3>
+      <p>Every action logged immutably. Every financial event traceable. If a GST officer asks — the answer is one page.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Who it's for -->
+<div class="land-section">
+  <span class="land-eyebrow">Built for</span>
+  <h2 class="land-section-h">India's 70 million micro-businesses</h2>
+  <p class="land-section-p">If you run a business but manage your finances like a student — Finnova is for you.</p>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:22px;">
+
+    <span style="padding:8px 16px;border-radius:999px;border:1px solid var(--border-2);background:var(--surface);font-size:.84rem;font-weight:600;color:var(--text-2);">Freelance developer</span>
+    <span style="padding:8px 16px;border-radius:999px;border:1px solid var(--border-2);background:var(--surface);font-size:.84rem;font-weight:600;color:var(--text-2);">Design agency</span>
+    <span style="padding:8px 16px;border-radius:999px;border:1px solid var(--border-2);background:var(--surface);font-size:.84rem;font-weight:600;color:var(--text-2);">Consultant / CA</span>
+    <span style="padding:8px 16px;border-radius:999px;border:1px solid var(--border-2);background:var(--surface);font-size:.84rem;font-weight:600;color:var(--text-2);">Content creator</span>
+    <span style="padding:8px 16px;border-radius:999px;border:1px solid var(--border-2);background:var(--surface);font-size:.84rem;font-weight:600;color:var(--text-2);">Clinic / doctor</span>
+    <span style="padding:8px 16px;border-radius:999px;border:1px solid var(--border-2);background:var(--surface);font-size:.84rem;font-weight:600;color:var(--text-2);">Coaching institute</span>
+    <span style="padding:8px 16px;border-radius:999px;border:1px solid var(--border-2);background:var(--surface);font-size:.84rem;font-weight:600;color:var(--text-2);">Retail shop</span>
+    <span style="padding:8px 16px;border-radius:999px;border:1px solid var(--border-2);background:var(--surface);font-size:.84rem;font-weight:600;color:var(--text-2);">Contractor</span>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="land-cta">
+  <h2>Start managing your money like a CFO would</h2>
+  <p>Set up in 5 minutes. No credit card. No CA needed on day one.</p>
+  <div class="land-btns">
+    {% if user.is_authenticated %}
+    <a href="{% url 'finnovaapp:dashboard' %}" class="land-btn-primary"><i class="fas fa-gauge-high"></i> Open dashboard</a>
+    {% else %}
+    <a href="{% url 'finnovaapp:signup' %}" class="land-btn-primary"><i class="fas fa-rocket"></i> Create your account</a>
+    <a href="{% url 'finnovaapp:login' %}" class="land-btn-outline">Log in →</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

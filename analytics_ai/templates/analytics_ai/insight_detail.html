@@ -1,0 +1,92 @@
+{% extends 'analytics_ai/base_analytics.html' %}
+{% load static ai_filters %}
+{% block title %}{{ insight.title }} — Finnova{% endblock %}
+{% block page_title %}Insight Detail{% endblock %}
+
+{% block analytics_content %}
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px;">
+  <div>
+    <a href="{% url 'analytics-ai:financial_insights' %}" style="font-size:.84rem;color:var(--brand);font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;margin-bottom:10px;"><i class="fas fa-arrow-left"></i> Back to Insights</a>
+    <h1 style="margin:0 0 6px;font-size:1.3rem;color:var(--text);">{{ insight.title }}</h1>
+    <p style="margin:0;color:var(--text-3);font-size:.83rem;">{{ insight.get_insight_type_display|default:insight.insight_type }} · {{ insight.created_at|date:"d M Y, H:i" }}</p>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <span class="sev sev-{{ insight.severity }}">{{ insight.severity }}</span>
+    {% if not insight.is_read %}
+    <form method="post" action="{% url 'analytics-ai:mark_insight_read' insight.id %}">
+      {% csrf_token %}<button type="submit" class="btn btn-sm"><i class="fas fa-check"></i> Mark read</button>
+    </form>
+    {% else %}
+    <span style="font-size:.82rem;color:var(--green);font-weight:700;"><i class="fas fa-check-circle"></i> Read</span>
+    {% endif %}
+    <a href="{% url 'analytics-ai:ai_chat' %}?q={{ insight.title|urlencode }}" class="btn-outline btn-sm"><i class="fas fa-comment-dots"></i> Ask AI</a>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1.6fr 1fr;gap:20px;">
+  <div>
+    <div class="an-card" style="margin-bottom:16px;">
+      <div class="an-card-head"><h2><i class="fas fa-file-lines"></i> Insight summary</h2></div>
+      <p style="color:var(--text-2);line-height:1.75;font-size:.92rem;margin:0;">{{ insight.description }}</p>
+      {% if insight.related_amount %}
+      <div style="margin-top:16px;padding:12px 14px;border-radius:var(--r-lg);background:var(--surface-2);border:1px solid var(--border);display:flex;align-items:center;gap:12px;">
+        <i class="fas fa-indian-rupee-sign" style="color:var(--brand);font-size:1rem;"></i>
+        <div>
+          <div style="font-size:.72rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Related amount</div>
+          <div style="font-family:var(--f-mono);font-size:1.2rem;font-weight:800;color:var(--text);">₹{{ insight.related_amount|floatformat:2 }}</div>
+        </div>
+      </div>
+      {% endif %}
+      {% if insight.metadata %}
+      <div style="margin-top:14px;">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px;">Supporting data</div>
+        {% for key, val in insight.metadata.items %}
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.84rem;">
+          <span style="color:var(--text-3);">{{ key|replace_underscore|title }}</span>
+          <strong style="color:var(--text);">{{ val }}</strong>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    {% if action_items %}
+    <div class="an-card">
+      <div class="an-card-head"><h2><i class="fas fa-list-check"></i> Recommended actions</h2></div>
+      {% for action in action_items %}
+      <div style="padding:14px;border-radius:var(--r-lg);border-left:3px solid var(--brand);background:var(--surface-2);margin-bottom:10px;">
+        <strong style="display:block;font-size:.9rem;color:var(--text);margin-bottom:4px;">{{ action.title|default:action }}</strong>
+        {% if action.description %}<p style="margin:0;font-size:.83rem;color:var(--text-2);line-height:1.5;">{{ action.description }}</p>{% endif %}
+        {% if action.url %}<a href="{{ action.url }}" class="btn btn-sm" style="margin-top:8px;">Take action</a>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="an-card" style="margin-bottom:14px;">
+      <div class="an-card-head"><h2><i class="fas fa-tag"></i> Details</h2></div>
+      <div style="font-size:.86rem;">
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Type</span><strong>{{ insight.get_insight_type_display|default:insight.insight_type }}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Severity</span><span class="sev sev-{{ insight.severity }}">{{ insight.severity }}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Created</span><strong>{{ insight.created_at|date:"d M Y" }}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Action required</span><strong style="{% if insight.action_required %}color:var(--yellow);{% else %}color:var(--text-3);{% endif %}">{% if insight.action_required %}Yes{% else %}No{% endif %}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:9px 0;"><span style="color:var(--text-3);">Status</span><strong style="color:{% if insight.is_read %}var(--green){% else %}var(--yellow){% endif %};">{% if insight.is_read %}Read{% else %}Unread{% endif %}</strong></div>
+      </div>
+    </div>
+
+    {% if similar_insights %}
+    <div class="an-card">
+      <div class="an-card-head"><h2><i class="fas fa-clone"></i> Similar insights</h2></div>
+      {% for s in similar_insights %}
+      <a href="{% url 'analytics-ai:insight_detail' s.id %}" style="display:block;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:7px;text-decoration:none;transition:.12s;" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:3px;">{{ s.title|truncatechars:60 }}</div>
+        <div style="display:flex;align-items:center;gap:6px;"><span class="sev sev-{{ s.severity }}" style="font-size:.64rem;">{{ s.severity }}</span><span style="font-size:.74rem;color:var(--text-3);">{{ s.created_at|timesince }} ago</span></div>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

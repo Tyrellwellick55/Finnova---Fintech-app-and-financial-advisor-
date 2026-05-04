@@ -1,0 +1,230 @@
+{% extends "finnova_autopilot/base_autopilot.html" %}
+{% block title %}Income Plan — Autopilot — Finnova{% endblock %}
+
+{% block autopilot_extra_css %}
+<style>
+.split-wrap { max-width: 760px; margin: 0 auto; }
+.split-hero {
+  padding: 28px 30px;
+  border-radius: var(--r-xl);
+  background: var(--surface); border: 1px solid var(--border-brand);
+  border: 1px solid var(--border-brand);
+  margin-bottom: 24px;
+  text-align: center;
+}
+.split-hero .amount {
+  font-size: 3rem; font-weight: 900;
+  font-family: var(--mono); color: var(--brand);
+  display: block; margin: 12px 0 4px;
+}
+.split-hero .source { font-size: .9rem; color: var(--text-2); }
+
+.split-rows { display: grid; gap: 10px; margin-bottom: 24px; }
+.split-row {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 20px; border-radius: var(--r-lg);
+  background: var(--surface); border: 1px solid var(--border);
+  transition: border-color .2s;
+}
+.split-row:hover { border-color: var(--border-2); }
+.split-icon {
+  width: 42px; height: 42px; border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; flex-shrink: 0;
+}
+.split-row-info { flex: 1; min-width: 0; }
+.split-row-name { font-size: .92rem; font-weight: 700; color: var(--text); }
+.split-row-desc { font-size: .79rem; color: var(--text-3); margin-top: 2px; line-height: 1.5; }
+.split-row-amount {
+  font-family: var(--mono); font-size: 1.1rem;
+  font-weight: 800; flex-shrink: 0; text-align: right;
+}
+.split-row-pct {
+  font-size: .72rem; color: var(--text-3);
+  display: block; text-align: right; margin-top: 1px;
+}
+
+.split-row.gst { border-left: 3px solid var(--red); }
+.split-row.gst .split-icon { background: var(--red-bg); color: var(--red); }
+.split-row.gst .split-row-amount { color: var(--red); }
+
+.split-row.tax { border-left: 3px solid var(--yellow); }
+.split-row.tax .split-icon { background: var(--yellow-bg); color: var(--yellow); }
+.split-row.tax .split-row-amount { color: var(--yellow); }
+
+.split-row.savings { border-left: 3px solid #6366F1; }
+.split-row.savings .split-icon { background: rgba(99,102,241,.12); color: #6366F1; }
+.split-row.savings .split-row-amount { color: #6366F1; }
+
+.split-row.bills { border-left: 3px solid var(--blue); }
+.split-row.bills .split-icon { background: var(--blue-bg); color: var(--blue); }
+.split-row.bills .split-row-amount { color: var(--blue); }
+
+.split-row.spendable { border-left: 3px solid var(--green); border-color: rgba(0,229,160,.3); background: var(--brand-glow); }
+.split-row.spendable .split-icon { background: var(--brand-glow); color: var(--brand); border: 1px solid var(--border-brand); }
+.split-row.spendable .split-row-amount { color: var(--brand); font-size: 1.3rem; }
+.split-row.spendable .split-row-name { color: var(--brand); }
+
+.approve-bar {
+  position: sticky; bottom: 0;
+  padding: 16px 0 8px;
+  background: linear-gradient(to top, var(--bg) 80%, transparent);
+  display: flex; gap: 12px; align-items: center;
+}
+.approve-btn {
+  flex: 1; padding: 14px; border-radius: var(--r-lg);
+  background: var(--brand); color: var(--bg);
+  font-weight: 800; font-size: 1rem; border: none;
+  cursor: pointer; transition: .15s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.approve-btn:hover { background: #00DFA0; }
+.decline-btn {
+  padding: 14px 20px; border-radius: var(--r-lg);
+  background: var(--surface); color: var(--text-2);
+  font-weight: 700; font-size: .9rem; border: 1px solid var(--border-2);
+  cursor: pointer; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 8px; transition: .15s;
+}
+.decline-btn:hover { border-color: var(--red); color: var(--red); }
+
+.edit-note {
+  font-size: .8rem; color: var(--text-3); text-align: center;
+  margin-top: 10px;
+}
+.edit-note a { color: var(--brand); text-decoration: none; }
+
+/* Blueprint Phase 8: Row animations — "wow moment" for VC demo */
+@keyframes splitRowIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.split-row {
+  animation: splitRowIn 0.35s ease both;
+}
+.split-row:nth-child(1) { animation-delay: 0.05s; }
+.split-row:nth-child(2) { animation-delay: 0.12s; }
+.split-row:nth-child(3) { animation-delay: 0.19s; }
+.split-row:nth-child(4) { animation-delay: 0.26s; }
+.split-row:nth-child(5) { animation-delay: 0.33s; }
+.split-row:nth-child(6) { animation-delay: 0.40s; }
+.split-row:nth-child(7) { animation-delay: 0.47s; }
+.gross-hero {
+  animation: splitRowIn 0.3s ease both;
+}
+</style>
+{% endblock %}
+
+{% block autopilot_content %}
+<div class="split-wrap">
+
+  <!-- Hero -->
+  <div class="split-hero">
+    <div class="mod-kicker">Income received</div>
+    <span class="amount">₹{{ plan.gross_amount|default:0|floatformat:2 }}</span>
+    <div class="source">
+      {% if plan.source_label %}{{ plan.source_label }}{% endif %}
+      {% if plan.received_at %} · {{ plan.received_at|date:"d M Y, H:i" }}{% endif %}
+    </div>
+    <p style="font-size:.86rem;color:var(--text-3);margin:14px 0 0;line-height:1.6;">
+      Autopilot has built a money plan for this income.
+      Review it below and approve — nothing moves without your permission.
+    </p>
+  </div>
+
+  <!-- Split rows -->
+  <div class="split-rows">
+
+    {% if plan.gst_amount %}
+    <div class="split-row gst">
+      <div class="split-icon"><i class="fas fa-landmark"></i></div>
+      <div class="split-row-info">
+        <div class="split-row-name">GST reserve — locked</div>
+        <div class="split-row-desc">18% GST collected on behalf of the government. Moved to your GST Reserve account. Filing due {{ plan.gst_filing_date|date:"d M Y"|default:"next quarter" }}.</div>
+      </div>
+      <div>
+        <div class="split-row-amount">−₹{{ plan.gst_amount|default:0|floatformat:2 }}</div>
+        <div class="split-row-pct">{{ plan.gst_pct|default:0|floatformat:0 }}% of gross</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if plan.tax_amount %}
+    <div class="split-row tax">
+      <div class="split-icon"><i class="fas fa-receipt"></i></div>
+      <div class="split-row-info">
+        <div class="split-row-name">Advance tax reserve</div>
+        <div class="split-row-desc">Estimated income tax provision. Kept aside in your Tax Reserve goal so you're never caught off guard in March.</div>
+      </div>
+      <div>
+        <div class="split-row-amount">−₹{{ plan.tax_amount|default:0|floatformat:2 }}</div>
+        <div class="split-row-pct">{{ plan.tax_pct|default:0|floatformat:0 }}% of net</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% for goal in plan.savings_allocations %}
+    <div class="split-row savings">
+      <div class="split-icon"><i class="fas fa-piggy-bank"></i></div>
+      <div class="split-row-info">
+        <div class="split-row-name">{{ goal.name }}</div>
+        <div class="split-row-desc">{{ goal.pct }}% auto-contribution. Goal: ₹{{ goal.target|default:0|floatformat:2 }} · {{ goal.progress_pct|default:0|floatformat:0 }}% reached.</div>
+      </div>
+      <div>
+        <div class="split-row-amount">−₹{{ goal.amount|default:0|floatformat:2 }}</div>
+        <div class="split-row-pct">{{ goal.pct }}% of net</div>
+      </div>
+    </div>
+    {% endfor %}
+
+    {% if plan.bills_reserved %}
+    <div class="split-row bills">
+      <div class="split-icon"><i class="fas fa-file-invoice"></i></div>
+      <div class="split-row-info">
+        <div class="split-row-name">Bills due this month ({{ plan.bills_count }})</div>
+        <div class="split-row-desc">
+          {% for bill in plan.upcoming_bills %}{{ bill.biller_name }} ₹{{ bill.amount|default:0|floatformat:0 }}{% if not forloop.last %} · {% endif %}{% endfor %}
+        </div>
+      </div>
+      <div>
+        <div class="split-row-amount">−₹{{ plan.bills_reserved|default:0|floatformat:2 }}</div>
+        <div class="split-row-pct">reserved, not deducted yet</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Spendable — the bottom line -->
+    <div class="split-row spendable">
+      <div class="split-icon"><i class="fas fa-wallet"></i></div>
+      <div class="split-row-info">
+        <div class="split-row-name">Your spendable balance</div>
+        <div class="split-row-desc">This is what's actually yours to spend after all obligations. Added to your primary wallet.</div>
+      </div>
+      <div>
+        <div class="split-row-amount">₹{{ plan.spendable|default:0|floatformat:2 }}</div>
+        <div class="split-row-pct">{{ plan.spendable_pct|default:0|floatformat:0 }}% of gross</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Approve bar -->
+  <div class="approve-bar">
+    <form method="post" action="{% url 'autopilot:approve_request' plan.approval_id %}" style="flex:1;display:flex;gap:12px;">
+      {% csrf_token %}
+      <button type="submit" class="approve-btn">
+        <i class="fas fa-check"></i> Approve this plan
+      </button>
+      <a href="{% url 'autopilot:approvals' %}" class="decline-btn">
+        <i class="fas fa-pen"></i> Adjust
+      </a>
+    </form>
+  </div>
+
+  <p class="edit-note">
+    You can <a href="{% url 'autopilot:autopilot_settings' %}">change your split rules</a>
+    to adjust the percentages for future income.
+  </p>
+
+</div>
+{% endblock %}

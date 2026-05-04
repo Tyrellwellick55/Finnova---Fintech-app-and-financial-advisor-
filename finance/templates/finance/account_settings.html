@@ -1,0 +1,326 @@
+{% load nav_extras %}
+{% extends "finance/base.html" %}
+{% block title %}Finance Settings — Finnova{% endblock %}
+
+{% block finance_content %}
+<div class="page-header">
+  <div><h1>Finance Settings</h1><p>Configure your primary Finance account, currency, and notification preferences.</p></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;">
+  <div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header">
+        <h2><i class="fas fa-wallet" style="color:var(--brand);margin-right:8px;"></i>Account configuration</h2>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Account name</label>
+            <input type="text" name="name" class="form-control" value="{{ account.name }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Account type</label>
+            <select name="account_type" class="form-control form-select">
+              
+              <option value="{{ val }}" {% if account.account_type == val %}selected{% endif %}>Budget threshold alerts</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Currency</label>
+            <select name="currency" class="form-control form-select">
+              {% for val, label in currencies %}
+              <option value="{{ val }}" {% if account.currency == val %}selected{% endif %}>Budget threshold alerts ({{ val }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Default budget period</label>
+            <select name="default_budget_period" class="form-control form-select">
+              {% for val, label in budget_periods %}
+              <option value="{{ val }}" {% if account.metadata.default_budget_period == val %}selected{% endif %}>Budget threshold alerts</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Default report type</label>
+            <select name="default_report_type" class="form-control form-select">
+              {% for val, label in report_types %}
+              <option value="{{ val }}" {% if account.metadata.default_report_type == val %}selected{% endif %}>Budget threshold alerts</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tax year</label>
+            <input type="text" name="tax_year" class="form-control" value="{{ account.metadata.tax_year|default:'' }}" placeholder="2024-25">
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;">
+            <input type="checkbox" name="include_in_total" {% if account.include_in_total %}checked{% endif %} style="width:15px;height:15px;">
+            Include in dashboard totals
+          </label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Save settings</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2><i class="fas fa-bell" style="color:var(--yellow);margin-right:8px;"></i>Notification preferences</h2></div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="notification_save" value="1">
+        <div style="display:grid;gap:12px;">
+          {% for key, label in "budget_alerts:Budget threshold alerts,goal_alerts:Goal milestone updates,transaction_alerts:Large transaction alerts,report_alerts:Weekly report digest"|split:"," %}
+          
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+            <div>
+              <div style="font-size:.86rem;font-weight:700;color:var(--text);">Budget threshold alerts</div>
+            </div>
+            <input type="checkbox" name="budget_alerts" {% if notification_settings|get:pair.0 %}checked{% endif %} style="width:18px;height:18px;">
+          </label>
+          
+          
+              <option value="{{ val }}" {% if account.account_type == val %}selected{% endif %}>Goal milestone updates</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Currency</label>
+            <select name="currency" class="form-control form-select">
+              {% for val, label in currencies %}
+              <option value="{{ val }}" {% if account.currency == val %}selected{% endif %}>Goal milestone updates ({{ val }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Default budget period</label>
+            <select name="default_budget_period" class="form-control form-select">
+              {% for val, label in budget_periods %}
+              <option value="{{ val }}" {% if account.metadata.default_budget_period == val %}selected{% endif %}>Goal milestone updates</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Default report type</label>
+            <select name="default_report_type" class="form-control form-select">
+              {% for val, label in report_types %}
+              <option value="{{ val }}" {% if account.metadata.default_report_type == val %}selected{% endif %}>Goal milestone updates</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tax year</label>
+            <input type="text" name="tax_year" class="form-control" value="{{ account.metadata.tax_year|default:'' }}" placeholder="2024-25">
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;">
+            <input type="checkbox" name="include_in_total" {% if account.include_in_total %}checked{% endif %} style="width:15px;height:15px;">
+            Include in dashboard totals
+          </label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Save settings</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2><i class="fas fa-bell" style="color:var(--yellow);margin-right:8px;"></i>Notification preferences</h2></div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="notification_save" value="1">
+        <div style="display:grid;gap:12px;">
+          {% for key, label in "budget_alerts:Budget threshold alerts,goal_alerts:Goal milestone updates,transaction_alerts:Large transaction alerts,report_alerts:Weekly report digest"|split:"," %}
+          
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+            <div>
+              <div style="font-size:.86rem;font-weight:700;color:var(--text);">Goal milestone updates</div>
+            </div>
+            <input type="checkbox" name="goal_alerts" {% if notification_settings|get:pair.0 %}checked{% endif %} style="width:18px;height:18px;">
+          </label>
+          
+          
+              <option value="{{ val }}" {% if account.account_type == val %}selected{% endif %}>Large transaction alerts</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Currency</label>
+            <select name="currency" class="form-control form-select">
+              {% for val, label in currencies %}
+              <option value="{{ val }}" {% if account.currency == val %}selected{% endif %}>Large transaction alerts ({{ val }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Default budget period</label>
+            <select name="default_budget_period" class="form-control form-select">
+              {% for val, label in budget_periods %}
+              <option value="{{ val }}" {% if account.metadata.default_budget_period == val %}selected{% endif %}>Large transaction alerts</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Default report type</label>
+            <select name="default_report_type" class="form-control form-select">
+              {% for val, label in report_types %}
+              <option value="{{ val }}" {% if account.metadata.default_report_type == val %}selected{% endif %}>Large transaction alerts</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tax year</label>
+            <input type="text" name="tax_year" class="form-control" value="{{ account.metadata.tax_year|default:'' }}" placeholder="2024-25">
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;">
+            <input type="checkbox" name="include_in_total" {% if account.include_in_total %}checked{% endif %} style="width:15px;height:15px;">
+            Include in dashboard totals
+          </label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Save settings</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2><i class="fas fa-bell" style="color:var(--yellow);margin-right:8px;"></i>Notification preferences</h2></div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="notification_save" value="1">
+        <div style="display:grid;gap:12px;">
+          {% for key, label in "budget_alerts:Budget threshold alerts,goal_alerts:Goal milestone updates,transaction_alerts:Large transaction alerts,report_alerts:Weekly report digest"|split:"," %}
+          
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+            <div>
+              <div style="font-size:.86rem;font-weight:700;color:var(--text);">Large transaction alerts</div>
+            </div>
+            <input type="checkbox" name="transaction_alerts" {% if notification_settings|get:pair.0 %}checked{% endif %} style="width:18px;height:18px;">
+          </label>
+          
+          
+              <option value="{{ val }}" {% if account.account_type == val %}selected{% endif %}>Weekly report digest</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Currency</label>
+            <select name="currency" class="form-control form-select">
+              {% for val, label in currencies %}
+              <option value="{{ val }}" {% if account.currency == val %}selected{% endif %}>Weekly report digest ({{ val }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Default budget period</label>
+            <select name="default_budget_period" class="form-control form-select">
+              {% for val, label in budget_periods %}
+              <option value="{{ val }}" {% if account.metadata.default_budget_period == val %}selected{% endif %}>Weekly report digest</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Default report type</label>
+            <select name="default_report_type" class="form-control form-select">
+              {% for val, label in report_types %}
+              <option value="{{ val }}" {% if account.metadata.default_report_type == val %}selected{% endif %}>Weekly report digest</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tax year</label>
+            <input type="text" name="tax_year" class="form-control" value="{{ account.metadata.tax_year|default:'' }}" placeholder="2024-25">
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;">
+            <input type="checkbox" name="include_in_total" {% if account.include_in_total %}checked{% endif %} style="width:15px;height:15px;">
+            Include in dashboard totals
+          </label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Save settings</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2><i class="fas fa-bell" style="color:var(--yellow);margin-right:8px;"></i>Notification preferences</h2></div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="notification_save" value="1">
+        <div style="display:grid;gap:12px;">
+          {% for key, label in "budget_alerts:Budget threshold alerts,goal_alerts:Goal milestone updates,transaction_alerts:Large transaction alerts,report_alerts:Weekly report digest"|split:"," %}
+          
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+            <div>
+              <div style="font-size:.86rem;font-weight:700;color:var(--text);">Weekly report digest</div>
+            </div>
+            <input type="checkbox" name="report_alerts" {% if notification_settings|get:pair.0 %}checked{% endif %} style="width:18px;height:18px;">
+          </label>
+          
+          
+        </div>
+        <button type="submit" class="btn btn-ghost btn-sm" style="margin-top:14px;">Save notifications</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Right: account summary card -->
+  <div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header"><h2>Account summary</h2></div>
+      <div style="display:grid;gap:10px;font-size:.86rem;">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-3);">Account name</span><strong>{{ account.name }}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-3);">Type</span><strong>{{ account.get_account_type_display }}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-3);">Currency</span><strong>{{ account.currency }}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-3);">Current balance</span>
+          <strong style="color:var(--brand);font-family:var(--mono);">₹{{ account.balance|default:0|floatformat:2 }}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;">
+          <span style="color:var(--text-3);">Created</span><strong>{{ account.created_at|date:"d M Y" }}</strong>
+        </div>
+      </div>
+    </div>
+
+    {% if payment_account %}
+    <div class="card">
+      <div class="card-header"><h2>Linked payment account</h2></div>
+      <div style="display:grid;gap:10px;font-size:.86rem;">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-3);">Wallet balance</span>
+          <strong style="color:var(--brand);font-family:var(--mono);">₹{{ payment_account.available_balance|default:0|floatformat:2 }}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;">
+          <span style="color:var(--text-3);">Account</span><strong>{{ payment_account.account_number }}</strong>
+        </div>
+      </div>
+      <a href="{% url 'payments:payment_dashboard' %}" class="btn btn-ghost btn-sm" style="margin-top:12px;"><i class="fas fa-credit-card"></i> Manage payments</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

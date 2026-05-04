@@ -1,0 +1,58 @@
+{% extends 'audit/base_audit.html' %}
+{% block title %}System Controls — Audit — Finnova{% endblock %}
+
+{% block audit_content %}
+<div class="audit-header">
+  <div><h1 class="audit-title"><i class="fas fa-sliders" style="color:var(--brand);"></i> System Controls</h1>
+  <p class="audit-breadcrumb"><a href="{% url 'audit:dashboard' %}">Audit</a> → System Controls</p></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px;">
+  <div>
+    <div class="audit-card">
+      <div class="audit-card-header"><h2 style="margin:0;font-size:.96rem;">Module switches</h2></div>
+      <form method="post" style="padding:18px;">
+        {% csrf_token %}
+        <div style="display:grid;gap:12px;margin-bottom:20px;">
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+            <div><div style="font-size:.9rem;font-weight:700;color:var(--text);">Autopilot engine</div><div style="font-size:.76rem;color:var(--text-3);">Automation rules, smart bills, approval queues</div></div>
+            <input type="checkbox" name="autopilot_enabled" {% if controls.autopilot_enabled %}checked{% endif %} style="width:18px;height:18px;">
+          </label>
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+            <div><div style="font-size:.9rem;font-weight:700;color:var(--text);">AI analytics engine</div><div style="font-size:.76rem;color:var(--text-3);">Insights, predictions, financial health</div></div>
+            <input type="checkbox" name="ai_enabled" {% if controls.ai_enabled %}checked{% endif %} style="width:18px;height:18px;">
+          </label>
+        </div>
+        <div style="margin-bottom:16px;">
+          <label style="display:block;font-size:.8rem;font-weight:700;color:var(--text-2);margin-bottom:5px;">Emergency message (shown to all users)</label>
+          <textarea name="emergency_message" rows="3" style="width:100%;padding:10px 12px;border-radius:var(--r-md);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.86rem;resize:vertical;">{{ controls.emergency_message|default:"" }}</textarea>
+        </div>
+        <div style="margin-bottom:16px;">
+          <label style="display:block;font-size:.8rem;font-weight:700;color:var(--text-2);margin-bottom:5px;">Configuration (JSON)</label>
+          <textarea name="configuration" rows="6" style="width:100%;padding:10px 12px;border-radius:var(--r-md);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font-family:var(--mono);font-size:.8rem;resize:vertical;">{{ config_json }}</textarea>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save controls</button>
+      </form>
+    </div>
+  </div>
+  <div>
+    <div class="audit-card">
+      <div class="audit-card-header"><h2 style="margin:0;font-size:.96rem;">Current status</h2></div>
+      <div style="display:grid;gap:8px;padding:4px 0;font-size:.86rem;">
+        <div style="display:flex;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-3);">Autopilot</span>
+          <strong style="color:{% if controls.autopilot_enabled %}var(--brand){% else %}var(--red){% endif %};">{% if controls.autopilot_enabled %}Enabled{% else %}Disabled{% endif %}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-3);">AI engine</span>
+          <strong style="color:{% if controls.ai_enabled %}var(--brand){% else %}var(--red){% endif %};">{% if controls.ai_enabled %}Enabled{% else %}Disabled{% endif %}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px 18px;">
+          <span style="color:var(--text-3);">Emergency message</span>
+          <strong style="color:{% if controls.emergency_message %}var(--yellow){% else %}var(--text-3){% endif %};">{% if controls.emergency_message %}Active{% else %}None{% endif %}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

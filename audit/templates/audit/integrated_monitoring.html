@@ -1,0 +1,89 @@
+{% extends 'audit/base_audit.html' %}
+{% block title %}Integrated Monitoring — Audit — Finnova{% endblock %}
+
+{% block audit_content %}
+<div class="audit-header">
+  <div><h1 class="audit-title"><i class="fas fa-tower-broadcast" style="color:var(--brand);"></i> Integrated Monitoring</h1>
+  <p class="audit-breadcrumb"><a href="{% url 'audit:dashboard' %}">Audit</a> → Monitoring · Updated {{ today|date:"d M Y, H:i" }}</p></div>
+  <span class="badge badge-green" style="display:inline-flex;align-items:center;gap:7px;"><span style="width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulse 2s infinite;"></span> Live</span>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px;">
+  <div style="padding:16px 18px;border-radius:var(--r-lg);border:1px solid {% if open_alerts %}rgba(244,63,94,.3){% else %}var(--border){% endif %};background:{% if open_alerts %}var(--red-bg){% else %}var(--surface){% endif %};">
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:{% if open_alerts %}var(--red){% else %}var(--text-3){% endif %};display:block;margin-bottom:4px;">Open alerts</span>
+    <div style="font-size:1.5rem;font-weight:800;font-family:var(--mono);color:{% if open_alerts %}var(--red){% else %}var(--text){% endif %};">{{ open_alerts }}</div>
+  </div>
+  <div style="padding:16px 18px;border-radius:var(--r-lg);border:1px solid {% if failed_payments %}rgba(244,63,94,.3){% else %}var(--border){% endif %};background:{% if failed_payments %}var(--red-bg){% else %}var(--surface){% endif %};">
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:{% if failed_payments %}var(--red){% else %}var(--text-3){% endif %};display:block;margin-bottom:4px;">Failed payments</span>
+    <div style="font-size:1.5rem;font-weight:800;font-family:var(--mono);color:{% if failed_payments %}var(--red){% else %}var(--text){% endif %};">{{ failed_payments }}</div>
+  </div>
+  <div style="padding:16px 18px;border-radius:var(--r-lg);border:1px solid {% if unverified_incomes %}rgba(245,158,11,.3){% else %}var(--border){% endif %};background:{% if unverified_incomes %}var(--yellow-bg){% else %}var(--surface){% endif %};">
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:{% if unverified_incomes %}var(--yellow){% else %}var(--text-3){% endif %};display:block;margin-bottom:4px;">Unverified income</span>
+    <div style="font-size:1.5rem;font-weight:800;font-family:var(--mono);color:{% if unverified_incomes %}var(--yellow){% else %}var(--text){% endif %};">{{ unverified_incomes }}</div>
+  </div>
+  <div style="padding:16px 18px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--surface);">
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);display:block;margin-bottom:4px;">High-risk users</span>
+    <div style="font-size:1.5rem;font-weight:800;font-family:var(--mono);">{{ high_risk_users|length }}</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+  <!-- Suspicious transactions -->
+  {% if suspicious_transactions %}
+  <div class="audit-card">
+    <div class="audit-card-header"><h2 style="margin:0;font-size:.96rem;color:var(--text);"><i class="fas fa-credit-card" style="color:var(--red);margin-right:6px;"></i>Suspicious payments</h2></div>
+    {% for txn in suspicious_transactions %}
+    <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border);">
+      <div style="flex:1;min-width:0;"><div style="font-size:.86rem;font-weight:600;color:var(--text);">{{ txn.description|truncatechars:40 }}</div>
+      <div style="font-size:.76rem;color:var(--text-3);">{{ txn.transaction_date|date:"d M, H:i" }}</div></div>
+      <div style="font-family:var(--mono);font-weight:800;font-size:.9rem;color:var(--red);">₹{{ txn.amount|default:0|floatformat:0 }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Critical autopilot alerts -->
+  {% if critical_alerts %}
+  <div class="audit-card">
+    <div class="audit-card-header"><h2 style="margin:0;font-size:.96rem;color:var(--text);"><i class="fas fa-robot" style="color:#F97316;margin-right:6px;"></i>Critical autopilot alerts</h2></div>
+    {% for alert in critical_alerts %}
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border);">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:4px;box-shadow:0 0 4px var(--red);"></span>
+      <div style="flex:1;min-width:0;"><div style="font-size:.86rem;font-weight:600;color:var(--text);">{{ alert.title|truncatechars:40 }}</div>
+      <div style="font-size:.76rem;color:var(--text-3);">{{ alert.alert_time|timesince }} ago</div></div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Recent audit logs -->
+  <div class="audit-card">
+    <div class="audit-card-header"><h2 style="margin:0;font-size:.96rem;color:var(--text);"><i class="fas fa-list" style="color:var(--brand);margin-right:6px;"></i>Recent audit events</h2>
+    <a href="{% url 'audit:log_list' %}" style="font-size:.78rem;color:var(--brand);font-weight:700;">View all →</a></div>
+    {% for log in recent_logs %}
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--border);">
+      <span style="width:7px;height:7px;border-radius:50%;flex-shrink:0;background:{% if log.severity == 'CRITICAL' %}var(--red){% elif log.severity == 'HIGH' %}#F97316{% elif log.severity == 'WARNING' %}var(--yellow){% else %}var(--brand){% endif %};"></span>
+      <div style="flex:1;min-width:0;"><div style="font-size:.84rem;color:var(--text);">{{ log.action }}</div>
+      {% if log.actor %}<div style="font-size:.74rem;color:var(--text-3);">{{ log.actor.username }}</div>{% endif %}</div>
+      <div style="font-size:.74rem;color:var(--text-3);">{{ log.created_at|timesince }} ago</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- High-risk users -->
+  {% if high_risk_users %}
+  <div class="audit-card">
+    <div class="audit-card-header"><h2 style="margin:0;font-size:.96rem;color:var(--text);"><i class="fas fa-user-shield" style="color:var(--yellow);margin-right:6px;"></i>High risk users</h2>
+    <a href="{% url 'audit:user_risk' %}" style="font-size:.78rem;color:var(--brand);font-weight:700;">Manage →</a></div>
+    {% for flag in high_risk_users %}
+    <div style="display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border);">
+      <div style="width:32px;height:32px;border-radius:9px;background:var(--red-bg);color:var(--red);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.78rem;flex-shrink:0;">{{ flag.risk_score }}%</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:.86rem;font-weight:600;color:var(--text);">{{ flag.user.username }}</div>
+      <div style="font-size:.76rem;color:var(--text-3);">{{ flag.risk_type }}</div></div>
+      <a href="{% url 'audit:user_detail' flag.user.id %}" class="btn btn-ghost btn-xs">View</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

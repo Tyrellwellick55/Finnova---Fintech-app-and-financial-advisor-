@@ -1,0 +1,373 @@
+{% extends 'finnovaapp/base.html' %}
+{% block title %}Dashboard — Finnova{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+{% block topbar_sub %}<span style="color:var(--text-3);font-size:.76rem;">{{ today|date:"l, d F Y" }}</span>{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Command strip ── */
+.cmd-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px; margin-bottom: 24px;
+}
+.cmd-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+  transition: border-color .15s;
+  position: relative; overflow: hidden;
+}
+.cmd-card:hover { border-color: var(--border-2); }
+.cmd-card.hi { border-color: var(--brd-brand); background: rgba(0,229,160,.03); }
+.cmd-label { font-size:.66rem; font-weight:800; text-transform:uppercase; letter-spacing:.12em; color:var(--text-3); display:block; margin-bottom:8px; }
+.cmd-value { font-family:var(--f-mono); font-size:1.55rem; font-weight:700; color:var(--text); display:block; line-height:1; }
+.cmd-value.brand { color:var(--brand); }
+.cmd-value.up    { color:var(--green); }
+.cmd-value.down  { color:var(--red); }
+.cmd-sub { font-size:.7rem; color:var(--text-3); margin-top:5px; display:flex; align-items:center; gap:4px; }
+.cmd-delta { font-size:.7rem; font-weight:700; display:inline-flex; align-items:center; gap:3px; }
+.cmd-delta.up { color:var(--green); }
+.cmd-delta.dn { color:var(--red); }
+.cmd-card.hi .cmd-label { color:var(--brand); }
+.cmd-card.hi .cmd-value { color:var(--brand); }
+
+/* ── Approval urgency banner ── */
+.approval-banner {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 14px 18px; border-radius: var(--r-lg);
+  background: rgba(245,158,11,.06);
+  border: 1px solid rgba(245,158,11,.2);
+  margin-bottom: 20px;
+}
+.approval-count { font-family: var(--f-mono); font-size: 1.8rem; font-weight: 800; color: var(--yellow); }
+.approval-text strong { display:block; font-size:.9rem; color:var(--yellow); }
+.approval-text span   { font-size:.8rem; color:var(--text-3); }
+
+/* ── Main grid ── */
+.dash-grid { display:grid; grid-template-columns:minmax(0,1.6fr) 300px; gap:16px; }
+@media(max-width:1100px) { .dash-grid{grid-template-columns:1fr;} }
+.dash-col { display:flex; flex-direction:column; gap:14px; }
+
+/* ── Workflow strip ── */
+.wf-strip {
+  display: grid;
+  grid-template-columns: repeat(5,1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+.wf-step {
+  padding: 13px 10px; text-align:center;
+  background: var(--surface-2);
+  font-size:.72rem; font-weight:700; color:var(--text-3);
+  transition: background .15s, color .15s;
+  display:block;
+}
+.wf-step:hover { background: var(--surface); color: var(--brand); }
+.wf-step i { display:block; font-size:1rem; margin-bottom:5px; }
+.wf-step.done { background:rgba(0,229,160,.05); color:var(--brand); }
+.wf-step.done i { color:var(--brand); }
+@media(max-width:640px) { .wf-strip{grid-template-columns:1fr;} .cmd-strip{grid-template-columns:repeat(2,1fr);} }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Approval banner - most urgent if present -->
+{% if snapshot.pending_approvals_count %}
+<div class="approval-banner">
+  <div class="approval-count">{{ snapshot.pending_approvals_count }}</div>
+  <div class="approval-text">
+    <strong>{% if snapshot.pending_approvals_count == 1 %}Action waiting{% else %}Actions waiting{% endif %} for your approval</strong>
+    <span>Autopilot has proposed money movements. Review before anything executes.</span>
+  </div>
+  <a href="{% url 'autopilot:approvals' %}" class="btn sm" style="margin-left:auto;">
+    <i class="fas fa-check-double"></i> Review now
+  </a>
+</div>
+{% endif %}
+
+<!-- Agency CTA — blueprint: → agency:invoice_create (CTA) -->
+{% if shell_modules.agency and not is_personal_mode %}
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+  <div style="font-size:.82rem;color:var(--text-3);">
+    {% if is_personal_mode %}Personal workspace{% else %}{{ organization.name|default:"Your workspace" }}{% endif %}
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{% url 'agency:invoice_create' %}" class="btn sm"><i class="fas fa-plus"></i> New invoice</a>
+    <a href="{% url 'agency:control_tower' %}" class="btn-outline sm"><i class="fas fa-tower-control"></i> Control tower</a>
+  </div>
+</div>
+{% endif %}
+
+<!-- Workflow strip -->
+{% if shell_modules.agency %}
+<div class="wf-strip">
+  <a href="{% url 'agency:invoice_create' %}" class="wf-step done" style="text-decoration:none;cursor:pointer;" title="Create Invoice"><i class="fas fa-file-invoice-dollar"></i>Invoice</a>
+  <a href="{% url 'agency:receivables_dashboard' %}" class="wf-step {% if snapshot.available_balance %}done{% endif %}" style="text-decoration:none;cursor:pointer;" title="Collect Payments"><i class="fas fa-credit-card"></i>Collect</a>
+  <a href="{% url 'autopilot:autopilot_dashboard' %}" class="wf-step {% if snapshot.autopilot_profile and snapshot.autopilot_profile.is_active %}done{% endif %}" style="text-decoration:none;cursor:pointer;" title="Auto-split Settings"><i class="fas fa-robot"></i>Auto-split</a>
+  <a href="{% url 'finance:finance_dashboard' %}" class="wf-step {% if snapshot.month_income %}done{% endif %}" style="text-decoration:none;cursor:pointer;" title="Finance Overview"><i class="fas fa-wallet"></i>Finance</a>
+  <a href="{% url 'analytics-ai:ai_dashboard' %}" class="wf-step {% if snapshot.health_score %}done{% endif %}" style="text-decoration:none;cursor:pointer;" title="AI Insights"><i class="fas fa-brain"></i>AI insight</a>
+</div>
+{% endif %}
+
+<!-- 4 command metrics -->
+<div class="cmd-strip">
+  <div class="cmd-card hi">
+    <span class="cmd-label">Wallet balance</span>
+    <span class="cmd-value brand" id="live-balance">₹{{ snapshot.available_balance|default:0|floatformat:2 }}</span>
+    <span class="cmd-sub">Available now</span>
+  </div>
+  <div class="cmd-card">
+    <span class="cmd-label">Monthly income</span>
+    <span class="cmd-value up" id="live-income">₹{{ snapshot.month_income|default:0|floatformat:2 }}</span>
+    <span class="cmd-sub">{{ today|date:"F" }}</span>
+  </div>
+  <div class="cmd-card">
+    <span class="cmd-label">Monthly spend</span>
+    <span class="cmd-value down" id="live-expense">₹{{ snapshot.month_expense|default:0|floatformat:2 }}</span>
+    <span class="cmd-sub">{{ today|date:"F" }}</span>
+  </div>
+  <div class="cmd-card">
+    <span class="cmd-label">Health score</span>
+    <span class="cmd-value" id="live-health" style="color:{% if snapshot.health_score and snapshot.health_score.overall_score >= 700 %}var(--green){% elif snapshot.health_score and snapshot.health_score.overall_score >= 500 %}var(--yellow){% else %}var(--text){% endif %};">
+      {% if snapshot.health_score %}{{ snapshot.health_score.overall_score }}{% else %}—{% endif %}
+    </span>
+    <span class="cmd-sub">{% if snapshot.health_score %}{{ snapshot.health_score.grade }} · /1000{% else %}Not calculated{% endif %}</span>
+  </div>
+</div>
+
+{% if snapshot.month_income == 0 and not snapshot.has_any_income %}
+{# Phase 5: Empty-state prompt — shown only when user has zero income records at all #}
+<div class="panel" style="text-align:center;padding:28px 24px;border-color:var(--border-brand);background:var(--brand-glow);margin-bottom:20px;">
+  <div style="font-size:2rem;margin-bottom:10px;">💰</div>
+  <h3 style="margin:0 0 6px;font-size:1rem;color:var(--text);">Record your first income to see Autopilot in action</h3>
+  <p style="font-size:.86rem;color:var(--text-2);margin:0 0 16px;max-width:42ch;display:inline-block;">Once you add income, Autopilot will automatically generate a smart split plan — GST reserve, tax provision, savings, and spendable amount.</p>
+  <div>
+    <a href="{% url 'finance:add_income' %}" class="btn"><i class="fas fa-plus"></i> Add your first income</a>
+  </div>
+</div>
+{% endif %}
+
+<!-- Two-column layout -->
+<div class="dash-grid">
+
+  <!-- LEFT -->
+  <div class="dash-col">
+
+    <!-- Budgets -->
+    {% if shell_modules.finance %}
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>Budget status</h3><p>Spending limits this month</p></div>
+        <a href="{% url 'finance:budget_list' %}" class="btn-outline xs">Manage</a>
+      </div>
+      {% if snapshot.budgets %}
+        <div class="list-items">
+        {% for b in snapshot.budgets %}
+        <div class="list-item {% if b.is_exceeded %}red{% elif b.is_near_limit %}yellow{% else %}brand{% endif %}">
+          <div class="li-icon {% if b.is_exceeded %}red{% elif b.is_near_limit %}yellow{% else %}brand{% endif %}">
+            <i class="fas fa-sliders"></i>
+          </div>
+          <div class="li-body">
+            <div class="li-title">{{ b.name }}</div>
+            <div class="li-sub">₹{{ b.current_spending|default:0|floatformat:0 }} / ₹{{ b.amount|default:0|floatformat:0 }}</div>
+            <div class="progress" style="margin-top:6px;">
+              <div class="progress-fill {% if b.utilization_percentage > 100 %}over{% elif b.utilization_percentage > 85 %}warn{% endif %}"
+                   style="width:{% if b.utilization_percentage > 100 %}100{% else %}{{ b.utilization_percentage|default:0|floatformat:0 }}{% endif %}%;">
+              </div>
+            </div>
+          </div>
+          <div class="li-right">
+            <span class="badge {% if b.is_exceeded %}badge-red{% elif b.is_near_limit %}badge-yellow{% else %}badge-green{% endif %}">
+              {{ b.utilization_percentage|default:0|floatformat:0 }}%
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon"><i class="fas fa-sliders"></i></div>
+          <h3>No budgets yet</h3>
+          <p>Set monthly spending limits and Autopilot will alert you before you overspend.</p>
+          <a href="{% url 'finance:add_budget' %}" class="btn xs">Create budget</a>
+        </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Savings goals -->
+    {% if shell_modules.finance %}
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>Savings goals</h3><p>What you're building toward</p></div>
+        <a href="{% url 'finance:financial_goals' %}" class="btn-outline xs">All goals</a>
+      </div>
+      {% if snapshot.goals %}
+        <div class="list-items">
+        {% for g in snapshot.goals %}
+        <div class="list-item brand">
+          <div class="li-icon" style="background:rgba(124,111,255,.1);color:var(--accent);">
+            <i class="fas fa-bullseye"></i>
+          </div>
+          <div class="li-body">
+            <div class="li-title">{{ g.name }}</div>
+            <div class="li-sub">₹{{ g.current_amount|default:0|floatformat:0 }} of ₹{{ g.target_amount|default:0|floatformat:0 }}</div>
+            <div class="progress" style="margin-top:6px;">
+              <div class="progress-fill" style="width:{% if g.progress_percentage > 100 %}100{% else %}{{ g.progress_percentage|default:0|floatformat:0 }}{% endif %}%;"></div>
+            </div>
+          </div>
+          <div class="li-right">
+            <span class="badge {% if g.is_on_track %}badge-green{% else %}badge-yellow{% endif %}">
+              {{ g.progress_percentage|default:0|floatformat:0 }}%
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon"><i class="fas fa-piggy-bank"></i></div>
+          <h3>No goals yet</h3>
+          <p>Goals tell Autopilot exactly where to allocate savings from each income payment.</p>
+          <a href="{% url 'finance:add_financial_goal' %}" class="btn xs">Add goal</a>
+        </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- AI Insights -->
+    {% if shell_modules.analytics %}
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>AI insights</h3><p>Pattern analysis from your last 30 days</p></div>
+        <a href="{% url 'analytics-ai:ai_chat' %}" class="btn-ghost xs"><i class="fas fa-comment-dots"></i> Ask</a>
+      </div>
+      {% if snapshot.insights %}
+        <div class="list-items">
+        {% for ins in snapshot.insights %}
+        <div class="list-item {% if ins.severity == 'CRITICAL' or ins.severity == 'HIGH' %}red{% elif ins.severity == 'MEDIUM' %}yellow{% else %}brand{% endif %}">
+          <div class="li-icon {% if ins.severity in 'CRITICAL HIGH' %}red{% elif ins.severity == 'MEDIUM' %}yellow{% else %}brand{% endif %}">
+            <i class="fas fa-lightbulb"></i>
+          </div>
+          <div class="li-body">
+            <div class="li-title">{{ ins.title }}</div>
+            <div class="li-sub">{{ ins.description|truncatechars:90 }}</div>
+            {# Blueprint Phase 5: per-insight Ask AI link that pre-fills chat #}
+            <a href="{% url 'analytics-ai:ai_chat' %}?q={{ ins.title|urlencode }}"
+               style="display:inline-flex;align-items:center;gap:4px;font-size:.74rem;color:var(--brand);font-weight:700;margin-top:4px;text-decoration:none;">
+              <i class="fas fa-robot" style="font-size:.7rem;"></i> Ask AI about this →
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state" style="border:none;padding:20px;">
+          <div class="empty-icon"><i class="fas fa-brain"></i></div>
+          <h3>Insights loading</h3>
+          <p>Add transactions to unlock pattern analysis and AI recommendations.</p>
+        </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- RIGHT sidebar -->
+  <div class="dash-col">
+
+    <!-- Alerts -->
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>Alerts</h3><p>Risk signals from Autopilot</p></div>
+        {% if shell_modules.autopilot %}<a href="{% url 'autopilot:alerts' %}" class="btn-outline xs">All</a>{% endif %}
+      </div>
+      {% if snapshot.alerts %}
+        <div class="list-items">
+        {% for a in snapshot.alerts %}
+        <div class="list-item {% if a.severity == 'CRITICAL' or a.severity == 'HIGH' %}red{% elif a.severity == 'MEDIUM' %}yellow{% else %}brand{% endif %}">
+          <div class="li-body">
+            <div class="li-title">{{ a.title }}</div>
+            <div class="li-sub">{{ a.message|truncatechars:70 }}</div>
+          </div>
+        </div>
+        {% endfor %}
+        </div>
+      {% else %}
+        <div style="padding:16px;text-align:center;color:var(--text-3);font-size:.84rem;">
+          <i class="fas fa-shield-halved" style="color:var(--green);font-size:1.4rem;display:block;margin-bottom:8px;"></i>
+          All clear
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Next actions -->
+    {% if snapshot.recommended_actions %}
+    <div class="panel">
+      <div class="panel-head"><div><h3>Next actions</h3><p>Highest-leverage moves</p></div></div>
+      {% for act in snapshot.recommended_actions %}
+      <div style="padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px;">
+        <div style="font-size:.87rem;font-weight:700;color:var(--text);margin-bottom:4px;">{{ act.title }}</div>
+        <div style="font-size:.78rem;color:var(--text-3);margin-bottom:10px;">{{ act.summary }}</div>
+        <a href="{{ act.url }}" class="btn xs">{{ act.cta }}</a>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Bills due -->
+    {% if shell_modules.autopilot %}
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>Bills due soon</h3><p>Autopilot is tracking these</p></div>
+        <a href="{% url 'autopilot:smart_bills' %}" class="btn-outline xs">Manage</a>
+      </div>
+      {% if snapshot.upcoming_bills %}
+        <div class="list-items">
+        {% for bill in snapshot.upcoming_bills %}
+        <div class="list-item yellow">
+          <div class="li-icon yellow"><i class="fas fa-file-invoice"></i></div>
+          <div class="li-body">
+            <div class="li-title">{{ bill.biller_name }}</div>
+            <div class="li-sub">Due {{ bill.due_date|date:"d M" }}</div>
+          </div>
+          <div class="li-right">
+            <div class="li-value">₹{{ bill.amount|default:0|floatformat:0 }}</div>
+          </div>
+        </div>
+        {% endfor %}
+        </div>
+      {% else %}
+        <div style="padding:14px;text-align:center;color:var(--text-3);font-size:.82rem;">No bills due soon</div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- GST shortcut -->
+    {% if shell_modules.audit %}
+    <a href="{% url 'audit:gst_dashboard' %}" style="text-decoration:none;display:block;">
+      <div class="panel" style="border-color:var(--brd-brand);cursor:pointer;transition:all .15s;background:rgba(0,229,160,.03);"
+           onmouseover="this.style.borderColor='var(--brand)';this.style.background='rgba(0,229,160,.06)'"
+           onmouseout="this.style.borderColor='var(--brd-brand)';this.style.background='rgba(0,229,160,.03)'">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:var(--brand);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;"><i class="fas fa-file-invoice"></i></div>
+          <div>
+            <div style="font-size:.88rem;font-weight:700;color:var(--brand);">GST Dashboard</div>
+            <div style="font-size:.76rem;color:var(--text-3);">Collected · ITC · Net payable · Filing</div>
+          </div>
+          <i class="fas fa-arrow-right" style="margin-left:auto;color:var(--brand);font-size:.82rem;"></i>
+        </div>
+      </div>
+    </a>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

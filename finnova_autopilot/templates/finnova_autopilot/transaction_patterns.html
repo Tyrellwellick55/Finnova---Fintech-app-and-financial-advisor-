@@ -1,0 +1,170 @@
+{% extends "finnova_autopilot/base_autopilot.html" %}
+{% block title %}Transaction Patterns — Autopilot — Finnova{% endblock %}
+
+{% block autopilot_extra_css %}
+<style>
+.tp-hero { padding:24px 26px;border-radius:var(--r-xl);background:var(--surface);border:1px solid var(--border-2);margin-bottom:20px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap; }
+.tp-kpis { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px; }
+.tp-kpi  { padding:16px 18px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--surface); }
+.tp-kpi-l{ font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);display:block;margin-bottom:4px; }
+.tp-kpi-v{ font-size:1.5rem;font-weight:800;color:var(--text);font-family:var(--mono); }
+.tp-filters { padding:14px 18px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end; }
+.tpf { display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px; }
+.tpf label { font-size:.72rem;font-weight:700;color:var(--text-3); }
+.tpf select,.tpf input { padding:8px 11px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.84rem; }
+.tpf select:focus,.tpf input:focus { outline:none;border-color:var(--brand); }
+.tp-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;padding:18px; }
+.tp-card { padding:18px 20px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--surface-2);transition:border-color .15s,transform .15s; }
+.tp-card:hover { border-color:var(--border-2);transform:translateY(-2px); }
+.tp-card.anomaly { border-left:3px solid var(--red); }
+.tp-card.high-conf { border-left:3px solid var(--brand); }
+.tp-top  { display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px; }
+.tp-name { font-weight:700;font-size:.9rem;color:var(--text);margin:0 0 3px; }
+.tp-type { font-size:.74rem;color:var(--text-3); }
+.tp-badge { padding:3px 9px;border-radius:999px;font-size:.7rem;font-weight:800; }
+.tp-badge.anomaly { background:var(--red-bg);color:var(--red); }
+.tp-badge.high { background:var(--brand-glow);color:var(--brand); }
+.tp-badge.medium { background:var(--yellow-bg);color:var(--yellow); }
+.tp-badge.low { background:var(--surface-3);color:var(--text-3); }
+.conf-bar { height:4px;border-radius:999px;background:var(--surface-3);overflow:hidden;margin-bottom:10px; }
+.conf-fill { height:100%;border-radius:inherit; }
+.tp-meta { display:grid;gap:5px;font-size:.76rem;color:var(--text-3);margin-bottom:12px; }
+.tp-meta-row { display:flex;justify-content:space-between; }
+.tp-actions { display:flex;gap:7px;padding-top:11px;border-top:1px solid var(--border); }
+.ta { padding:5px 11px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);font-size:.75rem;font-weight:700;cursor:pointer;text-decoration:none;transition:.15s; }
+.ta:hover { border-color:var(--brand);color:var(--brand); }
+.ta.danger { background:var(--red-bg);border-color:rgba(244,63,94,.3);color:var(--red); }
+@media(max-width:640px){ .tp-kpis{grid-template-columns:repeat(2,1fr)} }
+</style>
+{% endblock %}
+
+{% block autopilot_content %}
+<div class="tp-hero">
+  <div>
+    <span style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--text-3);">Autopilot · Patterns</span>
+    <h1 style="font-size:1.4rem;color:var(--text);margin:8px 0 6px;">Transaction Patterns</h1>
+    <p style="font-size:.86rem;color:var(--text-2);margin:0;">AI-detected recurring patterns in your transaction history — spending habits, anomalies, and frequency signals.</p>
+  </div>
+  <form method="post" action="{% url 'autopilot:scan_transaction_patterns' %}">
+    {% csrf_token %}
+    <button type="submit" class="btn"><i class="fas fa-radar"></i> Scan now</button>
+  </form>
+</div>
+
+<div class="tp-kpis">
+  <div class="tp-kpi">
+    <span class="tp-kpi-l">Active patterns</span>
+    <div class="tp-kpi-v">{{ stats.total }}</div>
+  </div>
+  <div class="tp-kpi" style="border-color:var(--border-brand);background:var(--brand-glow);">
+    <span class="tp-kpi-l" style="color:var(--brand);">High confidence</span>
+    <div class="tp-kpi-v" style="color:var(--brand);">{{ stats.high_confidence }}</div>
+  </div>
+  <div class="tp-kpi" style="border-color:rgba(244,63,94,.3);background:var(--red-bg);">
+    <span class="tp-kpi-l" style="color:var(--red);">Anomalies</span>
+    <div class="tp-kpi-v" style="color:var(--red);">{{ stats.anomalies }}</div>
+  </div>
+  <div class="tp-kpi">
+    <span class="tp-kpi-l">Spending</span>
+    <div class="tp-kpi-v">{{ stats.spending }}</div>
+  </div>
+</div>
+
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;">
+  <form method="get" class="tp-filters">
+    <div class="tpf">
+      <label>Type</label>
+      <select name="type">
+        <option value="">All types</option>
+        {% for val, label in pattern_types %}
+        <option value="{{ val }}" {% if type_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="tpf">
+      <label>Confidence</label>
+      <select name="confidence">
+        <option value="">All</option>
+        <option value="high"   {% if confidence_filter == "high" %}selected{% endif %}>High (≥80%)</option>
+        <option value="medium" {% if confidence_filter == "medium" %}selected{% endif %}>Medium (60–80%)</option>
+        <option value="low"    {% if confidence_filter == "low" %}selected{% endif %}>Low (&lt;60%)</option>
+      </select>
+    </div>
+    <div class="tpf" style="flex:2;">
+      <label>Search</label>
+      <input type="search" name="search" value="{{ search_query }}" placeholder="Pattern name, category, merchant…">
+    </div>
+    <div style="display:flex;gap:6px;align-items:flex-end;">
+      <button type="submit" class="btn" style="min-height:38px;padding:8px 14px;">Filter</button>
+      <a href="{% url 'autopilot:transaction_patterns' %}" class="btn-outline" style="min-height:38px;padding:8px 12px;">Reset</a>
+    </div>
+  </form>
+
+  {% if page_obj.object_list %}
+  <div class="tp-grid">
+    {% for pattern in page_obj %}
+    <div class="tp-card {% if pattern.is_anomaly %}anomaly{% elif pattern.confidence_score >= 80 %}high-conf{% endif %}">
+      <div class="tp-top">
+        <div>
+          <p class="tp-name">{{ pattern.pattern_name }}</p>
+          <p class="tp-type">{{ pattern.get_pattern_type_display }}</p>
+        </div>
+        {% if pattern.is_anomaly %}
+        <span class="tp-badge anomaly"><i class="fas fa-triangle-exclamation"></i> Anomaly</span>
+        {% elif pattern.confidence_score >= 80 %}
+        <span class="tp-badge high">{{ pattern.confidence_score }}% confident</span>
+        {% elif pattern.confidence_score >= 60 %}
+        <span class="tp-badge medium">{{ pattern.confidence_score }}%</span>
+        {% else %}
+        <span class="tp-badge low">{{ pattern.confidence_score }}%</span>
+        {% endif %}
+      </div>
+
+      <div class="conf-bar">
+        <div class="conf-fill" style="width:{{ pattern.confidence_score }}%;background:{% if pattern.is_anomaly %}var(--red){% elif pattern.confidence_score >= 80 %}var(--brand){% else %}var(--yellow){% endif %};"></div>
+      </div>
+
+      <div class="tp-meta">
+        {% if pattern.related_category %}<div class="tp-meta-row"><span>Category</span><span style="color:var(--text-2);">{{ pattern.related_category }}</span></div>{% endif %}
+        {% if pattern.related_merchant %}<div class="tp-meta-row"><span>Merchant</span><span style="color:var(--text-2);">{{ pattern.related_merchant }}</span></div>{% endif %}
+        {% if pattern.last_observed %}<div class="tp-meta-row"><span>Last seen</span><span>{{ pattern.last_observed|timesince }} ago</span></div>{% endif %}
+        {% if pattern.occurrence_count %}<div class="tp-meta-row"><span>Occurrences</span><span>{{ pattern.occurrence_count }}×</span></div>{% endif %}
+      </div>
+
+      <div class="tp-actions">
+        <a href="{% url 'autopilot:pattern_detail' pattern.id %}" class="ta"><i class="fas fa-eye"></i> Details</a>
+        <a href="{% url 'autopilot:automation_rules' %}?pattern={{ pattern.id }}" class="ta"><i class="fas fa-bolt"></i> Create rule</a>
+        {% if not pattern.is_confirmed %}
+        <form method="post" action="{% url 'autopilot:confirm_pattern' pattern.id %}" style="display:inline;">
+          {% csrf_token %}<button type="submit" class="ta"><i class="fas fa-check"></i></button>
+        </form>
+        {% endif %}
+        <form method="post" action="{% url 'autopilot:mark_pattern_anomaly' pattern.id %}" style="display:inline;">
+          {% csrf_token %}<button type="submit" class="ta danger" title="Mark as anomaly"><i class="fas fa-flag"></i></button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <div style="display:flex;justify-content:center;gap:6px;padding:16px;border-top:1px solid var(--border);">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="ta"><i class="fas fa-chevron-left"></i></a>{% endif %}
+    <span style="padding:5px 12px;border-radius:8px;background:var(--surface-3);color:var(--text-2);font-size:.84rem;">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="ta"><i class="fas fa-chevron-right"></i></a>{% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty" style="border-radius:0;border:none;padding:48px;">
+    <span class="empty-icon"><i class="fas fa-waveform-lines"></i></span>
+    <h3>No patterns detected yet</h3>
+    <p>Add transactions in Finance, then run a scan so Autopilot can detect spending habits and recurring signals.</p>
+    <form method="post" action="{% url 'autopilot:scan_transaction_patterns' %}" style="margin-top:16px;">
+      {% csrf_token %}
+      <button type="submit" class="btn"><i class="fas fa-magnifying-glass"></i> Run pattern scan</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

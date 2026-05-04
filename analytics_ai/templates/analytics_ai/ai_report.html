@@ -1,0 +1,291 @@
+{% extends 'analytics_ai/base_analytics.html' %}
+{% load static ai_filters %}
+{% block title %}AI Report — Finnova{% endblock %}
+{% block page_title %}AI Report{% endblock %}
+
+{% block analytics_css %}
+<style>
+.report-hero{padding:26px 30px;border-radius:var(--r-xl);background:var(--surface);border:1px solid rgba(99,102,241,.3);margin-bottom:22px;}
+.gen-badge{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:999px;background:var(--brand-glow);border:1px solid var(--border-brand);color:var(--brand);font-size:.74rem;font-weight:700;margin-top:10px;}
+.score-big{font-family:var(--f-mono);font-size:2.8rem;font-weight:800;line-height:1;}
+.section-icon{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;}
+.opp-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px;}
+.opp-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.debt-chip{padding:3px 10px;border-radius:999px;font-size:.75rem;font-weight:700;}
+.inv-rec{padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px;}
+.inv-rec strong{display:block;font-size:.87rem;color:var(--text);margin-bottom:3px;}
+.inv-rec p{font-size:.8rem;color:var(--text-2);margin:0;}
+.tax-action{display:flex;gap:8px;padding:9px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px;font-size:.83rem;color:var(--text-2);}
+.grade-A{background:var(--green-bg);color:var(--green);}
+.grade-B{background:var(--brand-glow);color:var(--brand);}
+.grade-C{background:var(--yellow-bg);color:var(--yellow);}
+.grade-D,.grade-F{background:var(--red-bg);color:var(--red);}
+</style>
+{% endblock %}
+
+{% block analytics_content %}
+{% if error %}
+<div class="an-banner warn"><i class="fas fa-triangle-exclamation" style="color:var(--yellow)"></i><div><strong>Report generated with limited data</strong><span>Add more transactions in <a href="{% url 'finance:finance_dashboard' %}" style="color:var(--brand)">Finance</a> for a richer report.</span></div></div>
+{% endif %}
+
+<div class="report-hero">
+  <span style="font-size:.67rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:#6366F1;">AI Analytics · Comprehensive Report</span>
+  <h1 style="font-size:1.45rem;color:var(--text);margin:8px 0 6px;">Your AI Financial Report</h1>
+  <p style="font-size:.88rem;color:var(--text-2);margin:0;">Full-picture analysis — health score, spending, investments, debts, and tax planning from your live Finance data.</p>
+  <div class="gen-badge"><i class="fas fa-clock"></i> Generated {{ generated_at|date:"d M Y, H:i" }}</div>
+</div>
+
+<!-- Health + Income vs Expense row -->
+<div class="an-grid-eq" style="margin-bottom:16px;">
+  <!-- Health score -->
+  <div class="an-card">
+    <div class="an-card-head">
+      <h2><span class="section-icon" style="background:{% if health_grade == 'A' %}var(--green-bg);color:var(--green){% elif health_grade == 'B' %}var(--brand-glow);color:var(--brand){% elif health_grade == 'C' %}var(--yellow-bg);color:var(--yellow){% else %}var(--red-bg);color:var(--red){% endif %};"><i class="fas fa-heartbeat"></i></span>Financial Health</h2>
+      <a href="{% url 'analytics-ai:financial_health_dashboard' %}" class="btn-outline xs">Details</a>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <div>
+        <div class="score-big" style="color:{% if health_score >= 700 %}var(--green){% elif health_score >= 500 %}var(--brand){% elif health_score >= 300 %}var(--yellow){% else %}var(--red){% endif %};">{{ health_score|default:"—" }}</div>
+        <div style="font-size:.78rem;color:var(--text-3);margin:4px 0 10px;">out of 1000</div>
+        {% if health_grade %}
+        <span style="padding:5px 16px;border-radius:999px;font-size:.85rem;font-weight:800;display:inline-block;" class="grade-{{ health_grade }}">Grade {{ health_grade }}</span>
+        {% endif %}
+      </div>
+      {% if health_breakdown %}
+      <div style="flex:1;">
+        {% for key, val in health_breakdown.items %}
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:.74rem;color:var(--text-3);min-width:100px;">{{ val.name|default:key }}</span>
+          <div style="flex:1;"><div class="an-bar-track"><div class="an-bar-fill {% if val.pct >= 70 %}green{% elif val.pct >= 40 %}yellow{% else %}red{% endif %}" style="width:{{ val.pct|default:0|floatformat:0 }}%;"></div></div></div>
+          <span style="font-family:var(--f-mono);font-size:.72rem;font-weight:700;min-width:36px;text-align:right;">{{ val.points|default:0 }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Monthly summary + chart -->
+  <div class="an-card">
+    <div class="an-card-head">
+      <h2><span class="section-icon" style="background:var(--brand-glow);color:var(--brand);"><i class="fas fa-chart-bar"></i></span>6-Month overview</h2>
+    </div>
+    {% if report_months %}
+    <div class="chart-box" style="margin-bottom:12px;"><canvas id="reportMonthsChart" height="140"></canvas></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:.8rem;text-align:center;">
+      <div><div style="color:var(--text-3);margin-bottom:2px;">Avg income</div><div style="font-family:var(--f-mono);font-weight:800;color:var(--green);">₹{% with total=0 %}{% for m in report_months %}{% with t=total|add:m.income %}{% endwith %}{% endfor %}{% endwith %}{{ analysis.basic_metrics.total_income|default:0|floatformat:0 }}</div></div>
+      <div><div style="color:var(--text-3);margin-bottom:2px;">This month spend</div><div style="font-family:var(--f-mono);font-weight:800;color:var(--red);">₹{{ analysis.basic_metrics.total_expense|default:0|floatformat:0 }}</div></div>
+      <div><div style="color:var(--text-3);margin-bottom:2px;">Net saved</div><div style="font-family:var(--f-mono);font-weight:800;color:{% if analysis.basic_metrics.net_savings >= 0 %}var(--green){% else %}var(--red){% endif %};">₹{{ analysis.basic_metrics.net_savings|default:0|floatformat:0 }}</div></div>
+    </div>
+    {% else %}
+    <div class="an-empty"><i class="fas fa-chart-bar"></i><strong>No data yet</strong><p>Add income and expenses to see monthly trends.</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="an-grid-eq" style="margin-bottom:16px;">
+  <!-- Spending analysis -->
+  <div class="an-card">
+    <div class="an-card-head">
+      <h2><span class="section-icon" style="background:var(--red-bg);color:var(--red);"><i class="fas fa-receipt"></i></span>Spending analysis</h2>
+    </div>
+    {% if spending_analysis.total_expenses %}
+    <div style="margin-bottom:14px;">
+      <div style="font-size:.72rem;color:var(--text-3);margin-bottom:4px;">Total expenses recorded</div>
+      <div style="font-family:var(--f-mono);font-size:1.6rem;font-weight:800;color:var(--red);">₹{{ spending_analysis.total_expenses|floatformat:0 }}</div>
+    </div>
+    {% if spending_analysis.avg_monthly_spending %}
+    <div style="margin-bottom:14px;">
+      <div style="font-size:.72rem;color:var(--text-3);margin-bottom:4px;">Monthly average</div>
+      <div style="font-family:var(--f-mono);font-size:1.1rem;font-weight:800;">₹{{ spending_analysis.avg_monthly_spending|floatformat:0 }}</div>
+    </div>
+    {% endif %}
+    {% if spending_analysis.top_categories %}
+    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px;">Top categories</div>
+    {% for cat in spending_analysis.top_categories|slice:":5" %}
+    <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.83rem;">
+      <span style="color:var(--text-2);">{{ cat.category }}</span>
+      <span style="font-family:var(--f-mono);color:var(--text);">₹{{ cat.amount|floatformat:0 }}</span>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% else %}
+    <div class="an-empty" style="padding:14px 0;"><i class="fas fa-receipt"></i><strong>No expense data</strong><p>Add expenses in Finance to unlock analysis.</p></div>
+    {% endif %}
+  </div>
+
+  <!-- Savings plan -->
+  <div class="an-card">
+    <div class="an-card-head">
+      <h2><span class="section-icon" style="background:var(--green-bg);color:var(--green);"><i class="fas fa-piggy-bank"></i></span>Smart savings plan</h2>
+    </div>
+    {% if savings_plan.recommended_monthly_savings %}
+    <div style="text-align:center;padding:16px;border-radius:var(--r-lg);background:var(--green-bg);border:1px solid rgba(16,185,129,.2);margin-bottom:14px;">
+      <div style="font-size:.74rem;color:var(--green);font-weight:700;margin-bottom:4px;">Recommended monthly saving</div>
+      <div style="font-family:var(--f-mono);font-size:1.9rem;font-weight:800;color:var(--green);">₹{{ savings_plan.recommended_monthly_savings|floatformat:0 }}</div>
+    </div>
+    {% if savings_plan.saving_opportunities %}
+    {% for opp in savings_plan.saving_opportunities|slice:":4" %}
+    <div class="opp-row">
+      <span class="opp-dot"></span>
+      <span style="flex:1;font-size:.83rem;color:var(--text-2);">{{ opp.title|default:opp }}</span>
+      {% if opp.amount %}<span style="font-family:var(--f-mono);font-size:.8rem;font-weight:800;color:var(--green);">₹{{ opp.amount|floatformat:0 }}</span>{% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% else %}
+    <div class="an-empty" style="padding:14px 0;"><i class="fas fa-piggy-bank"></i><strong>No savings plan</strong><p>Add income and expense data to generate your plan.</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="an-grid-eq" style="margin-bottom:16px;">
+  <!-- Investment analysis -->
+  <div class="an-card">
+    <div class="an-card-head">
+      <h2><span class="section-icon" style="background:var(--indigo-glow);color:#818CF8;"><i class="fas fa-chart-line"></i></span>Investment portfolio</h2>
+    </div>
+    {% if investment_analysis.total_invested is not None %}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="padding:12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);text-align:center;">
+        <div style="font-size:.7rem;color:var(--text-3);margin-bottom:4px;">Invested</div>
+        <div style="font-family:var(--f-mono);font-weight:800;">₹{{ investment_analysis.total_invested|floatformat:0 }}</div>
+      </div>
+      <div style="padding:12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);text-align:center;">
+        <div style="font-size:.7rem;color:var(--text-3);margin-bottom:4px;">Current value</div>
+        <div style="font-family:var(--f-mono);font-weight:800;color:{% if investment_analysis.total_return >= 0 %}var(--green){% else %}var(--red){% endif %};">₹{{ investment_analysis.current_value|floatformat:0 }}</div>
+      </div>
+    </div>
+    {% if investment_analysis.return_percentage is not None %}
+    <div style="text-align:center;margin-bottom:14px;">
+      <span style="font-size:.82rem;color:var(--text-3);">Total return: </span>
+      <span style="font-family:var(--f-mono);font-weight:800;color:{% if investment_analysis.return_percentage >= 0 %}var(--green){% else %}var(--red){% endif %};">{% if investment_analysis.return_percentage >= 0 %}+{% endif %}{{ investment_analysis.return_percentage|floatformat:2 }}%</span>
+    </div>
+    {% endif %}
+    {% endif %}
+    {% if investment_recommendations %}
+    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px;">Recommendations</div>
+    {% for rec in investment_recommendations|slice:":2" %}
+    <div class="inv-rec">
+      <strong>{{ rec.title }}</strong>
+      <p>{{ rec.description|truncatechars:80 }}</p>
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+
+  <!-- Debt analysis -->
+  <div class="an-card">
+    <div class="an-card-head">
+      <h2><span class="section-icon" style="background:var(--red-bg);color:var(--red);"><i class="fas fa-credit-card"></i></span>Debt analysis</h2>
+    </div>
+    {% if debt_analysis.total_debt %}
+    <div style="margin-bottom:14px;">
+      <div style="font-size:.72rem;color:var(--text-3);margin-bottom:4px;">Total outstanding</div>
+      <div style="font-family:var(--f-mono);font-size:1.6rem;font-weight:800;color:var(--red);">₹{{ debt_analysis.total_debt|floatformat:0 }}</div>
+    </div>
+    {% if debt_analysis.monthly_emi %}<div style="margin-bottom:10px;"><span style="font-size:.72rem;color:var(--text-3);">Monthly EMI: </span><span style="font-family:var(--f-mono);font-weight:700;">₹{{ debt_analysis.monthly_emi|floatformat:0 }}</span></div>{% endif %}
+    {% if debt_analysis.debt_to_income is not None %}
+    <div style="padding:10px 12px;border-radius:var(--r-md);margin-top:8px;" class="{% if debt_analysis.debt_to_income > 40 %}an-banner danger{% else %}an-banner info{% endif %}">
+      <i class="fas {% if debt_analysis.debt_to_income > 40 %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
+      <div><strong>Debt-to-income: {{ debt_analysis.debt_to_income|floatformat:1 }}%</strong><span>{% if debt_analysis.debt_to_income > 40 %}Above recommended 40% — reduce EMI burden{% else %}Within healthy range{% endif %}</span></div>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="an-empty" style="padding:14px 0;"><i class="fas fa-credit-card"></i><strong>No debt records</strong><p>Add loans and debts in Finance to track them here.</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="an-grid-eq" style="margin-bottom:16px;">
+  <!-- Tax planning -->
+  <div class="an-card">
+    <div class="an-card-head">
+      <h2><span class="section-icon" style="background:var(--yellow-bg);color:var(--yellow);"><i class="fas fa-landmark"></i></span>Tax planning</h2>
+    </div>
+    {% if tax_planning.potential_savings %}
+    <div style="text-align:center;padding:14px;border-radius:var(--r-lg);background:var(--yellow-bg);border:1px solid rgba(245,158,11,.2);margin-bottom:14px;">
+      <div style="font-size:.72rem;color:var(--yellow);font-weight:700;margin-bottom:4px;">Estimated tax savings potential</div>
+      <div style="font-family:var(--f-mono);font-size:1.7rem;font-weight:800;color:var(--yellow);">₹{{ tax_planning.potential_savings|floatformat:0 }}</div>
+    </div>
+    {% endif %}
+    {% if tax_planning.recommended_actions %}
+    {% for action in tax_planning.recommended_actions %}
+    <div class="tax-action"><i class="fas fa-chevron-right" style="color:var(--yellow);flex-shrink:0;margin-top:2px;"></i>{{ action }}</div>
+    {% endfor %}
+    {% endif %}
+  </div>
+
+  <!-- Retirement -->
+  <div class="an-card">
+    <div class="an-card-head">
+      <h2><span class="section-icon" style="background:rgba(139,92,246,.1);color:#A78BFA;"><i class="fas fa-umbrella-beach"></i></span>Retirement readiness</h2>
+    </div>
+    {% if retirement_planning.score is not None %}
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:14px;">
+      <div style="text-align:center;">
+        <div style="font-family:var(--f-mono);font-size:2rem;font-weight:800;color:{% if retirement_planning.score >= 60 %}var(--green){% elif retirement_planning.score >= 30 %}var(--yellow){% else %}var(--red){% endif %};">{{ retirement_planning.score }}%</div>
+        <div style="font-size:.7rem;color:var(--text-3);">readiness</div>
+      </div>
+      <div class="an-bar-track" style="flex:1;height:8px;"><div class="an-bar-fill {% if retirement_planning.score >= 60 %}green{% elif retirement_planning.score >= 30 %}yellow{% else %}red{% endif %}" style="width:{{ retirement_planning.score }}%;"></div></div>
+    </div>
+    <div style="display:grid;gap:8px;font-size:.83rem;">
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-3);">Current corpus</span><span style="font-family:var(--f-mono);font-weight:700;">₹{{ retirement_planning.current_corpus|floatformat:0 }}</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-3);">Target corpus</span><span style="font-family:var(--f-mono);font-weight:700;">₹{{ retirement_planning.target_corpus|floatformat:0 }}</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-3);">Years to retirement</span><span style="font-family:var(--f-mono);font-weight:700;">{{ retirement_planning.years_to_retirement }}</span></div>
+      {% if retirement_planning.monthly_required %}
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-3);">Invest monthly needed</span><span style="font-family:var(--f-mono);font-weight:700;color:var(--yellow);">₹{{ retirement_planning.monthly_required|floatformat:0 }}</span></div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="an-empty" style="padding:14px 0;"><i class="fas fa-umbrella-beach"></i><strong>No data yet</strong><p>Set your monthly income and investment records for retirement planning.</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Income opportunities -->
+{% if opportunities %}
+<div class="an-card">
+  <div class="an-card-head"><h2><span class="section-icon" style="background:var(--green-bg);color:var(--green);"><i class="fas fa-bolt"></i></span>Income opportunities</h2></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;">
+    {% for opp in opportunities %}
+    <div style="padding:14px;border-radius:var(--r-lg);background:var(--surface-2);border:1px solid var(--border);">
+      <strong style="display:block;font-size:.88rem;color:var(--text);margin-bottom:4px;">{{ opp.title }}</strong>
+      <p style="font-size:.8rem;color:var(--text-2);margin:0;line-height:1.5;">{{ opp.description|truncatechars:90 }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Quick links -->
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
+  <a href="{% url 'analytics-ai:financial_health_dashboard' %}" class="btn-outline"><i class="fas fa-heartbeat"></i> Full health score</a>
+  <a href="{% url 'analytics-ai:predictive_analytics' %}" class="btn-outline"><i class="fas fa-brain"></i> Predictions</a>
+  <a href="{% url 'finance:financial_goals' %}" class="btn-outline"><i class="fas fa-bullseye"></i> Update goals</a>
+  <a href="{% url 'analytics-ai:ai_chat' %}" class="btn-outline"><i class="fas fa-comment-dots"></i> Ask AI</a>
+</div>
+
+<script>
+(function(){
+  {% if report_months %}
+  const rm = {{ report_months_json|safe }};
+  const ctx = document.getElementById('reportMonthsChart');
+  if(ctx && rm.length){
+    new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels:rm.map(m=>m.label),
+        datasets:[
+          {label:'Income',data:rm.map(m=>m.income),backgroundColor:'rgba(0,229,160,.65)',borderRadius:4,borderSkipped:false},
+          {label:'Expenses',data:rm.map(m=>m.expense),backgroundColor:'rgba(239,68,68,.55)',borderRadius:4,borderSkipped:false}
+        ]
+      },
+      options:{responsive:true,interaction:{mode:'index'},plugins:{legend:{labels:{color:'#5A6070',font:{size:10}}}},
+        scales:{y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#5A6070',callback:v=>'₹'+v.toLocaleString('en-IN')}},x:{grid:{display:false},ticks:{color:'#5A6070'}}}}
+    });
+  }
+  {% endif %}
+})();
+</script>
+{% endblock %}

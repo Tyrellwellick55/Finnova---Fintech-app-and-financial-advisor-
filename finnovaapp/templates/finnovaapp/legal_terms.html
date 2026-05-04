@@ -1,0 +1,13 @@
+{% extends 'finnovaapp/base.html' %}
+{% block title %}Terms — Finnova{% endblock %}
+{% block content %}
+<div class="card" style="max-width:740px;margin:0 auto;padding:32px;">
+  <h1 style="font-size:1.4rem;margin:0 0 20px;">Terms of Service</h1>
+  <div style="display:grid;gap:16px;color:var(--text-2);font-size:.9rem;line-height:1.7;">
+    <div><h3 style="color:var(--text);font-size:.96rem;">Acceptable use</h3><p>Finnova is a financial management tool. You agree to use it only for lawful personal and business finance tracking. You are responsible for the accuracy of data you enter.</p></div>
+    <div><h3 style="color:var(--text);font-size:.96rem;">Financial data</h3><p>Finnova does not provide financial advice. Analytics and Autopilot recommendations are data-driven signals, not regulated financial advice. Always consult a qualified professional for investment decisions.</p></div>
+    <div><h3 style="color:var(--text);font-size:.96rem;">Disclaimer</h3><p>This is a development version of Finnova. Features may change. Data integrity in development mode is not guaranteed across schema migrations.</p></div>
+  </div>
+  <a href="{% url 'finnovaapp:landing' %}" class="btn btn-outline btn-sm" style="margin-top:20px;">Back to Finnova</a>
+</div>
+{% endblock %}

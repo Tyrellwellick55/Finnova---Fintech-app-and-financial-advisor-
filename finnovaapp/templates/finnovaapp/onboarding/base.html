@@ -1,0 +1,309 @@
+{% extends "finnovaapp/base.html" %}
+
+{% block title %}Finnova | Onboarding{% endblock %}
+
+{% block extra_css %}
+<style>
+    .onboarding-shell {
+        max-width: 960px;
+        margin: 0 auto;
+    }
+
+    .onboarding-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    .onboarding-banner {
+        background: linear-gradient(135deg, var(--bg) 0%, var(--blue) 55%, #38bdf8 100%);
+        color: var(--text);
+        border-radius: 24px;
+        padding: 28px;
+        box-shadow: 0 24px 50px rgba(15, 23, 42, 0.18);
+    }
+
+    .onboarding-banner h1 {
+        font-size: 2rem;
+        margin-bottom: 8px;
+    }
+
+    .onboarding-banner p {
+        color: rgba(255, 255, 255, 0.84);
+        max-width: 48rem;
+    }
+
+    .onboarding-progress-card {
+        background: var(--surface);
+        border-radius: 24px;
+        padding: 24px;
+        box-shadow: var(--shadow);
+    }
+
+    .progress-meter {
+        height: 12px;
+        border-radius: 999px;
+        background: var(--surface-3);
+        overflow: hidden;
+        margin: 16px 0 12px;
+    }
+
+    .progress-meter-bar {
+        height: 100%;
+        background: linear-gradient(135deg, var(--green), var(--brand));
+        border-radius: inherit;
+    }
+
+    .progress-copy {
+        color: var(--text-2);
+        font-size: 0.95rem;
+    }
+
+    .step-pill-row {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 18px;
+    }
+
+    .step-pill {
+        text-align: center;
+        padding: 10px 6px;
+        border-radius: 14px;
+        background: var(--surface-3);
+        color: var(--text-3);
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+
+    .step-pill.is-active {
+        background: linear-gradient(135deg, var(--brand), var(--blue));
+        color: var(--text);
+    }
+
+    .step-pill.is-done {
+        background: var(--green-bg);
+        color: var(--green);
+    }
+
+    .onboarding-card {
+        background: var(--surface);
+        border-radius: 24px;
+        padding: 28px;
+        box-shadow: var(--shadow);
+    }
+
+    .onboarding-card-header {
+        margin-bottom: 24px;
+    }
+
+    .onboarding-card-header h2 {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+        color: var(--text);
+    }
+
+    .onboarding-card-header p {
+        color: var(--text-2);
+    }
+
+    .onboarding-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 18px;
+    }
+
+    .choice-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+    }
+
+    .choice-card {
+        position: relative;
+        display: block;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 18px;
+        background: linear-gradient(180deg, #ffffff 0%, var(--surface-2) 100%);
+        transition: all .15s;
+        cursor: pointer;
+    }
+
+    .choice-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--brand-glow);
+        box-shadow: 0 16px 32px rgba(37, 99, 235, 0.08);
+    }
+
+    .choice-card input {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        width: 18px;
+        height: 18px;
+    }
+
+    .choice-card strong {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--text);
+    }
+
+    .choice-card span {
+        display: block;
+        color: var(--text-2);
+        font-size: 0.92rem;
+    }
+
+    .checklist {
+        display: grid;
+        gap: 14px;
+    }
+
+    .check-row {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        padding: 16px 18px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface-2);
+    }
+
+    .check-row input {
+        margin-top: 3px;
+        width: 18px;
+        height: 18px;
+        flex: 0 0 auto;
+    }
+
+    .check-row strong {
+        display: block;
+        color: var(--text);
+        margin-bottom: 2px;
+    }
+
+    .check-row span {
+        display: block;
+        color: var(--text-2);
+        font-size: 0.92rem;
+    }
+
+    .helper-panel {
+        padding: 18px;
+        border-radius: 18px;
+        background: var(--blue-bg);
+        border: 1px solid rgba(59,130,246,.3);
+        color: var(--blue);
+    }
+
+    .helper-panel ul {
+        margin: 10px 0 0 18px;
+    }
+
+    .action-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-top: 28px;
+    }
+
+    .action-row .btn + .btn {
+        margin-left: 10px;
+    }
+
+    .stack {
+        display: grid;
+        gap: 18px;
+    }
+
+    @media (max-width: 900px) {
+        .onboarding-hero {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .step-pill-row {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .action-row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .action-row .btn {
+            justify-content: center;
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="onboarding-shell">
+    <div class="onboarding-hero">
+        <section class="onboarding-banner">
+            <p style="font-size: 0.9rem; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px;">Account setup</p>
+            <h1>{% block onboarding_title %}Complete your setup{% endblock %}</h1>
+            <p>{% block onboarding_subtitle %}Answer a few questions so Finnova can personalize your workspace.{% endblock %}</p>
+        </section>
+
+        <aside class="onboarding-progress-card">
+            <div style="font-size: 0.9rem; color: var(--text-3); font-weight: 700;">Step {{ current_step }} of {{ total_steps }}</div>
+            <div class="progress-meter">
+                <div class="progress-meter-bar" style="width: {% widthratio current_step total_steps 100 %}%;"></div>
+            </div>
+            <div class="progress-copy">
+                {% if current_step < total_steps %}
+                You are {{ remaining_steps }} step{{ remaining_steps|pluralize }} away from the dashboard.
+                {% else %}
+                Final confirmation. One click will finish onboarding.
+                {% endif %}
+            </div>
+            <div class="step-pill-row">
+                <div class="step-pill {% if current_step > 1 %}is-done{% elif current_step == 1 %}is-active{% endif %}">1</div>
+                <div class="step-pill {% if current_step > 2 %}is-done{% elif current_step == 2 %}is-active{% endif %}">2</div>
+                <div class="step-pill {% if current_step > 3 %}is-done{% elif current_step == 3 %}is-active{% endif %}">3</div>
+                <div class="step-pill {% if current_step > 4 %}is-done{% elif current_step == 4 %}is-active{% endif %}">4</div>
+                <div class="step-pill {% if current_step == 5 %}is-active{% endif %}">5</div>
+            </div>
+        </aside>
+    </div>
+
+    <section class="onboarding-card">
+        <div class="onboarding-card-header">
+            <h2>{% block step_heading %}Setup{% endblock %}</h2>
+            <p>{% block step_description %}{% endblock %}</p>
+        </div>
+
+        <form method="post" class="stack">
+            {% csrf_token %}
+            {% block step_body %}{% endblock %}
+
+            <div class="action-row">
+                <div>
+                    {% if previous_step %}
+                    <a href="{% url 'finnovaapp:onboarding' %}?step={{ previous_step }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Back
+                    </a>
+                    {% endif %}
+                </div>
+                <div>
+                    {% block action_buttons %}
+                    <button type="submit" class="btn btn-primary">
+                        Continue
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    {% endblock %}
+                </div>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}

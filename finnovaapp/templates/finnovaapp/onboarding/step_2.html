@@ -1,0 +1,54 @@
+{% extends "finnovaapp/onboarding/base.html" %}
+{% block onboarding_title %}Are you GST registered?{% endblock %}
+{% block onboarding_subtitle %}This controls how Finnova handles your invoices, reserves GST on income, and calculates your compliance status.{% endblock %}
+{% block step_heading %}Tax & compliance setup{% endblock %}
+{% block step_description %}If you earn over ₹20 lakh per year, GST registration is likely mandatory. Finnova handles the maths automatically once it knows your status.{% endblock %}
+
+{% block step_body %}
+<style>
+.tax-option { border:2px solid var(--border-2); border-radius:var(--r-lg); padding:18px 20px; cursor:pointer; margin-bottom:10px; display:flex; align-items:flex-start; gap:14px; transition:.15s; }
+.tax-option:has(input:checked) { border-color:var(--brand); background:var(--brand-glow); }
+.tax-option input { width:18px; height:18px; accent-color:var(--brand); margin-top:2px; flex-shrink:0; }
+.tax-option strong { display:block; font-size:.92rem; color:var(--text); margin-bottom:4px; }
+.tax-option span { font-size:.81rem; color:var(--text-3); line-height:1.55; }
+</style>
+
+<label class="tax-option">
+  <input type="radio" name="gst_registered" value="yes" checked>
+  <div>
+    <strong>Yes — I am GST registered</strong>
+    <span>Finnova will automatically calculate GST collected on each invoice, lock it in a GST reserve account, and show your quarterly payable at a glance. Your health score will include GST compliance as a factor.</span>
+  </div>
+</label>
+
+<label class="tax-option">
+  <input type="radio" name="gst_registered" value="no">
+  <div>
+    <strong>No — I am not GST registered</strong>
+    <span>Invoices won't include GST line items. Advance tax estimates will still be calculated. You can enable GST later from Settings when you register.</span>
+  </div>
+</label>
+
+<label class="tax-option">
+  <input type="radio" name="gst_registered" value="unsure">
+  <div>
+    <strong>I'm not sure yet</strong>
+    <span>Finnova will remind you once your tracked income crosses ₹18 lakh in a year. No action needed right now.</span>
+  </div>
+</label>
+
+<div class="form-group" style="margin-top:16px;" id="gstin-field">
+  <label class="form-label">GSTIN (optional)</label>
+  <input name="gstin" class="form-control" type="text" maxlength="15" placeholder="22AAAAA0000A1Z5" style="font-family:var(--mono);" value="{{ user.profile.metadata.gstin|default:'' }}">
+  <div class="form-section-hint">Your 15-digit GST Identification Number. Used on invoices sent to clients.</div>
+</div>
+
+<script>
+document.querySelectorAll('[name=gst_registered]').forEach(r => {
+  r.addEventListener('change', () => {
+    document.getElementById('gstin-field').style.display = r.value === 'yes' ? '' : 'none';
+  });
+  if (!r.checked) document.getElementById('gstin-field').style.display = 'none';
+});
+</script>
+{% endblock %}

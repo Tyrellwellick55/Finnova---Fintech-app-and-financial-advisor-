@@ -1,0 +1,31 @@
+{% extends 'payments_core/base_payments.html' %}
+{% block title %}Transaction History — Payments — Finnova{% endblock %}
+{% block payment_content %}
+<div class="page-header"><div><h1>Transaction History</h1><p>Every payment processed through your wallet.</p></div>
+<a href="{% url 'payments:payment_dashboard' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Payments</a></div>
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;">
+  <div style="display:grid;grid-template-columns:2.5fr 1fr 1fr 110px;gap:14px;padding:10px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);">
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Transaction</div>
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Date</div>
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Category</div>
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Amount</div>
+  </div>
+  {% if transactions %}{% for item in transactions %}
+  <div style="display:grid;grid-template-columns:2.5fr 1fr 1fr 110px;gap:14px;align-items:center;padding:13px 18px;border-bottom:1px solid var(--border);transition:background .15s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
+    <div style="display:flex;align-items:center;gap:11px;">
+      <div style="width:32px;height:32px;border-radius:9px;background:{% if item.transaction.transaction_type == 'CREDIT' %}var(--green-bg);color:var(--green){% else %}var(--red-bg);color:var(--red){% endif %};display:flex;align-items:center;justify-content:center;font-size:.82rem;flex-shrink:0;">
+        <i class="fas fa-{% if item.transaction.transaction_type == 'CREDIT' %}arrow-down{% else %}arrow-up{% endif %}"></i>
+      </div>
+      <div><div style="font-size:.87rem;font-weight:700;color:var(--text);">{{ item.transaction.description|truncatechars:36 }}</div>
+      {% if item.finance_synced %}<span style="font-size:.72rem;color:var(--green);"><i class="fas fa-check"></i> Synced</span>{% endif %}</div>
+    </div>
+    <div style="font-size:.84rem;color:var(--text-2);">{{ item.transaction.transaction_date|date:"d M Y" }}</div>
+    <div style="font-size:.82rem;color:var(--text-3);">{{ item.category|default:item.transaction.transaction_type }}</div>
+    <div style="font-family:var(--mono);font-weight:800;font-size:.9rem;color:{% if item.transaction.transaction_type == 'CREDIT' %}var(--green){% else %}var(--red){% endif %};">
+      {% if item.transaction.transaction_type == 'CREDIT' %}+{% else %}−{% endif %}₹{{ item.transaction.amount|default:0|floatformat:2 }}
+    </div>
+  </div>
+  {% endfor %}{% else %}
+  <div style="padding:48px;text-align:center;color:var(--text-3);">No transactions yet.</div>{% endif %}
+</div>
+{% endblock %}

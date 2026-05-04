@@ -1,0 +1,249 @@
+{% extends 'analytics_ai/base_analytics.html' %}
+{% block title %}Ask AI — Finnova{% endblock %}
+{% block page_title %}AI Assistant{% endblock %}
+
+{% block analytics_css %}
+<style>
+.chat-layout{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:18px;height:calc(100vh - 185px);min-height:540px;}
+@media(max-width:1000px){.chat-layout{grid-template-columns:1fr;height:auto;}.chat-main{height:580px;}}
+
+/* ── Chat main ── */
+.chat-main{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;}
+.chat-top{padding:14px 18px;border-bottom:1px solid var(--border);background:var(--surface-2);display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.chat-ai-avatar{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--brand),#6366F1);display:flex;align-items:center;justify-content:center;font-size:.9rem;color:var(--bg);flex-shrink:0;}
+.chat-top-info strong{font-size:.9rem;color:var(--text);display:block;}
+.chat-top-info span{font-size:.73rem;color:var(--text-3);}
+.online-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px;}
+
+/* ── Messages ── */
+.chat-msgs{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth;}
+.chat-msgs::-webkit-scrollbar{width:3px;}
+.chat-msgs::-webkit-scrollbar-thumb{background:var(--surface-3);border-radius:2px;}
+
+.msg{display:flex;gap:9px;max-width:90%;}
+.msg.user{align-self:flex-end;flex-direction:row-reverse;}
+.msg.assistant{align-self:flex-start;}
+.msg-av{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;margin-top:2px;}
+.msg.user .msg-av{background:var(--brand-glow);color:var(--brand);border:1px solid var(--border-brand);}
+.msg.assistant .msg-av{background:linear-gradient(135deg,var(--brand),#6366F1);color:var(--bg);}
+.msg-wrap{}
+.msg-bubble{padding:11px 15px;border-radius:var(--r-lg);font-size:.88rem;line-height:1.65;color:var(--text);}
+.msg.user .msg-bubble{background:var(--brand);color:var(--bg);border-radius:var(--r-lg) var(--r-lg) 4px var(--r-lg);}
+.msg.assistant .msg-bubble{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg) var(--r-lg) var(--r-lg) 4px;}
+.msg-time{font-size:.66rem;color:var(--text-3);margin-top:4px;text-align:right;}
+.msg.user .msg-time{text-align:right;}
+.msg.assistant .msg-time{text-align:left;}
+.msg.assistant .msg-bubble strong{color:var(--text);}
+.msg.assistant .msg-bubble ul{padding-left:16px;margin:8px 0 4px;}
+.msg.assistant .msg-bubble li{margin-bottom:4px;}
+
+/* ── Typing ── */
+.typing-ind{display:flex;gap:5px;padding:12px 15px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg) var(--r-lg) var(--r-lg) 4px;width:fit-content;}
+.typing-dot{width:6px;height:6px;border-radius:50%;background:var(--text-3);animation:tdot .9s infinite;}
+.typing-dot:nth-child(2){animation-delay:.15s;}
+.typing-dot:nth-child(3){animation-delay:.3s;}
+@keyframes tdot{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+
+/* ── Input area ── */
+.chat-input-area{padding:12px 14px;border-top:1px solid var(--border);background:var(--surface-2);flex-shrink:0;}
+.chat-input-row{display:flex;gap:9px;align-items:flex-end;}
+.chat-input{flex:1;padding:10px 14px;border:1px solid var(--border-2);border-radius:var(--r-lg);background:var(--bg-3);color:var(--text);font:inherit;font-size:.88rem;resize:none;line-height:1.5;max-height:120px;min-height:42px;transition:border-color .15s,box-shadow .15s;}
+.chat-input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-glow);}
+.chat-send{width:42px;height:42px;border-radius:var(--r-md);background:var(--brand);color:var(--bg);border:none;cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s;}
+.chat-send:hover{background:#00DFA0;}
+.chat-send:disabled{opacity:.35;cursor:not-allowed;}
+.chat-footer-hint{font-size:.71rem;color:var(--text-3);text-align:center;margin-top:8px;}
+
+/* ── Sidebar ── */
+.chat-side{display:flex;flex-direction:column;gap:14px;}
+.ctx-card,.sugg-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;}
+.ctx-card h3,.sugg-card h3{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin:0 0 12px;}
+.ctx-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:.83rem;}
+.ctx-row:last-child{border-bottom:none;}
+.ctx-label{color:var(--text-3);flex:1;}
+.ctx-val{font-family:var(--f-mono);font-weight:700;color:var(--text);font-size:.84rem;}
+.sugg-btn{display:block;width:100%;text-align:left;padding:9px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);font-size:.81rem;cursor:pointer;margin-bottom:6px;transition:.12s;line-height:1.4;font-family:inherit;}
+.sugg-btn:last-child{margin-bottom:0;}
+.sugg-btn:hover{border-color:var(--brand);color:var(--brand);background:var(--brand-glow);}
+</style>
+{% endblock %}
+
+{% block analytics_content %}
+<div class="chat-layout">
+
+  <!-- Main chat -->
+  <div class="chat-main">
+    <div class="chat-top">
+      <div class="chat-ai-avatar"><i class="fas fa-brain" style="font-size:.8rem;"></i></div>
+      <div class="chat-top-info">
+        <strong>Finnova AI</strong>
+        <span><span class="online-dot"></span>Analysing your data — {% now "d M Y" %}</span>
+      </div>
+    </div>
+
+    <div class="chat-msgs" id="chat-messages">
+      <!-- Welcome message -->
+      <div class="msg assistant">
+        <div class="msg-av"><i class="fas fa-brain" style="font-size:.65rem;"></i></div>
+        <div class="msg-wrap">
+          <div class="msg-bubble">
+            Hi {{ request.user.first_name|default:request.user.username }}! I have your financial data loaded —
+            {% if context_summary.months_of_data %}{{ context_summary.months_of_data }} months{% else %}recent{% endif %}
+            of income, expenses, invoices, and goals. Ask me anything. For example:
+            <ul>
+              <li>"Am I more profitable than last month?"</li>
+              <li>"How much should I save this month?"</li>
+              <li>"Why is my health score low?"</li>
+              <li>"Which client brings in the most revenue?"</li>
+            </ul>
+          </div>
+          <div class="msg-time">Just now</div>
+        </div>
+      </div>
+
+      {% for message in chat_history %}
+      <div class="msg {{ message.role }}">
+        {% if message.role == 'user' %}
+        <div class="msg-av">{{ request.user.first_name|first|default:request.user.username|first|upper }}</div>
+        {% else %}
+        <div class="msg-av"><i class="fas fa-brain" style="font-size:.65rem;"></i></div>
+        {% endif %}
+        <div class="msg-wrap">
+          <div class="msg-bubble">{{ message.content|linebreaksbr }}</div>
+          <div class="msg-time">{{ message.created_at|date:"H:i" }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="chat-input-area">
+      <form id="chat-form" onsubmit="sendMessage(event)">
+        {% csrf_token %}
+        <div class="chat-input-row">
+          <textarea id="chat-input" class="chat-input" name="message" placeholder="Ask about your finances…" rows="1"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage(event);}"></textarea>
+          <button type="submit" class="chat-send" id="send-btn"><i class="fas fa-paper-plane"></i></button>
+        </div>
+      </form>
+      <div class="chat-footer-hint">Reads Finance, Agency, Payments &amp; Autopilot data · Powered by AI</div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="chat-side">
+    <div class="ctx-card">
+      <h3>Your data loaded</h3>
+      <div class="ctx-row"><span class="ctx-label">This month income</span><span class="ctx-val">₹{{ context_summary.month_income|floatformat:0|default:"—" }}</span></div>
+      <div class="ctx-row"><span class="ctx-label">This month expense</span><span class="ctx-val">₹{{ context_summary.month_expense|floatformat:0|default:"—" }}</span></div>
+      <div class="ctx-row"><span class="ctx-label">Net this month</span>
+        <span class="ctx-val" style="color:{% if context_summary.net_this_month >= 0 %}var(--green){% else %}var(--red){% endif %};">
+          ₹{{ context_summary.net_this_month|floatformat:0|default:"—" }}
+        </span>
+      </div>
+      <div class="ctx-row"><span class="ctx-label">Health score</span><span class="ctx-val">{% if context_summary.health_score %}{{ context_summary.health_score }}/1000{% else %}—{% endif %}</span></div>
+      <div class="ctx-row"><span class="ctx-label">Open invoices</span><span class="ctx-val">{{ context_summary.open_invoices|default:"0" }}</span></div>
+      <div class="ctx-row"><span class="ctx-label">Savings goals</span><span class="ctx-val">{{ context_summary.savings_goals|default:"0" }} active</span></div>
+      <div class="ctx-row"><span class="ctx-label">Data loaded</span><span class="ctx-val">{{ context_summary.months_of_data|default:"0" }} months</span></div>
+    </div>
+
+    <div class="sugg-card">
+      <h3>Try asking</h3>
+      <button class="sugg-btn" onclick="fillQ(this)">Am I more profitable than last month?</button>
+      <button class="sugg-btn" onclick="fillQ(this)">What is my GST liability this quarter?</button>
+      <button class="sugg-btn" onclick="fillQ(this)">Which client is most profitable?</button>
+      <button class="sugg-btn" onclick="fillQ(this)">Can I afford to hire at ₹25,000/month?</button>
+      <button class="sugg-btn" onclick="fillQ(this)">Why did my health score change?</button>
+      <button class="sugg-btn" onclick="fillQ(this)">How much should I save this month?</button>
+      <button class="sugg-btn" onclick="fillQ(this)">What was my highest revenue month?</button>
+      <button class="sugg-btn" onclick="fillQ(this)">Am I on track for my savings goals?</button>
+    </div>
+
+    {% if context_summary.months_of_data == 0 %}
+    <div class="an-banner warn" style="margin:0;">
+      <i class="fas fa-triangle-exclamation" style="color:var(--yellow)"></i>
+      <div><strong>No Finance data yet</strong><span>Add income and expenses in <a href="{% url 'finance:finance_dashboard' %}" style="color:var(--brand)">Finance</a> for accurate answers.</span></div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+const msgsEl = document.getElementById('chat-messages');
+const inputEl = document.getElementById('chat-input');
+const sendBtn = document.getElementById('send-btn');
+const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+const userInitial = "{{ request.user.first_name|first|default:request.user.username|first|upper }}";
+
+function scrollBottom(){ msgsEl.scrollTop = msgsEl.scrollHeight; }
+scrollBottom();
+
+function fillQ(btn){ inputEl.value = btn.textContent.trim(); inputEl.focus(); autoResize(); }
+
+function autoResize(){
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+}
+inputEl.addEventListener('input', autoResize);
+
+function addMsg(role, html){
+  const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  const av = role === 'user'
+    ? `<div class="msg-av">${userInitial}</div>`
+    : `<div class="msg-av"><i class="fas fa-brain" style="font-size:.65rem;"></i></div>`;
+  const el = document.createElement('div');
+  el.className = `msg ${role}`;
+  el.innerHTML = `${av}<div class="msg-wrap"><div class="msg-bubble">${html}</div><div class="msg-time">${now}</div></div>`;
+  msgsEl.appendChild(el);
+  scrollBottom();
+  return el;
+}
+
+function addTyping(){
+  const el = document.createElement('div');
+  el.className = 'msg assistant'; el.id = 'typing-msg';
+  el.innerHTML = `<div class="msg-av"><i class="fas fa-brain" style="font-size:.65rem;"></i></div><div class="msg-wrap"><div class="typing-ind"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div></div>`;
+  msgsEl.appendChild(el); scrollBottom();
+}
+
+function escapeHtml(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+async function sendMessage(e){
+  e.preventDefault();
+  const text = inputEl.value.trim();
+  if(!text) return;
+  inputEl.value = ''; autoResize();
+  sendBtn.disabled = true;
+  addMsg('user', escapeHtml(text));
+  addTyping();
+
+  try {
+    const res = await fetch('{% url "analytics-ai:ai_chat_api" %}',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrf},
+      body:JSON.stringify({message:text})
+    });
+    const data = await res.json();
+    document.getElementById('typing-msg')?.remove();
+    if(data.error){
+      addMsg('assistant','⚠️ ' + escapeHtml(data.error));
+    } else {
+      addMsg('assistant', escapeHtml(data.reply || 'No response.'));
+    }
+  } catch(err){
+    document.getElementById('typing-msg')?.remove();
+    addMsg('assistant','⚠️ Connection error. Please check your connection and try again.');
+  }
+  sendBtn.disabled = false;
+  scrollBottom();
+}
+
+// Handle ?q= and ?insight= query params
+document.addEventListener('DOMContentLoaded', function(){
+  const p = new URLSearchParams(window.location.search);
+  const q = p.get('q');
+  const ins = p.get('insight');
+  if(q){ inputEl.value = decodeURIComponent(q); autoResize(); inputEl.focus(); }
+  else if(ins){ inputEl.value = 'Tell me more about this insight and what action I should take.'; autoResize(); inputEl.focus(); }
+});
+</script>
+{% endblock %}

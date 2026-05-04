@@ -1,0 +1,173 @@
+{% extends "finnova_autopilot/base_autopilot.html" %}
+{% block title %}AI Insights — Autopilot — Finnova{% endblock %}
+
+{% block autopilot_content %}
+<style>
+.ai-layout { display:grid;grid-template-columns:minmax(0,1.5fr) 320px;gap:20px; }
+.ai-ph { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px; }
+.ai-ph h2 { margin:0;font-size:.96rem;color:var(--text); }
+.rec-card { padding:14px 16px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:10px;display:flex;align-items:flex-start;gap:12px; }
+.rec-icon { width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.88rem;flex-shrink:0; }
+.rec-title { font-weight:700;font-size:.88rem;color:var(--text);margin:0 0 3px; }
+.rec-desc  { font-size:.8rem;color:var(--text-3);margin:0 0 8px;line-height:1.5; }
+.opp-item { display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px; }
+.opp-dot  { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+.opp-body { flex:1;min-width:0; }
+.opp-title { font-size:.86rem;font-weight:700;color:var(--text);display:block; }
+.opp-sub   { font-size:.76rem;color:var(--text-3); }
+.opp-val   { font-family:var(--mono);font-weight:800;font-size:.9rem;flex-shrink:0; }
+.sig-item { padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px; }
+.sig-item.CRITICAL,.sig-item.HIGH { border-left:3px solid var(--red); }
+.sig-item.MEDIUM { border-left:3px solid var(--yellow); }
+.sig-item.LOW,.sig-item.INFO { border-left:3px solid var(--brand); }
+.sig-title { font-weight:700;font-size:.87rem;color:var(--text);margin:0 0 3px; }
+.sig-desc  { font-size:.79rem;color:var(--text-3);margin:0; }
+.risk-meter { padding:18px;border-radius:var(--r-lg);background:var(--surface-2);border:1px solid var(--border);margin-bottom:14px; }
+.risk-bar  { height:8px;border-radius:999px;background:var(--surface-3);overflow:hidden;margin:8px 0 5px; }
+.risk-fill { height:100%;border-radius:inherit; }
+.alert-row { display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px; }
+.alert-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+@media(max-width:1100px){ .ai-layout{grid-template-columns:1fr} }
+</style>
+
+<div  class="mod-hero">
+  <span style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#6366F1;">Autopilot · AI Intelligence</span>
+  <h1 style="font-size:1.4rem;color:var(--text);margin:8px 0 6px;">AI Insights</h1>
+  <p style="font-size:.86rem;color:var(--text-2);margin:0 0 16px;">Personalized recommendations, savings opportunities, and risk signals — derived from your real Finance data.</p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    {% if health_score %}<span class="badge badge-brand"><i class="fas fa-heartbeat"></i> Health: {{ health_score.overall_score }}/1000 ({{ health_score.grade }})</span>{% endif %}
+    {% if pending_approvals_count %}<span class="badge badge-yellow"><i class="fas fa-clock"></i> {{ pending_approvals_count }} pending approvals</span>{% endif %}
+    <a href="{% url 'analytics-ai:financial_health_dashboard' %}" class="btn-outline" style="padding:5px 14px;font-size:.82rem;">Full health report</a>
+  </div>
+</div>
+
+<div class="ai-layout">
+  <div>
+    <!-- Recommendations -->
+    {% if recommendations %}
+    <div class="panel">
+      <div class="ai-ph">
+        <h2><i class="fas fa-lightbulb" style="color:var(--yellow);margin-right:8px;"></i>AI recommendations</h2>
+        <span style="font-size:.76rem;color:var(--text-3);">{{ recommendations|length }} for you</span>
+      </div>
+      {% for rec in recommendations %}
+      <div class="rec-card">
+        <div class="rec-icon" style="background:{% if rec.priority == 'HIGH' %}var(--red-bg);color:var(--red){% elif rec.priority == 'MEDIUM' %}var(--yellow-bg);color:var(--yellow){% else %}var(--brand-glow);color:var(--brand){% endif %};">
+          <i class="fas fa-{{ rec.icon|default:'arrow-trend-up' }}"></i>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <p class="rec-title">{{ rec.title }}</p>
+          <p class="rec-desc">{{ rec.description|default:rec.reason|truncatechars:120 }}</p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            {% if rec.action_url %}
+            <a href="{{ rec.action_url }}" style="padding:5px 12px;border-radius:8px;background:var(--brand);color:var(--bg);font-size:.76rem;font-weight:700;text-decoration:none;">{{ rec.action_label|default:"Take action" }}</a>
+            {% endif %}
+            {% if rec.potential_saving %}<span style="padding:5px 10px;border-radius:8px;background:var(--green-bg);color:var(--green);font-size:.75rem;font-weight:700;">Save ₹{{ rec.potential_saving|default:0|floatformat:0 }}</span>{% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Savings opportunities -->
+    {% if savings_opportunities %}
+    <div class="panel">
+      <div class="ai-ph">
+        <h2><i class="fas fa-piggy-bank" style="color:var(--green);margin-right:8px;"></i>Savings opportunities</h2>
+      </div>
+      {% for opp in savings_opportunities %}
+      <div class="opp-item">
+        <span class="opp-dot" style="background:var(--green);"></span>
+        <div class="opp-body">
+          <span class="opp-title">{{ opp.title }}</span>
+          <span class="opp-sub">{{ opp.description|default:opp.reason|truncatechars:80 }}</span>
+        </div>
+        {% if opp.potential_savings %}<span class="opp-val" style="color:var(--green);">₹{{ opp.potential_savings|default:0|floatformat:0 }}</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Analytics signals -->
+    {% if analytics_signals %}
+    <div class="panel">
+      <div class="ai-ph">
+        <h2><i class="fas fa-chart-line" style="color:var(--blue);margin-right:8px;"></i>Analytics signals</h2>
+        <a href="{% url 'analytics-ai:financial_insights' %}" style="font-size:.78rem;color:var(--brand);font-weight:700;">All insights →</a>
+      </div>
+      {% for sig in analytics_signals %}
+      <div class="sig-item {{ sig.severity }}">
+        <p class="sig-title">{{ sig.title }}</p>
+        <p class="sig-desc">{{ sig.description|truncatechars:120 }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right column -->
+  <div>
+    <!-- Risk assessment -->
+    {% if risk %}
+    <div class="panel">
+      <div class="ai-ph"><h2><i class="fas fa-shield" style="color:var(--yellow);margin-right:8px;"></i>Risk profile</h2></div>
+      <div class="risk-meter">
+        <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+          <span style="font-size:.78rem;font-weight:700;color:var(--text-2);">Risk score</span>
+          <span style="font-size:.9rem;font-weight:800;color:var(--text);font-family:var(--mono);">{{ risk.risk_score|default:0 }}%</span>
+        </div>
+        <div class="risk-bar">
+          <div class="risk-fill" style="width:{{ risk.risk_score|default:0 }}%;background:{% if risk.risk_score >= 70 %}var(--red){% elif risk.risk_score >= 40 %}var(--yellow){% else %}var(--green){% endif %};"></div>
+        </div>
+        <div style="font-size:.75rem;color:var(--text-3);">{{ risk.risk_level|default:"Calculating…" }}</div>
+      </div>
+      {% if risk.risk_factors %}
+      <div style="display:grid;gap:6px;">
+        {% for factor in risk.risk_factors|slice:":4" %}
+        <div style="font-size:.8rem;color:var(--text-3);display:flex;align-items:center;gap:7px;">
+          <i class="fas fa-circle-exclamation" style="color:var(--yellow);font-size:.7rem;flex-shrink:0;"></i>{{ factor }}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Unread alerts summary -->
+    {% if unread_alerts %}
+    <div class="panel">
+      <div class="ai-ph">
+        <h2><i class="fas fa-bell" style="color:var(--red);margin-right:8px;"></i>Unread alerts</h2>
+        <a href="{% url 'autopilot:alerts' %}" style="font-size:.78rem;color:var(--brand);font-weight:700;">View all →</a>
+      </div>
+      {% for alert in unread_alerts %}
+      <div class="alert-row">
+        <span class="alert-dot" style="background:{% if alert.severity == 'CRITICAL' %}var(--red){% elif alert.severity == 'HIGH' %}#F97316{% elif alert.severity == 'MEDIUM' %}var(--yellow){% else %}var(--brand){% endif %};"></span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.84rem;font-weight:700;color:var(--text);">{{ alert.title|truncatechars:40 }}</div>
+          <div style="font-size:.74rem;color:var(--text-3);">{{ alert.alert_time|timesince }} ago</div>
+        </div>
+      </div>
+      {% endfor %}
+      <a href="{% url 'autopilot:alerts' %}?status=unread" class="btn-ghost" style="width:100%;justify-content:center;margin-top:8px;">Manage alerts</a>
+    </div>
+    {% endif %}
+
+    <!-- Spending patterns summary -->
+    {% if spending_patterns %}
+    <div class="panel">
+      <div class="ai-ph"><h2><i class="fas fa-chart-pie" style="color:#6366F1;margin-right:8px;"></i>Spending patterns</h2></div>
+      {% if spending_patterns.top_categories %}
+      {% for cat in spending_patterns.top_categories|slice:":5" %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.82rem;">
+        <span style="color:var(--text-2);">{{ cat.category }}</span>
+        <span style="font-family:var(--mono);font-weight:700;color:var(--text);">₹{{ cat.amount|default:0|floatformat:0 }}</span>
+      </div>
+      {% endfor %}
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

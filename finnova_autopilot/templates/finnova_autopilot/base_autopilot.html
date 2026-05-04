@@ -1,0 +1,28 @@
+{% extends 'finnovaapp/base.html' %}
+{% load static %}
+{% load nav_extras %}
+{% block title %}{% block page_title %}Autopilot{% endblock %} — Finnova{% endblock %}
+{% block topbar_title %}Autopilot{% endblock %}
+{% block topbar_sub %}<span style="color:var(--text-3);font-size:.76rem;">Automated financial intelligence</span>{% endblock %}
+
+{% block extra_css %}
+{% block autopilot_extra_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<nav class="mod-nav">
+  <div class="mod-nav-tabs">
+    <a href="{% url 'autopilot:autopilot_dashboard' %}" class="mod-tab {% if request.resolver_match.url_name == 'autopilot_dashboard' %}active{% endif %}"><i class="fas fa-gauge-high"></i> Overview</a>
+    <a href="{% url 'autopilot:approvals' %}" class="mod-tab {% if request.resolver_match.url_name == 'approvals' %}active{% endif %}"><i class="fas fa-check-double"></i> Approvals</a>
+    <a href="{% url 'autopilot:alerts' %}" class="mod-tab {% if request.resolver_match.url_name == 'alerts' %}active{% endif %}"><i class="fas fa-triangle-exclamation"></i> Alerts</a>
+    <a href="{% url 'autopilot:smart_bills' %}" class="mod-tab {% if request.resolver_match.url_name == 'smart_bills' %}active{% endif %}"><i class="fas fa-file-invoice"></i> Smart Bills</a>
+    <a href="{% url 'autopilot:savings' %}" class="mod-tab {% if request.resolver_match.url_name == 'savings' %}active{% endif %}"><i class="fas fa-piggy-bank"></i> Savings</a>
+    <a href="{% url 'autopilot:automation_rules' %}" class="mod-tab {% if request.resolver_match.url_name == 'automation_rules' %}active{% endif %}"><i class="fas fa-bolt"></i> Rules</a>
+    <a href="{% url 'autopilot:transaction_patterns' %}" class="mod-tab {% if request.resolver_match.url_name == 'transaction_patterns' %}active{% endif %}"><i class="fas fa-repeat"></i> Patterns</a>
+  </div>
+  <div class="mod-nav-actions">
+{% block autopilot_actions %}{% endblock %}
+  </div>
+</nav>
+{% block autopilot_content %}{% endblock %}
+{% endblock %}

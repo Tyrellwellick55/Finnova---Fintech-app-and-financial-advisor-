@@ -1,0 +1,275 @@
+{% extends "finance/base.html" %}
+{% block title %}Finance Overview — Finnova{% endblock %}
+
+{% block finance_content %}
+<style>
+/* Page-specific layout only */
+.quick-actions { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:20px; }
+.qa { display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:16px 10px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--surface);text-decoration:none;transition:.2s;text-align:center; }
+.qa:hover { border-color:var(--brand);transform:translateY(-2px); }
+.qa i { font-size:1.2rem;color:var(--brand); }
+.qa span { font-size:.78rem;font-weight:700;color:var(--text-2); }
+@media(max-width:900px){ .quick-actions{grid-template-columns:repeat(2,1fr)} }
+</style>
+
+<!-- Hero -->
+<div class="mod-hero">
+  <div style="flex:1;">
+    <span class="mod-kicker">Finance</span>
+    <h1>Financial overview — {% now "F Y" %}</h1>
+    <p>Track all money movement across accounts, budgets, and goals. Finance is the ground truth for Analytics and Autopilot.</p>
+  </div>
+  <div style="flex-shrink:0;display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{% url 'finance:add_income' %}" class="btn"><i class="fas fa-plus"></i> Add income</a>
+    <a href="{% url 'finance:add_expense' %}" class="btn-ghost"><i class="fas fa-minus"></i> Add expense</a>
+  </div>
+</div>
+
+<!-- Metric strip -->
+<div class="metrics" style="margin-bottom:18px;">
+  <div class="metric">
+    <span class="metric-label">Total income</span>
+    <span class="metric-value positive">₹{{ summary.total_income|default:0|floatformat:2 }}</span>
+    <span class="metric-sub">{{ summary.income_count }} entries this period</span>
+  </div>
+  <div class="metric">
+    <span class="metric-label">Total expense</span>
+    <span class="metric-value negative">₹{{ summary.total_expense|default:0|floatformat:2 }}</span>
+    <span class="metric-sub">{{ summary.expense_count }} entries this period</span>
+  </div>
+  <div class="metric">
+    <span class="metric-label">Net position</span>
+    <span class="metric-value {% if summary.net_position < 0 %}negative{% else %}positive{% endif %}">₹{{ summary.net_position|default:0|floatformat:2 }}</span>
+    <span class="metric-sub">{{ summary.savings_rate|default:0|floatformat:1 }}% savings rate</span>
+  </div>
+  <div class="metric">
+    <span class="metric-label">Account balance</span>
+    <span class="metric-value">₹{{ summary.current_balance|default:0|floatformat:2 }}</span>
+    <span class="metric-sub">Across linked accounts</span>
+  </div>
+</div>
+
+<!-- Quick actions -->
+<div class="quick-actions">
+  <a href="{% url 'finance:transaction_center' %}" class="qa"><i class="fas fa-arrow-right-arrow-left"></i><span>Transactions</span></a>
+  <a href="{% url 'finance:budget_list' %}" class="qa"><i class="fas fa-sliders"></i><span>Budgets</span></a>
+  <a href="{% url 'finance:financial_goals' %}" class="qa"><i class="fas fa-bullseye"></i><span>Goals</span></a>
+  <a href="{% url 'finance:import_csv' %}" class="qa"><i class="fas fa-file-import"></i><span>Import data</span></a>
+</div>
+
+<!-- C1: Income vs Expense trend chart (Chart.js) -->
+<div class="panel" style="margin-bottom:20px;">
+  <div class="panel-head">
+    <div><h2>Income vs expense — 6 months</h2>
+      <p>Monthly cash flow trend</p></div>
+  </div>
+  {% if monthly_series %}
+  <canvas id="trendChart" height="80"></canvas>
+  {% else %}
+  <div class="empty-state" style="border:none;padding:20px;">
+    <div class="empty-icon"><i class="fas fa-chart-line"></i></div>
+    <h3>Add transactions to see your trend</h3>
+  </div>
+  {% endif %}
+</div>
+
+<div class="g2">
+  <!-- Budget preview -->
+  <div class="panel">
+    <div class="panel-head">
+      <div><h2>Budgets</h2><p>Active spending limits and their status.</p></div>
+      <a href="{% url 'finance:budget_list' %}" class="btn-outline">All budgets</a>
+    </div>
+    {% if budget_preview %}
+      {% for budget in budget_preview %}
+      <div class="list-item">
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <strong style="font-size:.88rem;color:var(--text);">{{ budget.name }}</strong>
+            <span class="badge {% if budget.is_exceeded %}is-danger{% elif budget.is_near_limit %}is-warning{% else %}is-success{% endif %}">{{ budget.get_status_display }}</span>
+          </div>
+          <p style="font-size:.76rem;color:var(--text-3);margin:2px 0 0;">₹{{ budget.current_spending|default:0|floatformat:2 }} of ₹{{ budget.amount|default:0|floatformat:2 }}</p>
+          <div class="progress" style="margin-top:8px;">
+            <div class="progress-fill {% if budget.is_exceeded %}over{% elif budget.is_near_limit %}warn{% endif %}" style="width:{% if budget.progress_display > 100 %}100{% else %}{{ budget.progress_display|default:0|floatformat:0 }}{% endif %}%;"></div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="finance-empty">No active budgets. <a href="{% url 'finance:add_budget' %}" style="color:var(--brand);font-weight:700;">Create one →</a></div>
+    {% endif %}
+  </div>
+
+  <!-- Goals preview -->
+  <div class="panel">
+    <div class="panel-head">
+      <div><h2>Goals</h2><p>Progress on your financial targets.</p></div>
+      <a href="{% url 'finance:financial_goals' %}" class="btn-outline">All goals</a>
+    </div>
+    {% if goal_preview %}
+      {% for goal in goal_preview %}
+      <div class="list-item">
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <strong style="font-size:.88rem;color:var(--text);">{{ goal.name }}</strong>
+            <span class="badge {% if goal.is_on_track %}is-success{% else %}is-warning{% endif %}">{% if goal.is_on_track %}On track{% else %}Review{% endif %}</span>
+          </div>
+          <p style="font-size:.76rem;color:var(--text-3);margin:2px 0 0;">₹{{ goal.current_amount|default:0|floatformat:2 }} of ₹{{ goal.target_amount|default:0|floatformat:2 }}</p>
+          <div class="progress" style="margin-top:8px;"><div class="progress-fill" style="width:{% if goal.progress_percentage > 100 %}100{% else %}{{ goal.progress_percentage|default:0|floatformat:0 }}{% endif %}%"></div></div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="finance-empty">No goals set. <a href="{% url 'finance:add_financial_goal' %}" style="color:var(--brand);font-weight:700;">Add a goal →</a></div>
+    {% endif %}
+  </div>
+</div>
+
+{% if recent_transactions %}
+<div class="panel" style="margin-top:18px;">
+  <div class="panel-head">
+    <div><h2>Recent transactions</h2><p>Latest income, expenses, and synced payments.</p></div>
+    <a href="{% url 'finance:transaction_center' %}" class="btn-outline">All transactions</a>
+  </div>
+  <div class="finance-table-wrap">
+    <table class="finance-table">
+      <thead><tr><th>Transaction</th><th>Category</th><th>Date</th><th>Status</th><th style="text-align:right;">Amount</th></tr></thead>
+      <tbody>
+        {% for item in recent_transactions %}
+        <tr>
+          <td>
+            <strong style="color:var(--text);display:block;">{{ item.title }}</strong>
+            <span style="font-size:.76rem;color:var(--text-3);">{{ item.source }}</span>
+          </td>
+          <td style="color:var(--text-3);">{{ item.category }}</td>
+          <td style="color:var(--text-3);">{{ item.date|date:"d M Y" }}</td>
+          <td>
+            <span style="padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:800;
+              {% if item.status == 'verified' %}background:var(--green-bg);color:var(--green);
+              {% elif item.status == 'needs_review' %}background:var(--yellow-bg);color:var(--yellow);
+              {% else %}background:var(--surface-3);color:var(--text-3);{% endif %}">
+              {{ item.status|title }}
+            </span>
+          </td>
+          <td style="text-align:right;font-family:var(--mono);font-weight:700;{% if item.type == 'expense' %}color:var(--red);{% else %}color:var(--green);{% endif %}">
+            {% if item.type == 'expense' %}−{% else %}+{% endif %}₹{{ item.amount|default:0|floatformat:2 }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if top_categories %}
+<div class="panel" style="margin-top:18px;">
+  <div class="panel-head">
+    <div><h2>Top expense categories</h2><p>Where the most money went this month.</p></div>
+    <a href="{% url 'finance:expense_list' %}" class="btn-outline">All expenses</a>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding-top:4px;">
+    {% for cat in top_categories %}
+    <div class="list-item" style="flex-direction:column;align-items:flex-start;">
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:4px;">{{ cat.category }}</div>
+      <div style="font-size:1.2rem;font-weight:800;color:var(--text);font-family:var(--mono);">₹{{ cat.total|default:0|floatformat:0 }}</div>
+      <div style="font-size:.76rem;color:var(--text-3);">{{ cat.count }} transactions</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+
+{% if monthly_series %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  const series = {{ monthly_series|safe }};
+  const ctx = document.getElementById('trendChart');
+  if (!ctx || !series) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: series.labels || [],
+      datasets: [
+        {
+          label: 'Income',
+          data: series.income || [],
+          borderColor: '#00E5A0',
+          backgroundColor: 'rgba(0,229,160,.08)',
+          fill: true, tension: .4, pointRadius: 4,
+          pointBackgroundColor: '#00E5A0'
+        },
+        {
+          label: 'Expense',
+          data: series.expense || [],
+          borderColor: '#F43F5E',
+          backgroundColor: 'rgba(244,63,94,.08)',
+          fill: true, tension: .4, pointRadius: 4,
+          pointBackgroundColor: '#F43F5E'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { color: '#8892B8', font: { family: 'Outfit' } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ' ₹' + (ctx.parsed.y||0).toLocaleString('en-IN', {minimumFractionDigits:0})
+          }
+        }
+      },
+      scales: {
+        y: {
+          grid: { color: 'rgba(255,255,255,.05)' },
+          ticks: {
+            color: '#8892B8',
+            callback: v => '₹' + (v/1000).toFixed(0) + 'k'
+          }
+        },
+        x: { ticks: { color: '#8892B8' }, grid: { display: false } }
+      }
+    }
+  });
+})();
+</script>
+{% endif %}
+
+{% endblock %}
+
+{% if chart_points %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const canvas = document.getElementById('financeChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+  const pts = {{ chart_points|safe }};
+  new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: pts.map(p => p.label),
+      datasets: [
+        { label: 'Income', data: pts.map(p => parseFloat(p.income)), backgroundColor: 'rgba(0,200,150,.55)', borderRadius: 6, borderSkipped: false },
+        { label: 'Expense', data: pts.map(p => parseFloat(p.expense)), backgroundColor: 'rgba(244,63,94,.45)', borderRadius: 6, borderSkipped: false }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#A8B4D0', font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
+        tooltip: {
+          backgroundColor: '#1A2340', borderColor: 'rgba(255,255,255,.1)', borderWidth: 1,
+          titleColor: '#F0F4FF', bodyColor: '#A8B4D0',
+          callbacks: { label: ctx => '  ₹' + ctx.raw.toLocaleString('en-IN', {minimumFractionDigits: 2}) }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#A8B4D0', font: { size: 11 } } },
+        y: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#A8B4D0', font: { size: 11 }, callback: v => '₹' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) } }
+      }
+    }
+  });
+});
+</script>
+{% endif %}

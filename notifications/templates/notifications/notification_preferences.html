@@ -1,0 +1,90 @@
+{% extends "notifications/base_notifications.html" %}
+{% load notification_extras %}
+{% block title %}Preferences — Notifications — Finnova{% endblock %}
+
+{% block notification_content %}
+<div class="page-header"><div><h1>Notification Preferences</h1><p>Control which notifications you receive and how they're delivered.</p></div></div>
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;">
+  <div class="card">
+    <div class="card-header"><h2>Delivery preferences</h2></div>
+    <form method="post" action="{% url 'notifications:notification_preferences' %}">{% csrf_token %}
+      {% if preferences %}
+      <div style="display:grid;gap:10px;margin-bottom:16px;">
+        
+        
+        <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+          <span style="font-size:.86rem;font-weight:600;color:var(--text-2);">In-app notifications</span>
+          <input type="checkbox" name="in_app_enabled" {% if preferences|get:pair.0 %}checked{% endif %} style="width:17px;height:17px;">
+        </label>
+        
+        
+        
+        <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+          <span style="font-size:.86rem;font-weight:600;color:var(--text-2);">Email notifications</span>
+          <input type="checkbox" name="email_enabled" {% if preferences|get:pair.0 %}checked{% endif %} style="width:17px;height:17px;">
+        </label>
+        
+        
+        
+        <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+          <span style="font-size:.86rem;font-weight:600;color:var(--text-2);">SMS notifications</span>
+          <input type="checkbox" name="sms_enabled" {% if preferences|get:pair.0 %}checked{% endif %} style="width:17px;height:17px;">
+        </label>
+        
+        
+        
+        <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+          <span style="font-size:.86rem;font-weight:600;color:var(--text-2);">Push notifications</span>
+          <input type="checkbox" name="push_enabled" {% if preferences|get:pair.0 %}checked{% endif %} style="width:17px;height:17px;">
+        </label>
+        
+        
+      </div>
+      {% endif %}
+      {% if preference_form %}{{ preference_form.as_p }}{% endif %}
+      <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Save preferences</button>
+    </form>
+  </div>
+  <div class="card">
+    <div class="card-header"><h2>Category settings</h2></div>
+    <div style="display:grid;gap:8px;">
+      
+      
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+        <span style="font-size:.84rem;color:var(--text-2);">Payments</span>
+        <span style="padding:3px 9px;border-radius:999px;font-size:.72rem;font-weight:700;background:var(--brand-glow);color:var(--brand);">Active</span>
+      </div>
+      
+      
+      
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+        <span style="font-size:.84rem;color:var(--text-2);">Budget alerts</span>
+        <span style="padding:3px 9px;border-radius:999px;font-size:.72rem;font-weight:700;background:var(--brand-glow);color:var(--brand);">Active</span>
+      </div>
+      
+      
+      
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+        <span style="font-size:.84rem;color:var(--text-2);">Savings updates</span>
+        <span style="padding:3px 9px;border-radius:999px;font-size:.72rem;font-weight:700;background:var(--brand-glow);color:var(--brand);">Active</span>
+      </div>
+      
+      
+      
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+        <span style="font-size:.84rem;color:var(--text-2);">Security</span>
+        <span style="padding:3px 9px;border-radius:999px;font-size:.72rem;font-weight:700;background:var(--brand-glow);color:var(--brand);">Active</span>
+      </div>
+      
+      
+      
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+        <span style="font-size:.84rem;color:var(--text-2);">System updates</span>
+        <span style="padding:3px 9px;border-radius:999px;font-size:.72rem;font-weight:700;background:var(--brand-glow);color:var(--brand);">Active</span>
+      </div>
+      
+      
+    </div>
+  </div>
+</div>
+{% endblock %}

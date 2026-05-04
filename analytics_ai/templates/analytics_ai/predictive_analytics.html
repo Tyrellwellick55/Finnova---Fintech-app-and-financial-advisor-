@@ -1,0 +1,286 @@
+{% extends 'analytics_ai/base_analytics.html' %}
+{% load static ai_filters %}
+{% block title %}Predictions — Finnova{% endblock %}
+{% block page_title %}Predictive Analytics{% endblock %}
+
+{% block analytics_css %}
+<style>
+.pred-hero{padding:22px 26px;border-radius:var(--r-xl);background:var(--surface);border:1px solid rgba(99,102,241,.3);margin-bottom:22px;}
+.pred-hero .kicker{font-size:.67rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:#818CF8;}
+.pred-hero h1{font-size:1.35rem;color:var(--text);margin:6px 0 4px;}
+.pred-hero p{font-size:.87rem;color:var(--text-2);margin:0;}
+.signal-card{padding:16px 18px;border-radius:var(--r-lg);background:var(--surface-2);border:1px solid var(--border);display:flex;gap:14px;align-items:flex-start;margin-bottom:10px;}
+.signal-icon{width:36px;height:36px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;}
+.signal-body{flex:1;}
+.signal-title{font-size:.88rem;font-weight:700;color:var(--text);margin:0 0 4px;}
+.signal-detail{font-size:.8rem;color:var(--text-2);margin:0;line-height:1.5;}
+.signal-badges{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.badge-pill{padding:2px 10px;border-radius:999px;font-size:.7rem;font-weight:800;}
+.badge-success{background:var(--green-bg);color:var(--green);}
+.badge-warning{background:var(--yellow-bg);color:var(--yellow);}
+.badge-danger{background:var(--red-bg);color:var(--red);}
+.badge-info{background:var(--indigo-glow);color:#818CF8;}
+.conf-bar{display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--text-3);}
+.conf-track{flex:1;height:3px;border-radius:999px;background:var(--surface-3);}
+.conf-fill{height:100%;border-radius:inherit;background:var(--brand);}
+.conf-high .conf-fill{background:var(--green);}
+.conf-medium .conf-fill{background:var(--yellow);}
+.conf-low .conf-fill{background:var(--red);}
+.trend-kpi{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px;}
+.trend-kpi-label{font-size:.82rem;color:var(--text-2);}
+.trend-kpi-val{font-family:var(--f-mono);font-size:.88rem;font-weight:800;}
+.rising-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px;}
+.cat-pill{padding:3px 9px;border-radius:999px;font-size:.72rem;font-weight:700;background:var(--surface-3);color:var(--text-2);}
+.season-card{padding:14px;border-radius:var(--r-lg);background:var(--surface-2);border:1px solid var(--border);text-align:center;}
+.season-icon{font-size:1.4rem;display:block;margin-bottom:6px;}
+.season-name{font-size:.78rem;font-weight:800;color:var(--text);display:block;}
+.season-period{font-size:.7rem;color:var(--text-3);margin-bottom:6px;display:block;}
+.season-spend{font-family:var(--f-mono);font-size:1rem;font-weight:800;color:var(--text);display:block;}
+.season-variance{font-size:.72rem;font-weight:700;display:inline-block;padding:1px 8px;border-radius:999px;margin-top:4px;}
+.risk-factor{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px;font-size:.84rem;}
+</style>
+{% endblock %}
+
+{% block analytics_content %}
+{% if error %}
+<div class="an-banner warn"><i class="fas fa-triangle-exclamation" style="color:var(--yellow)"></i><div><strong>Not enough data yet</strong><span>Add income and expenses in <a href="{% url 'finance:finance_dashboard' %}" style="color:var(--brand)">Finance</a> to unlock AI predictions.</span></div></div>
+{% endif %}
+
+<div class="pred-hero">
+  <span class="kicker">AI Predictions</span>
+  <h1>What your data predicts</h1>
+  <p>Finnova models your Finance history to surface cash flow signals, anomalies, and spending trends — before they happen.</p>
+</div>
+
+<!-- Forecast signal cards -->
+<div class="an-grid-2" style="margin-bottom:0;">
+  <div>
+    {% if forecast_signals %}
+    <div class="an-card">
+      <div class="an-card-head"><h2><i class="fas fa-bolt"></i> Forecast signals</h2></div>
+      {% for sig in forecast_signals %}
+      <div class="signal-card">
+        <div class="signal-icon" style="background:{% if sig.badge_class == 'danger' %}var(--red-bg){% elif sig.badge_class == 'warning' %}var(--yellow-bg){% elif sig.badge_class == 'success' %}var(--green-bg){% else %}var(--indigo-glow){% endif %};">
+          <i class="fas fa-{{ sig.icon|default:'circle-info' }}" style="color:{% if sig.badge_class == 'danger' %}var(--red){% elif sig.badge_class == 'warning' %}var(--yellow){% elif sig.badge_class == 'success' %}var(--green){% else %}#818CF8{% endif %};"></i>
+        </div>
+        <div class="signal-body">
+          <p class="signal-title">{{ sig.title }}</p>
+          <p class="signal-detail">{{ sig.detail }}</p>
+          <div class="signal-badges">
+            <span class="badge-pill badge-{{ sig.badge_class|default:'info' }}">{{ sig.badge }}</span>
+            {% if sig.confidence %}
+            <div class="conf-bar conf-{{ sig.confidence_class|default:'medium' }}" style="flex:1;max-width:120px;">
+              <span>{{ sig.confidence }}% confidence</span>
+              <div class="conf-track"><div class="conf-fill" style="width:{{ sig.confidence }}%;"></div></div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Cashflow chart -->
+    <div class="an-card">
+      <div class="an-card-head">
+        <h2><i class="fas fa-chart-line" style="color:#6366F1"></i> 90-day cash flow projection</h2>
+        <span class="badge-pill badge-info">AI model</span>
+      </div>
+      {% if cashflow_predictions.current_balance is not None %}
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+        <div style="text-align:center;padding:12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+          <div style="font-size:.68rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Current</div>
+          <div style="font-family:var(--f-mono);font-weight:800;color:var(--text);">₹{{ cashflow_predictions.current_balance|default:0|floatformat:0 }}</div>
+        </div>
+        <div style="text-align:center;padding:12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+          <div style="font-size:.68rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">30 days</div>
+          <div style="font-family:var(--f-mono);font-weight:800;color:{% if cashflow_predictions.next_30_days >= cashflow_predictions.current_balance %}var(--green){% else %}var(--red){% endif %};">₹{{ cashflow_predictions.next_30_days|default:0|floatformat:0 }}</div>
+        </div>
+        <div style="text-align:center;padding:12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+          <div style="font-size:.68rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">90 days</div>
+          <div style="font-family:var(--f-mono);font-weight:800;color:{% if cashflow_predictions.next_90_days >= cashflow_predictions.current_balance %}var(--green){% else %}var(--red){% endif %};">₹{{ cashflow_predictions.next_90_days|default:0|floatformat:0 }}</div>
+        </div>
+      </div>
+      <div class="chart-box"><canvas id="cashflowChart" height="130"></canvas></div>
+      <div style="font-size:.73rem;color:var(--text-3);margin-top:8px;display:flex;align-items:center;gap:6px;">
+        <i class="fas fa-info-circle"></i>
+        Daily net: ₹{{ cashflow_predictions.daily_net|default:0|floatformat:2 }} · Confidence {{ cashflow_predictions.confidence|default:0 }}%
+      </div>
+      {% else %}
+      <div class="an-empty"><i class="fas fa-chart-line"></i><strong>Cash flow projection pending</strong><p>Add income and expense records to generate a 90-day forecast.</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <!-- Trend KPIs -->
+    {% if trend_analysis %}
+    <div class="an-card" style="margin-bottom:16px;">
+      <div class="an-card-head"><h2><i class="fas fa-arrow-trend-up"></i> 90-day trends</h2></div>
+      <div class="trend-kpi">
+        <span class="trend-kpi-label">Income growth</span>
+        <span class="trend-kpi-val {% if trend_analysis.income_growth >= 0 %}up{% else %}dn{% endif %}">{{ trend_analysis.income_growth|default:0|floatformat:1 }}%</span>
+      </div>
+      <div class="trend-kpi">
+        <span class="trend-kpi-label">Expense growth</span>
+        <span class="trend-kpi-val {% if trend_analysis.expense_growth <= 0 %}up{% else %}dn{% endif %}">{{ trend_analysis.expense_growth|default:0|floatformat:1 }}%</span>
+      </div>
+      <div class="trend-kpi">
+        <span class="trend-kpi-label">Savings trend</span>
+        <span class="trend-kpi-val {% if trend_analysis.savings_growth >= 0 %}up{% else %}dn{% endif %}">{{ trend_analysis.savings_growth|default:0|floatformat:1 }}%</span>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Income chart -->
+    {% if income_predictions.history %}
+    <div class="an-card" style="margin-bottom:16px;">
+      <div class="an-card-head">
+        <h2><i class="fas fa-calendar-check"></i> Income history</h2>
+        {% if income_predictions.projected_next_month %}
+        <span style="font-family:var(--f-mono);font-size:.82rem;color:var(--green);font-weight:800;">↗ ₹{{ income_predictions.projected_next_month|floatformat:0 }} projected</span>
+        {% endif %}
+      </div>
+      <div class="chart-box"><canvas id="incomeHistChart" height="130"></canvas></div>
+    </div>
+    {% endif %}
+
+    <!-- Rising expenses -->
+    {% if expense_predictions.increasing %}
+    <div class="an-card" style="margin-bottom:16px;">
+      <div class="an-card-head"><h2><i class="fas fa-arrow-up" style="color:var(--red)"></i> Rising categories</h2></div>
+      {% for cat in expense_predictions.increasing|slice:":4" %}
+      <div class="rising-item">
+        <span class="cat-pill">{{ cat.name }}</span>
+        <div style="flex:1">
+          <div class="an-bar-track" style="height:6px;margin-bottom:3px;"><div class="an-bar-fill red" style="width:{{ cat.increase|default:0|floatformat:0|add:'0' }}%;max-width:100%;"></div></div>
+        </div>
+        <span style="font-family:var(--f-mono);font-size:.8rem;color:var(--red);font-weight:700;">+{{ cat.increase|default:0|floatformat:1 }}%</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Falling expenses (good news) -->
+    {% if expense_predictions.decreasing %}
+    <div class="an-card" style="margin-bottom:16px;">
+      <div class="an-card-head"><h2><i class="fas fa-arrow-down" style="color:var(--green)"></i> Falling categories</h2></div>
+      {% for cat in expense_predictions.decreasing|slice:":3" %}
+      <div class="rising-item">
+        <span class="cat-pill">{{ cat.name }}</span>
+        <div style="flex:1">
+          <div class="an-bar-track" style="height:6px;margin-bottom:3px;"><div class="an-bar-fill green" style="width:{{ cat.decrease|default:0|floatformat:0 }}%;max-width:100%;"></div></div>
+        </div>
+        <span style="font-family:var(--f-mono);font-size:.8rem;color:var(--green);font-weight:700;">-{{ cat.decrease|default:0|floatformat:1 }}%</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Risk assessment -->
+    {% if risk_assessment %}
+    <div class="an-card" style="margin-bottom:16px;">
+      <div class="an-card-head"><h2><i class="fas fa-shield-halved"></i> Risk assessment</h2></div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;padding:14px;border-radius:var(--r-lg);background:var(--surface-2);border:1px solid var(--border);">
+        <div style="text-align:center;">
+          <div style="font-family:var(--f-mono);font-size:2rem;font-weight:800;color:{% if risk_assessment.score < 30 %}var(--green){% elif risk_assessment.score < 60 %}var(--yellow){% else %}var(--red){% endif %};">{{ risk_assessment.score|default:0 }}</div>
+          <div style="font-size:.72rem;color:var(--text-3);">Risk score</div>
+        </div>
+        <div style="flex:1">
+          <div style="font-weight:700;color:var(--text);font-size:.9rem;">{{ risk_assessment.level|default:"Moderate" }} risk</div>
+          <div style="font-size:.8rem;color:var(--text-2);margin-top:2px;">Main concern: {{ risk_assessment.top_risk|default:"General discipline" }}</div>
+        </div>
+      </div>
+      {% for f in risk_assessment.factors|slice:":4" %}
+      <div class="risk-factor">
+        <span style="color:var(--text-2);">{{ f.name }}</span>
+        <span class="sev {% if f.severity == 'High' %}sev-HIGH{% elif f.severity == 'Medium' %}sev-MEDIUM{% else %}sev-LOW{% endif %}">{{ f.severity }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Seasonality -->
+{% if seasonality.patterns %}
+<div class="an-card" style="margin-top:16px;">
+  <div class="an-card-head"><h2><i class="fas fa-calendar-alt"></i> Spending seasonality</h2><span style="font-size:.82rem;color:var(--text-3);">{{ seasonality_summary }}</span></div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+    {% for p in seasonality.patterns %}
+    <div class="season-card">
+      <i class="fas fa-{{ p.icon }}" style="color:{{ p.color }};font-size:1.4rem;display:block;margin-bottom:8px;"></i>
+      <span class="season-name">{{ p.name }}</span>
+      <span class="season-period">{{ p.period }}</span>
+      <span class="season-spend">₹{{ p.avg_spending|floatformat:0 }}</span>
+      <span class="season-variance {% if p.variance >= 0 %}sev-HIGH{% else %}sev-LOW{% endif %}">{% if p.variance >= 0 %}+{% endif %}{{ p.variance|floatformat:1 }}% vs avg</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Anomalies -->
+{% if anomalies %}
+<div class="an-card" style="margin-top:16px;border-color:rgba(239,68,68,.2);">
+  <div class="an-card-head"><h2><i class="fas fa-exclamation-triangle" style="color:var(--red)"></i> Anomaly detection</h2></div>
+  <div class="an-grid-eq">
+    {% for a in anomalies|slice:":4" %}
+    <div style="padding:12px 14px;border-radius:var(--r-md);background:var(--red-bg);border:1px solid rgba(239,68,68,.15);border-left:3px solid var(--red);">
+      <strong style="font-size:.87rem;color:var(--red);display:flex;justify-content:space-between;align-items:center;gap:6px;">
+        {{ a.title|default:a }}
+        {% if a.risk_score %}<span class="sev sev-HIGH">{{ a.risk_score }}% risk</span>{% endif %}
+      </strong>
+      {% if a.description %}<p style="margin:4px 0 0;font-size:.78rem;color:var(--text-2);">{{ a.description|truncatechars:90 }}</p>{% endif %}
+      {% if a.detected_at %}<div style="font-size:.7rem;color:var(--text-3);margin-top:4px;">{{ a.detected_at|timesince }} ago</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<script>
+(function(){
+  const gridColor='rgba(255,255,255,.05)';
+  const tickColor='#5A6070';
+
+  // Cashflow projection chart
+  const cfRaw = {{ cashflow_chart|safe }};
+  const ctx1 = document.getElementById('cashflowChart');
+  if(ctx1 && cfRaw.labels && cfRaw.labels.length){
+    new Chart(ctx1,{
+      type:'line',
+      data:{
+        labels:cfRaw.labels,
+        datasets:[{
+          label:'Projected balance',
+          data:cfRaw.values,
+          borderColor:'#6366F1',
+          backgroundColor:'rgba(99,102,241,.08)',
+          borderWidth:2,tension:0.4,fill:true,
+          pointRadius:2,pointHoverRadius:5
+        }]
+      },
+      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'₹'+c.raw.toLocaleString('en-IN')}}},
+        scales:{y:{grid:{color:gridColor},ticks:{color:tickColor,callback:v=>'₹'+v.toLocaleString('en-IN')}},x:{grid:{display:false},ticks:{color:tickColor,maxTicksLimit:8}}}}
+    });
+  }
+
+  // Income history chart
+  const ihRaw = {{ income_chart|safe }};
+  const ctx2 = document.getElementById('incomeHistChart');
+  if(ctx2 && ihRaw.labels && ihRaw.labels.length){
+    new Chart(ctx2,{
+      type:'bar',
+      data:{
+        labels:ihRaw.labels,
+        datasets:[{label:'Income',data:ihRaw.values,backgroundColor:'rgba(0,229,160,.6)',borderRadius:5,borderSkipped:false}]
+      },
+      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'₹'+c.raw.toLocaleString('en-IN')}}},
+        scales:{y:{grid:{color:gridColor},ticks:{color:tickColor,callback:v=>'₹'+v.toLocaleString('en-IN')}},x:{grid:{display:false},ticks:{color:tickColor}}}}
+    });
+  }
+})();
+</script>
+{% endblock %}

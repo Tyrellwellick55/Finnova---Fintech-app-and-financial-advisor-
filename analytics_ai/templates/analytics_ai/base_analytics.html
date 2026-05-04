@@ -1,0 +1,104 @@
+{% extends 'finnovaapp/base.html' %}
+{% load static %}
+{% load nav_extras %}
+{% block title %}{% block page_title %}Intelligence{% endblock %} — Finnova{% endblock %}
+{% block topbar_title %}Intelligence{% endblock %}
+{% block topbar_sub %}<span style="color:var(--text-3);font-size:.76rem;">AI Insights · Predictions · Health · Chat</span>{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Analytics global ── */
+.an-nav{display:flex;align-items:center;gap:2px;padding:4px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:22px;overflow-x:auto;flex-wrap:nowrap;}
+.an-nav::-webkit-scrollbar{display:none}
+.an-tab{padding:7px 14px;border-radius:var(--r-md);font-size:.78rem;font-weight:700;color:var(--text-3);text-decoration:none;white-space:nowrap;display:flex;align-items:center;gap:7px;transition:background .12s,color .12s;flex-shrink:0;}
+.an-tab:hover{color:var(--text);background:var(--surface);}
+.an-tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.an-tab i{font-size:.8rem;}
+
+/* ── KPI strip ── */
+.an-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:22px;}
+.an-kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;}
+.an-kpi.hi{border-color:var(--border-brand);background:rgba(0,229,160,.03);}
+.an-kpi-label{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:6px;display:block;}
+.an-kpi-val{font-family:var(--f-mono);font-size:1.55rem;font-weight:800;color:var(--text);line-height:1;display:block;}
+.an-kpi-val.up{color:var(--green);}
+.an-kpi-val.dn{color:var(--red);}
+.an-kpi-val.brand{color:var(--brand);}
+.an-kpi-sub{font-size:.71rem;color:var(--text-3);margin-top:5px;display:flex;align-items:center;gap:5px;}
+.an-kpi-delta{font-size:.69rem;font-weight:700;}
+.an-kpi-delta.up{color:var(--green);}
+.an-kpi-delta.dn{color:var(--red);}
+
+/* ── Cards ── */
+.an-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:22px;margin-bottom:16px;}
+.an-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;}
+.an-card-head h2{font-size:.92rem;font-weight:800;color:var(--text);margin:0;display:flex;align-items:center;gap:8px;}
+.an-card-head h2 i{color:var(--brand);font-size:.85rem;}
+
+/* ── Severity chips ── */
+.sev{padding:2px 9px;border-radius:999px;font-size:.68rem;font-weight:800;display:inline-block;}
+.sev-CRITICAL{background:var(--red-bg);color:var(--red);}
+.sev-HIGH{background:rgba(249,115,22,.12);color:#F97316;}
+.sev-MEDIUM{background:var(--yellow-bg);color:var(--yellow);}
+.sev-LOW,.sev-INFO{background:var(--green-bg);color:var(--green);}
+
+/* ── Chart container ── */
+.chart-box{border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;background:var(--bg-2);}
+
+/* ── Two-column grid ── */
+.an-grid-2{display:grid;grid-template-columns:1.65fr 1fr;gap:18px;}
+@media(max-width:1100px){.an-grid-2{grid-template-columns:1fr;}}
+.an-grid-eq{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:900px){.an-grid-eq{grid-template-columns:1fr;}}
+
+/* ── Empty state ── */
+.an-empty{text-align:center;padding:32px 20px;color:var(--text-3);}
+.an-empty i{font-size:2rem;margin-bottom:12px;display:block;opacity:.35;}
+.an-empty strong{display:block;color:var(--text-2);font-size:.9rem;margin-bottom:6px;}
+.an-empty p{font-size:.82rem;line-height:1.6;max-width:38ch;margin:0 auto;}
+
+/* ── Info banner ── */
+.an-banner{padding:14px 18px;border-radius:var(--r-lg);margin-bottom:20px;display:flex;align-items:center;gap:12px;font-size:.86rem;}
+.an-banner.warn{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.22);}
+.an-banner.danger{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.22);}
+.an-banner.info{background:var(--indigo-glow);border:1px solid rgba(99,102,241,.2);}
+.an-banner i{font-size:1.1rem;flex-shrink:0;}
+.an-banner strong{display:block;font-size:.88rem;margin-bottom:2px;}
+.an-banner span{color:var(--text-2);}
+
+/* ── Progress bar ── */
+.an-bar-track{height:5px;border-radius:999px;background:var(--surface-3);overflow:hidden;}
+.an-bar-fill{height:100%;border-radius:inherit;transition:width .4s;}
+.an-bar-fill.green{background:var(--green);}
+.an-bar-fill.yellow{background:var(--yellow);}
+.an-bar-fill.red{background:var(--red);}
+.an-bar-fill.brand{background:linear-gradient(90deg,var(--brand),#6366F1);}
+
+/* ── Score ring ── */
+.score-ring-wrap{position:relative;width:130px;height:130px;flex-shrink:0;}
+.score-ring-svg{width:130px;height:130px;transform:rotate(-90deg);}
+.score-ring-bg{fill:none;stroke:var(--surface-3);stroke-width:10;}
+.score-ring-fg{fill:none;stroke:var(--brand);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .6s ease;}
+.score-ring-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.score-ring-num{font-family:var(--f-mono);font-size:1.5rem;font-weight:800;color:var(--text);line-height:1;}
+.score-ring-sub{font-size:.62rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;}
+</style>
+{% block analytics_extra_css %}{% endblock %}
+{% block analytics_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<nav class="an-nav">
+  <a href="{% url 'analytics-ai:ai_dashboard' %}" class="an-tab {% if request.resolver_match.url_name == 'ai_dashboard' %}active{% endif %}"><i class="fas fa-gauge-high"></i> Overview</a>
+  <a href="{% url 'analytics-ai:ai_chat' %}" class="an-tab {% if request.resolver_match.url_name == 'ai_chat' %}active{% endif %}"><i class="fas fa-comment-dots"></i> Ask AI</a>
+  <a href="{% url 'analytics-ai:financial_insights' %}" class="an-tab {% if request.resolver_match.url_name == 'financial_insights' %}active{% endif %}"><i class="fas fa-lightbulb"></i> Insights</a>
+  <a href="{% url 'analytics-ai:predictive_analytics' %}" class="an-tab {% if request.resolver_match.url_name == 'predictive_analytics' %}active{% endif %}"><i class="fas fa-brain"></i> Predictions</a>
+  <a href="{% url 'analytics-ai:financial_health_dashboard' %}" class="an-tab {% if request.resolver_match.url_name == 'financial_health_dashboard' %}active{% endif %}"><i class="fas fa-heartbeat"></i> Health</a>
+  <a href="{% url 'analytics-ai:ai_report' %}" class="an-tab {% if request.resolver_match.url_name == 'ai_report' %}active{% endif %}"><i class="fas fa-file-lines"></i> Report</a>
+  <a href="{% url 'analytics-ai:ai_settings' %}" class="an-tab {% if request.resolver_match.url_name == 'ai_settings' %}active{% endif %}"><i class="fas fa-gear"></i> Settings</a>
+  <div style="margin-left:auto;padding-right:4px;flex-shrink:0;">
+    {% block analytics_actions %}{% endblock %}
+  </div>
+</nav>
+{% block analytics_content %}{% endblock %}
+{% endblock %}

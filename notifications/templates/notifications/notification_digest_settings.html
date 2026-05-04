@@ -1,0 +1,22 @@
+{% extends "notifications/base_notifications.html" %}
+{% block title %}Digest Settings — Notifications — Finnova{% endblock %}
+
+{% block notification_content %}
+<div class="page-header"><div><h1>Digest Settings</h1><p>Bundle multiple notifications into periodic summaries.</p></div></div>
+<div class="card">
+  <div class="card-header"><h2>Digest schedule</h2></div>
+  <form method="post" action="{% url 'notifications:notification_preferences' %}">{% csrf_token %}
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Digest frequency</label>
+        <select name="digest_frequency" class="form-control form-select">
+          <option value="IMMEDIATE">Immediate (no digest)</option>
+          <option value="HOURLY">Hourly</option><option value="DAILY">Daily</option><option value="WEEKLY">Weekly</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Delivery time</label><input type="time" name="digest_time" class="form-control" value="09:00"></div>
+    </div>
+    <div class="form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;"><input type="checkbox" name="digest_enabled" style="width:15px;height:15px;"> Enable digest emails</label></div>
+    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Save</button>
+  </form>
+</div>
+{% endblock %}

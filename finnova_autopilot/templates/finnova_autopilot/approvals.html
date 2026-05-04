@@ -1,0 +1,114 @@
+{% extends "finnova_autopilot/base_autopilot.html" %}
+{% block title %}Approvals — Autopilot — Finnova{% endblock %}
+
+{% block autopilot_content %}
+<style>
+.ap-hero { padding:24px 26px;border-radius:var(--r-xl);background:var(--surface);border:1px solid rgba(99,102,241,.3);margin-bottom:20px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap; }
+.apr-list { background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden; }
+.apr-item { display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;padding:18px 20px;border-bottom:1px solid var(--border);transition:background .15s; }
+.apr-item:last-child { border-bottom:none; }
+.apr-item:hover { background:var(--surface-2); }
+.apr-title  { font-weight:700;font-size:.92rem;color:var(--text);margin:0 0 3px; }
+.apr-meta   { font-size:.78rem;color:var(--text-3);margin:0 0 8px; }
+.apr-chip   { padding:3px 9px;border-radius:999px;font-size:.7rem;font-weight:700; }
+.apr-chip.transfer { background:var(--blue-bg);color:var(--blue); }
+.apr-chip.savings  { background:var(--brand-glow);color:var(--brand); }
+.apr-chip.bill     { background:var(--yellow-bg);color:var(--yellow); }
+.apr-chip.rule     { background:rgba(99,102,241,.12);color:#6366F1; }
+.apr-actions { display:flex;gap:8px;flex-wrap:wrap;margin-top:12px; }
+.apr-amount { font-family:var(--mono);font-size:1.2rem;font-weight:800;color:var(--text);text-align:right; }
+.apr-amount-lbl { font-size:.72rem;color:var(--text-3);text-align:right;margin-bottom:4px; }
+</style>
+
+<div class="ap-hero mod-hero">
+  <div>
+    <span style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#6366F1;">Autopilot · Approvals</span>
+    <h1 style="font-size:1.4rem;color:var(--text);margin:8px 0 6px;">Pending approvals</h1>
+    <p style="font-size:.86rem;color:var(--text-2);margin:0;">Autopilot has queued these actions for your review. Nothing executes until you approve. Your money, your decision.</p>
+  </div>
+  <div style="display:flex;gap:12px;align-items:center;">
+    <div style="text-align:center;">
+      <div style="font-size:2rem;font-weight:800;color:{% if pending_count %}var(--yellow){% else %}var(--green){% endif %};font-family:var(--mono);">{{ pending_count }}</div>
+      <div style="font-size:.72rem;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.08em;">Pending</div>
+    </div>
+  </div>
+</div>
+
+{% if not page_obj.object_list %}
+<div class="empty-state" style="padding:64px 20px;">
+  <div class="empty-icon"><i class="fas fa-check-double"></i></div>
+  <h3>Nothing waiting for approval</h3>
+  <p>When Autopilot proposes a money movement — income split, bill payment, savings contribution — it will appear here first. You always approve before anything moves.</p>
+</div>
+{% endif %}
+
+{% if page_obj.object_list %}
+<div class="apr-list">
+  {% for approval in page_obj %}
+  <div class="apr-item">
+    <div>
+      <p class="apr-title">{{ approval.title }}</p>
+      <p class="apr-meta">
+        Requested {{ approval.created_at|timesince }} ago
+        {% if approval.request_type %} · <span class="apr-chip {{ approval.request_type|lower }}">{{ approval.get_request_type_display }}</span>{% endif %}
+        {% if approval.requested_by %} · by {{ approval.requested_by.username }}{% endif %}
+      </p>
+      {% if approval.description %}
+      <p style="font-size:.84rem;color:var(--text-2);margin:0 0 8px;line-height:1.5;">{{ approval.description|truncatechars:180 }}</p>
+      {% endif %}
+      {% if approval.bill %}
+      <div class="badge" style="display:inline-flex;align-items:center;gap:8px;font-size:.8rem;">
+        <i class="fas fa-file-invoice" style="color:var(--yellow);"></i>
+        Bill: {{ approval.bill.biller_name }} — ₹{{ approval.bill.amount|default:0|floatformat:2 }} due {{ approval.bill.due_date|date:"d M Y" }}
+      </div>
+      {% endif %}
+      <div class="apr-actions">
+        {% if approval.request_type == 'INCOME_SPLIT' %}
+          {# Phase 5: INCOME_SPLIT gets a plan-review link instead of a bare approve button #}
+          <a href="{% url 'autopilot:income_split_plan' approval.id %}" class="btn">
+            <i class="fas fa-eye"></i> View income plan →
+          </a>
+          <form method="post" action="{% url 'autopilot:reject_request' approval.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn-danger"><i class="fas fa-xmark"></i> Reject</button>
+          </form>
+        {% else %}
+          <form method="post" action="{% url 'autopilot:approve_request' approval.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn"><i class="fas fa-check"></i> Approve</button>
+          </form>
+          <form method="post" action="{% url 'autopilot:reject_request' approval.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn-danger"><i class="fas fa-xmark"></i> Reject</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+    <div>
+      <div class="apr-amount-lbl">Amount</div>
+      <div class="apr-amount">{% if approval.amount %}₹{{ approval.amount|default:0|floatformat:2 }}{% else %}—{% endif %}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if page_obj.has_other_pages %}
+<div style="display:flex;justify-content:center;gap:6px;padding:16px 0;">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="btn-outline" style="padding:7px 14px;"><i class="fas fa-chevron-left"></i></a>{% endif %}
+  <span style="padding:7px 14px;border-radius:var(--r-md);background:var(--surface-2);color:var(--text-2);font-size:.84rem;">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="btn-outline" style="padding:7px 14px;"><i class="fas fa-chevron-right"></i></a>{% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty">
+  <span class="empty-icon"><i class="fas fa-check-double"></i></span>
+  <h3>No pending approvals</h3>
+  <p>Autopilot has no queued actions waiting for your review. When Autopilot detects an action it should take, it'll appear here first.</p>
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
+    <a href="{% url 'autopilot:automation_rules' %}" class="btn-outline">View automation rules</a>
+    <a href="{% url 'autopilot:autopilot_settings' %}" class="btn-outline">Autopilot settings</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

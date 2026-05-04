@@ -1,0 +1,248 @@
+{% extends "finance/base.html" %}
+{% block title %}Income — Finance — Finnova{% endblock %}
+
+{% block finance_content %}
+<style>
+.inc-layout { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:20px; }
+.inc-panel   { background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden; }
+.inc-filters { padding:14px 18px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end; }
+.if-field    { display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px; }
+.if-field label { font-size:.72rem;font-weight:700;color:var(--text-3); }
+.if-field select,.if-field input { padding:8px 11px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.84rem; }
+.if-field select:focus,.if-field input:focus { outline:none;border-color:var(--brand); }
+.inc-row { display:grid;grid-template-columns:2fr 1fr 130px 100px 110px 130px;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border);transition:background .15s; }
+.inc-row:last-child { border-bottom:none; }
+.inc-row:hover { background:var(--surface-2); }
+.inc-row.verified { border-left:3px solid var(--green); }
+.inc-row.unverified { border-left:3px solid var(--yellow); }
+.ir-source strong { display:block;font-size:.9rem;font-weight:700;color:var(--text); }
+.ir-source span   { display:block;font-size:.75rem;color:var(--text-3);margin-top:1px; }
+.inc-badge { padding:3px 9px;border-radius:999px;font-size:.7rem;font-weight:800; }
+.ib-verified { background:var(--green-bg);color:var(--green); }
+.ib-pending  { background:var(--yellow-bg);color:var(--yellow); }
+.ib-recurring{ background:var(--brand-glow);color:var(--brand); }
+.inc-amount  { font-family:var(--mono);font-weight:800;font-size:.95rem;color:var(--green); }
+.ia { padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);font-size:.75rem;font-weight:700;cursor:pointer;text-decoration:none;transition:.15s; }
+.ia:hover { border-color:var(--brand);color:var(--brand); }
+.ia.primary { background:var(--brand);border-color:var(--brand);color:var(--bg); }
+.ia.danger  { background:var(--red-bg);border-color:rgba(244,63,94,.3);color:var(--red); }
+.add-panel  { background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:22px;position:sticky;top:84px; }
+.add-panel h2 { margin:0 0 16px;font-size:1rem;color:var(--text); }
+.af label { font-size:.78rem;font-weight:700;color:var(--text-2);display:block;margin-bottom:4px; }
+.af input,.af select,.af textarea { width:100%;padding:9px 12px;border-radius:var(--r-md);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.85rem;margin-bottom:12px; }
+.af input:focus,.af select:focus { outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-glow); }
+.af-check { display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer; }
+.af-check input { width:15px;height:15px;margin:0; }
+.af-check span { font-size:.84rem;font-weight:600;color:var(--text-2); }
+.af-row { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+.cat-bar { display:grid;gap:8px;margin-top:14px; }
+.cat-item { display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border); }
+.cat-dot  { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+.cat-name { font-size:.83rem;font-weight:600;color:var(--text-2);flex:1; }
+.cat-val  { font-family:var(--mono);font-size:.82rem;color:var(--text-3); }
+@media(max-width:1100px){ .inc-layout{grid-template-columns:1fr} .add-panel{position:static} }
+@media(max-width:900px){ .inc-row{grid-template-columns:1fr 1fr;gap:8px} }
+@media(max-width:640px){ .metric-grid{grid-template-columns:repeat(2,1fr)} }
+</style>
+
+<!-- Hero -->
+<div  class="mod-hero">
+  <div>
+    <span style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--brand);">Finance · Income</span>
+    <h1 style="font-size:1.4rem;color:var(--text);margin:8px 0 6px;">Income</h1>
+    <p style="font-size:.86rem;color:var(--text-2);margin:0;">Every inflow that feeds your financial plan — verified, categorized, and tracked.</p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a href="{% url 'finance:add_income' %}" class="btn"><i class="fas fa-plus"></i> Add income</a>
+    <a href="{% url 'finance:import_csv' %}" class="btn-outline"><i class="fas fa-upload"></i> Import</a>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="metric-grid" style="margin-bottom:20px;">
+  <div class="metric">
+    <div class="metric-label">Total income</div>
+    <div class="metric-value up">₹{{ stats.total_amount|default:0|floatformat:2 }}</div>
+    <div class="metric-sub">{{ stats.count }} entries in view</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Average per entry</div>
+    <div class="metric-value">₹{{ stats.average_amount|default:0|floatformat:2 }}</div>
+    <div class="metric-sub">Mean inflow amount</div>
+  </div>
+  <div class="metric" style="border-color:rgba(16,185,129,.3);background:var(--green-bg);">
+    <div class="metric-label" style="color:var(--green);">Verified</div>
+    <div class="metric-value" style="color:var(--green);">{{ stats.verified_count }}</div>
+    <div class="metric-sub" style="color:var(--green);">Confirmed sources</div>
+  </div>
+  <div class="metric" style="border-color:var(--border-brand);background:var(--brand-glow);">
+    <div class="metric-label" style="color:var(--brand);">Recurring</div>
+    <div class="metric-value" style="color:var(--brand);">{{ stats.recurring_count }}</div>
+    <div class="metric-sub" style="color:var(--brand);">Steady-state income</div>
+  </div>
+</div>
+
+<div class="inc-layout">
+  <!-- List -->
+  <div>
+    <div class="inc-panel">
+      <!-- Filters -->
+      <form method="get" class="inc-filters">
+        <div class="if-field">
+          <label>Category</label>
+          <select name="category">
+            <option value="">All categories</option>
+            {% for val, label in categories %}
+            <option value="{{ val }}" {% if category_filter == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="if-field">
+          <label>Status</label>
+          <select name="verified">
+            <option value="">All</option>
+            <option value="verified"  {% if verified_filter == "verified" %}selected{% endif %}>Verified</option>
+            <option value="pending"   {% if verified_filter == "pending" %}selected{% endif %}>Pending</option>
+          </select>
+        </div>
+        <div class="if-field">
+          <label>From</label>
+          <input type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}">
+        </div>
+        <div class="if-field">
+          <label>To</label>
+          <input type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}">
+        </div>
+        <div class="if-field" style="flex:2;">
+          <label>Search</label>
+          <input type="search" name="search" value="{{ search_query }}" placeholder="Source, description…">
+        </div>
+        <div style="display:flex;gap:6px;align-items:flex-end;">
+          <button type="submit" class="btn" style="min-height:38px;padding:8px 14px;">Filter</button>
+          <a href="{% url 'finance:income_list' %}" class="btn-outline" style="min-height:38px;padding:8px 12px;">Reset</a>
+        </div>
+      </form>
+
+      <!-- Header row -->
+      <div class="inc-row" style="background:var(--surface-2);">
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Source</div>
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Date</div>
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Status</div>
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Amount</div>
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">GST Impact</div>
+        <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Actions</div>
+      </div>
+
+      {# B1: Empty state — shown when user has no income records #}
+      {% if not page_obj.object_list %}
+      <div class="empty-state" style="padding:56px 20px;">
+        <div class="empty-icon"><i class="fas fa-arrow-down"></i></div>
+        <h3>No income recorded yet</h3>
+        <p>Add your first income payment. Autopilot will split it automatically when it arrives.</p>
+        <a href="{% url 'finance:add_income' %}" class="btn"><i class="fas fa-plus"></i> Add income</a>
+      </div>
+      {% else %}
+      {% for inc in page_obj %}
+      <div class="inc-row {% if inc.is_verified %}verified{% else %}unverified{% endif %}">
+        <div class="ir-source">
+          <strong>{{ inc.source }}</strong>
+          <span>{{ inc.get_category_display }}{% if inc.description %} · {{ inc.description|truncatechars:28 }}{% endif %}</span>
+        </div>
+        <div style="font-size:.86rem;color:var(--text-2);">
+          {{ inc.date|date:"d M Y" }}
+          {% if inc.is_recurring %}<div style="font-size:.72rem;color:var(--brand);margin-top:2px;"><i class="fas fa-rotate"></i> Recurring</div>{% endif %}
+        </div>
+        <div>
+          {% if inc.is_verified %}
+          <span class="inc-badge ib-verified"><i class="fas fa-check"></i> Verified</span>
+          {% else %}
+          <span class="inc-badge ib-pending">Pending</span>
+          {% endif %}
+        </div>
+        <div class="inc-amount">₹{{ inc.amount|default:0|floatformat:2 }}</div>
+        {# Blueprint Phase 5: GST impact column - inferred 18% for business income #}
+        <div style="font-size:.8rem;">
+          {% if inc.category in 'BUSINESS CLIENT_PAYMENT CONSULTING FREELANCE CONTRACT RETAINER PROJECT' %}
+            {% with gst_amt=inc.amount|default:0 %}
+            <a href="{% url 'audit:gst_dashboard' %}?quarter={{ inc.date|date:'Y' }}Q{{ inc.date|date:'n'|add:'-1'|divisibleby:3|yesno:',' }}1"
+               style="display:inline-flex;flex-direction:column;text-decoration:none;"
+               title="View GST for this quarter">
+              <span style="font-family:var(--mono);font-weight:700;color:var(--yellow);font-size:.8rem;">~₹{{ gst_amt|default:0|floatformat:0 }}</span>
+              <span style="font-size:.68rem;color:var(--text-3);">@18% · <span style="color:var(--brand);">GST →</span></span>
+            </a>
+            {% endwith %}
+          {% else %}
+            <span style="color:var(--text-3);font-size:.78rem;">—</span>
+          {% endif %}
+        </div>
+        <div style="display:flex;gap:6px;">
+          {% if not inc.is_verified %}
+          <form method="post" action="{% url 'finance:verify_income' inc.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="ia primary" title="Verify"><i class="fas fa-check"></i></button>
+          </form>
+          {% endif %}
+          <a href="{% url 'finance:edit_income' inc.id %}" class="ia" title="Edit"><i class="fas fa-pen"></i></a>
+          <form method="post" action="{% url 'finance:delete_income' inc.id %}" style="display:inline;" onsubmit="return confirm('Delete this income entry?')">
+            {% csrf_token %}
+            <button type="submit" class="ia danger" title="Delete"><i class="fas fa-trash"></i></button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+
+      {% if page_obj.has_other_pages %}
+      <div style="display:flex;justify-content:center;gap:6px;padding:16px;">
+        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="ia"><i class="fas fa-chevron-left"></i></a>{% endif %}
+        <span style="padding:5px 12px;border-radius:8px;background:var(--surface-3);color:var(--text-2);font-size:.84rem;">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="ia"><i class="fas fa-chevron-right"></i></a>{% endif %}
+      </div>
+      {% endif %}
+
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Side panel: Quick add -->
+  <div>
+    <div class="add-panel">
+      <h2><i class="fas fa-plus-circle" style="color:var(--green);margin-right:8px;"></i>Quick add income</h2>
+      <form method="post" action="{% url 'finance:add_income' %}" class="af">
+        {% csrf_token %}
+        <label>Source *</label>
+        <input type="text" name="source" placeholder="Salary, freelance, dividend…" required>
+        <div class="af-row">
+          <div><label>Amount *</label><input type="number" step="0.01" min="0" name="amount" placeholder="0.00" required></div>
+          <div><label>Date *</label><input type="date" name="date" value="{% now 'Y-m-d' %}" required></div>
+        </div>
+        <label>Category</label>
+        <select name="category">
+          {% for val, label in categories %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <label>Description</label>
+        <input type="text" name="description" placeholder="Optional note">
+        <label class="af-check"><input type="checkbox" name="is_recurring"><span>Recurring income</span></label>
+        <label class="af-check"><input type="checkbox" name="is_verified"><span>Mark as verified</span></label>
+        <button type="submit" class="btn" style="width:100%;justify-content:center;padding:11px;"><i class="fas fa-save"></i> Save income</button>
+      </form>
+    </div>
+
+    <!-- Category breakdown -->
+    {% if stats.total_amount %}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;margin-top:16px;">
+      <h3 style="margin:0 0 14px;font-size:.9rem;color:var(--text);">By category</h3>
+      <div class="cat-bar">
+        {% for cat in categories|slice:":6" %}
+        <div class="cat-item">
+          <span class="cat-dot" style="background:var(--brand);opacity:{% cycle '1' '.8' '.6' '.5' '.4' '.3' %};"></span>
+          <span class="cat-name">{{ cat.1 }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

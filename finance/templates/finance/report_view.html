@@ -1,0 +1,80 @@
+{% extends "finance/base.html" %}
+
+{% block finance_content %}
+<section class="metrics">
+    <article class="card"><p>Income</p><span class="metric-value">{{ request.user.preferred_currency|default:"INR" }} {{ report_data.summary.total_income|default:0|floatformat:2 }}</span></article>
+    <article class="card"><p>Expense</p><span class="metric-value">{{ request.user.preferred_currency|default:"INR" }} {{ report_data.summary.total_expense|default:0|floatformat:2 }}</span></article>
+    <article class="card"><p>Net position</p><span class="metric-value">{{ request.user.preferred_currency|default:"INR" }} {{ report_data.summary.net_position|default:0|floatformat:2 }}</span></article>
+    <article class="card"><p>Balance snapshot</p><span class="metric-value">{{ request.user.preferred_currency|default:"INR" }} {{ report_data.summary.current_balance|default:0|floatformat:2 }}</span></article>
+</section>
+
+<section class="g2">
+    <article class="panel">
+        <div class="finance-split">
+            <div>
+                <h2>{{ report.title }}</h2>
+                <p>{{ report.start_date }} to {{ report.end_date }} · {{ report.get_report_type_display }}</p>
+            </div>
+            <div class="finance-actions">
+                <a href="{% url 'finance:export_data' %}?type=all&date_from={{ report.start_date|date:'Y-m-d' }}&date_to={{ report.end_date|date:'Y-m-d' }}" class="btn-outline">Export data</a>
+                <a href="{{ analytics_url }}" class="btn-outline">Analytics</a>
+            </div>
+        </div>
+        <h3 style="margin-top: 1rem;">Expense breakdown</h3>
+        {% if report_data.expense_breakdown %}
+        <ul class="finance-list" style="margin-top: 0.7rem;">
+            {% for item in report_data.expense_breakdown %}
+            <li class="finance-list-item">
+                <div>
+                    <strong>{{ item.label|default:item.category }}</strong>
+                    <p style="font-size:.76rem;color:var(--text-3);margin:2px 0 0;">{{ item.count|default:"-" }} entries</p>
+                </div>
+                <strong>{{ request.user.preferred_currency|default:"INR" }} {{ item.total|default:0|floatformat:2 }}</strong>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="finance-empty" style="margin-top: 0.7rem;">No expense breakdown is available in this report.</div>
+        {% endif %}
+
+        <h3 style="margin-top: 1rem;">Income breakdown</h3>
+        {% if report_data.income_breakdown %}
+        <ul class="finance-list" style="margin-top: 0.7rem;">
+            {% for item in report_data.income_breakdown %}
+            <li class="finance-list-item">
+                <div>
+                    <strong>{{ item.label|default:item.category }}</strong>
+                    <p style="font-size:.76rem;color:var(--text-3);margin:2px 0 0;">{{ item.count|default:"-" }} entries</p>
+                </div>
+                <strong>{{ request.user.preferred_currency|default:"INR" }} {{ item.total|default:0|floatformat:2 }}</strong>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </article>
+
+    <article class="panel">
+        <h2>Recommendations</h2>
+        {% if recommendations %}
+        <ul class="finance-list" style="margin-top: 1rem;">
+            {% for item in recommendations %}
+            <li class="finance-list-item"><div><strong>{{ item.title }}</strong><p style="font-size:.76rem;color:var(--text-3);margin:2px 0 0;">{{ item.description }}</p></div></li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="finance-empty" style="margin-top: 1rem;">No recommendations were attached to this report.</div>
+        {% endif %}
+
+        <h2 style="margin-top: 1rem;">Insights</h2>
+        {% if insights %}
+        <ul class="finance-list" style="margin-top: 1rem;">
+            {% for item in insights %}
+            <li class="finance-list-item"><div><strong>{{ item.title }}</strong><p style="font-size:.76rem;color:var(--text-3);margin:2px 0 0;">{{ item.description }}</p></div></li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="finance-empty" style="margin-top: 1rem;">No insights were attached to this report.</div>
+        {% endif %}
+    </article>
+</section>
+{% endblock %}

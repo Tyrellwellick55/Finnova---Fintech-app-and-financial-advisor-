@@ -1,0 +1,136 @@
+{% extends "finance/base.html" %}
+{% block title %}Transactions — Finance — Finnova{% endblock %}
+
+{% block finance_content %}
+<style>
+/* Page-specific only — list-item from design system handles rows */
+.tc-hero { padding:22px 26px;border-radius:var(--r-xl);background:var(--surface);border:1px solid var(--border-2);margin-bottom:20px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap; }
+.tc-hero h1 { font-size:1.35rem;color:var(--text);margin:6px 0 5px; }
+.tc-hero p  { font-size:.86rem;color:var(--text-2);margin:0; }
+.tc-filters { display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);margin-bottom:18px; }
+.tcf-field  { display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px; }
+.tcf-field label { font-size:.72rem;font-weight:700;color:var(--text-3); }
+.tcf-field select,.tcf-field input { padding:8px 11px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.84rem; }
+.tcf-field select:focus,.tcf-field input:focus { outline:none;border-color:var(--brand); }
+.tc-table-wrap { background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden; }
+.tc-icon { width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.88rem;flex-shrink:0; }
+.tc-icon.income  { background:var(--green-bg);color:var(--green); }
+.tc-icon.expense { background:var(--red-bg);color:var(--red); }
+.tc-icon.payment { background:var(--blue-bg);color:var(--blue); }
+.tc-cat  { padding:3px 9px;border-radius:999px;font-size:.7rem;font-weight:700;background:var(--surface-3);color:var(--text-2); }
+.tc-amount { font-family:var(--mono);font-weight:800;font-size:.9rem;text-align:right; }
+.tc-amount.plus  { color:var(--green); }
+.tc-amount.minus { color:var(--red); }
+.tc-synced { display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;color:var(--brand);margin-top:3px; }
+@media(max-width:640px){ .metric-grid{grid-template-columns:repeat(2,1fr)} }
+</style>
+
+<div class="tc-hero">
+  <div>
+    <span style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--text-3);">Finance · All money movement</span>
+    <h1>Transaction Center</h1>
+    <p>Income, expenses, and synced payments in one operational feed — the single source of truth for your Finance data.</p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a href="{% url 'finance:add_income' %}" class="btn"><i class="fas fa-arrow-down"></i> Income</a>
+    <a href="{% url 'finance:add_expense' %}" class="btn-danger"><i class="fas fa-arrow-up"></i> Expense</a>
+    <a href="{% url 'finance:import_csv' %}" class="btn-outline"><i class="fas fa-upload"></i> Import</a>
+    <a href="{% url 'finance:export_data' %}?type=all" class="btn-outline"><i class="fas fa-download"></i> Export</a>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="metric-grid" style="margin-bottom:18px;">
+  <div class="metric">
+    <div class="metric-label">Income in view</div>
+    <div class="metric-value up">₹{{ totals.income|default:0|floatformat:2 }}</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Expenses in view</div>
+    <div class="metric-value down">₹{{ totals.expense|default:0|floatformat:2 }}</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Payments in view</div>
+    <div class="metric-value">₹{{ totals.payments|default:0|floatformat:2 }}</div>
+  </div>
+  <div class="metric" {% if totals.unsynced_payments %}style="border-color:rgba(245,158,11,.3);background:var(--yellow-bg);"{% endif %}>
+    <div class="metric-label" {% if totals.unsynced_payments %}style="color:var(--yellow);"{% endif %}>Unsynced payments</div>
+    <div class="metric-value" {% if totals.unsynced_payments %}style="color:var(--yellow);"{% endif %}>{{ totals.unsynced_payments }}</div>
+    <div class="metric-sub">Not yet mirrored in Finance</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<form method="get" class="tc-filters">
+  <div class="tcf-field" style="flex:2;">
+    <label>Search</label>
+    <input type="text" name="search" value="{{ search_query }}" placeholder="Source, merchant, description…">
+  </div>
+  <div class="tcf-field">
+    <label>Type</label>
+    <select name="type">
+      <option value="all" {% if type_filter == "all" %}selected{% endif %}>All types</option>
+      <option value="income"  {% if type_filter == "income" %}selected{% endif %}>Income</option>
+      <option value="expense" {% if type_filter == "expense" %}selected{% endif %}>Expense</option>
+      <option value="payment" {% if type_filter == "payment" %}selected{% endif %}>Payments</option>
+    </select>
+  </div>
+  <div class="tcf-field">
+    <label>Category</label>
+    <input type="text" name="category" value="{{ category_filter }}" placeholder="Category…">
+  </div>
+  <div class="tcf-field">
+    <label>From</label>
+    <input type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}">
+  </div>
+  <div class="tcf-field">
+    <label>To</label>
+    <input type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}">
+  </div>
+  <div style="display:flex;gap:6px;align-items:flex-end;">
+    <button type="submit" class="btn" style="min-height:38px;padding:8px 14px;">Apply</button>
+    <a href="{% url 'finance:transaction_center' %}" class="btn-outline" style="min-height:38px;padding:8px 12px;">Reset</a>
+  </div>
+</form>
+
+<!-- Transaction table -->
+<div class="tc-table-wrap">
+  <!-- Header -->
+  <div class="list-item" style="background:var(--surface-2);border-radius:0;padding:10px 18px;">
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Transaction</div>
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Date</div>
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Category</div>
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);text-align:right;">Amount</div>
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Source</div>
+  </div>
+
+  {% if transactions %}
+  {% for item in transactions %}
+  <div class="list-item" style="border-radius:0;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span class="tc-icon {{ item.type }}">
+        <i class="fas {% if item.type == 'income' %}fa-arrow-down{% elif item.type == 'expense' %}fa-arrow-up{% else %}fa-credit-card{% endif %}"></i>
+      </span>
+      <div class="tc-title">
+        <strong>{{ item.title|truncatechars:40 }}</strong>
+        <span>{{ item.category }}{% if item.source %} · {{ item.source|truncatechars:22 }}{% endif %}</span>
+        {% if item.synced %}<div class="tc-synced"><i class="fas fa-check"></i> Synced to Finance</div>{% endif %}
+      </div>
+    </div>
+    <div style="font-size:.86rem;color:var(--text-2);">{{ item.date|date:"d M Y" }}</div>
+    <div><span class="tc-cat">{{ item.category }}</span></div>
+    <div class="tc-amount {% if item.type == 'income' %}plus{% elif item.type == 'expense' %}minus{% else %}{% endif %}">
+      {% if item.type == 'income' %}+{% elif item.type == 'expense' %}−{% endif %}₹{{ item.amount|default:0|floatformat:2 }}
+    </div>
+    <div style="font-size:.8rem;color:var(--text-3);">{{ item.source }}</div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="empty" style="border-radius:0;border:none;padding:48px;">
+    <span class="empty-icon"><i class="fas fa-arrows-left-right-to-line"></i></span>
+    <h3>No transactions found</h3>
+    <p>Adjust your filters or add your first income/expense entry.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

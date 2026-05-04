@@ -1,0 +1,44 @@
+{% extends 'finnovaapp/base.html' %}
+{% block title %}Notifications — Finnova{% endblock %}
+{% block topbar_title %}Notifications{% endblock %}
+{% block topbar_sub %}Alerts, updates and action items{% endblock %}
+
+{% block extra_css %}
+<style>
+.notifications-nav {
+  display:flex;flex-wrap:wrap;gap:4px;padding:6px;
+  border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--border);margin-bottom:20px;
+}
+.notifications-nav-link {
+  display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:var(--r-md);
+  font-size:.83rem;font-weight:600;color:var(--text-3);text-decoration:none;transition:.15s;
+}
+.notifications-nav-link:hover { background:var(--surface-2);color:var(--text-2); }
+.notifications-nav-link.active { background:var(--surface-3);color:var(--brand); }
+.notifications-switcher { display:flex;gap:8px;margin:0 0 14px; }
+.notifications-switch-link {
+  padding:6px 12px;border-radius:var(--r-sm);border:1px solid var(--border-brand);
+  background:var(--brand-glow);color:var(--brand);font-size:.78rem;font-weight:700;
+  text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:.15s;
+}
+.notifications-switch-link:hover { background:var(--brand);color:var(--bg); }
+</style>
+{% block notification_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<nav class="notifications-nav">
+  <a href="{% url 'notifications:notification_list' %}" class="notifications-nav-link {% if request.resolver_match.url_name == 'notification_list' %}active{% endif %}"><i class="fas fa-bell"></i> Inbox</a>
+  <a href="{% url 'notifications:notification_history' %}" class="notifications-nav-link {% if request.resolver_match.url_name == 'notification_history' %}active{% endif %}"><i class="fas fa-history"></i> History</a>
+  <a href="{% url 'notifications:notification_preferences' %}" class="notifications-nav-link {% if request.resolver_match.url_name == 'notification_preferences' %}active{% endif %}"><i class="fas fa-sliders"></i> Preferences</a>
+  <a href="{% url 'notifications:notification_quiet_hours' %}" class="notifications-nav-link {% if request.resolver_match.url_name == 'notification_quiet_hours' %}active{% endif %}"><i class="fas fa-moon"></i> Quiet Hours</a>
+  <a href="{% url 'notifications:notification_archive' %}" class="notifications-nav-link {% if request.resolver_match.url_name == 'notification_archive' %}active{% endif %}"><i class="fas fa-archive"></i> Archive</a>
+  <a href="{% url 'notifications:notification_analytics' %}" class="notifications-nav-link {% if request.resolver_match.url_name == 'notification_analytics' %}active{% endif %}"><i class="fas fa-chart-bar"></i> Analytics</a>
+  {% if request.user.is_staff %}
+  <a href="{% url 'notifications:notification_templates' %}" class="notifications-nav-link {% if 'template' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-file-alt"></i> Templates</a>
+  <a href="{% url 'notifications:notification_admin_send' %}" class="notifications-nav-link {% if request.resolver_match.url_name == 'notification_admin_send' %}active{% endif %}"><i class="fas fa-paper-plane"></i> Send</a>
+  <a href="{% url 'notifications:notification_error_log' %}" class="notifications-nav-link {% if request.resolver_match.url_name == 'notification_error_log' %}active{% endif %}"><i class="fas fa-bug"></i> Error Log</a>
+  {% endif %}
+</nav>
+{% block notification_content %}{% endblock %}
+{% endblock %}

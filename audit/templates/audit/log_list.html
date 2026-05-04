@@ -1,0 +1,135 @@
+{% extends 'audit/base_audit.html' %}
+{% block title %}Audit Logs — Finnova{% endblock %}
+
+{% block audit_content %}
+<div class="page-header">
+  <div>
+    <h1>Audit Logs</h1>
+    <p>Every action across all modules — recorded, timestamped, and searchable.</p>
+  </div>
+  <div class="page-actions">
+    <a href="{% url 'audit:export' %}?type=logs" class="btn btn-ghost btn-sm"><i class="fas fa-download"></i> Export</a>
+    <a href="{% url 'audit:dashboard' %}" class="btn btn-primary btn-sm"><i class="fas fa-arrow-left"></i> Dashboard</a>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="audit-card">
+  <div class="audit-card-header">
+    <h3 class="audit-card-title"><i class="fas fa-filter"></i> Filter logs</h3>
+  </div>
+  <div class="audit-card-body">
+    <form method="get" id="filterForm">
+      <div class="audit-filters">
+        <div class="filter-group">
+          <label class="filter-label">Search</label>
+          <input type="text" name="search" class="filter-input" placeholder="User, action, description…" value="{{ active_filters.search }}">
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Source / module</label>
+          <select name="source" class="filter-input">
+            <option value="">All sources</option>
+            {% for source in sources %}
+            <option value="{{ source }}" {% if active_filters.source == source %}selected{% endif %}>{{ source }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Action</label>
+          <select name="action" class="filter-input">
+            <option value="">All actions</option>
+            {% for action in actions %}
+            <option value="{{ action }}" {% if active_filters.action == action %}selected{% endif %}>{{ action }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Severity</label>
+          <select name="severity" class="filter-input">
+            <option value="">All severities</option>
+            {% for val, lbl in severities %}
+            <option value="{{ val }}" {% if active_filters.severity == val %}selected{% endif %}>{{ lbl }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">From</label>
+          <input type="date" name="date_from" class="filter-input" value="{{ active_filters.date_from }}">
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">To</label>
+          <input type="date" name="date_to" class="filter-input" value="{{ active_filters.date_to }}">
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-end;">
+          <button type="submit" class="audit-btn btn"><i class="fas fa-search"></i> Apply</button>
+          <a href="{% url 'audit:log_list' %}" class="audit-btn btn-outline">Reset</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Log table -->
+<div class="audit-card">
+  <div class="audit-card-header">
+    <h3 class="audit-card-title">
+      <i class="fas fa-history" style="color:var(--brand);"></i>
+      Log entries
+      {% if page_obj %}<span class="badge badge-neutral" style="font-size:.7rem;margin-left:6px;">{{ page_obj.paginator.count }}</span>{% endif %}
+    </h3>
+  </div>
+  {% if page_obj.object_list %}
+  <div style="overflow-x:auto;">
+    <table class="audit-table">
+      <thead>
+        <tr>
+          <th>Action</th>
+          <th>User</th>
+          <th>Module</th>
+          <th>IP</th>
+          <th>Severity</th>
+          <th>Timestamp</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in page_obj %}
+        <tr>
+          <td><strong style="color:var(--text);">{{ log.action|truncatechars:50 }}</strong>
+            {% if log.description %}<div style="font-size:.76rem;color:var(--text-3);margin-top:2px;">{{ log.description|truncatechars:80 }}</div>{% endif %}
+          </td>
+          <td style="color:var(--text-2);">{{ log.actor.username|default:"System" }}</td>
+          <td><span class="badge badge-neutral" style="font-size:.68rem;">{{ log.module|default:"core" }}</span></td>
+          <td style="font-family:var(--mono);font-size:.78rem;color:var(--text-3);">{{ log.ip_address|default:"—" }}</td>
+          <td>
+            <span class="badge {% if log.severity == 'CRITICAL' %}badge-red{% elif log.severity == 'HIGH' %}badge-yellow{% elif log.severity == 'WARNING' %}badge-yellow{% elif log.severity == 'SUCCESS' %}badge-green{% else %}badge-neutral{% endif %}" style="font-size:.68rem;">
+              {{ log.severity|default:"INFO" }}
+            </span>
+          </td>
+          <td style="font-family:var(--mono);font-size:.76rem;color:var(--text-3);">{{ log.created_at|date:"d M Y, H:i" }}</td>
+          <td><a href="{% url 'audit:log_detail' log.id %}" class="btn btn-ghost btn-xs">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+  <div class="audit-pagination">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}"><i class="fas fa-chevron-left"></i></a>{% endif %}
+    {% for i in page_obj.paginator.page_range %}
+      {% if page_obj.number == i %}<span class="active">{{ i }}</span>
+      {% elif i >= page_obj.number|add:"-2" and i <= page_obj.number|add:"2" %}<a href="?page={{ i }}&{{ request.GET.urlencode }}">{{ i }}</a>{% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}"><i class="fas fa-chevron-right"></i></a>{% endif %}
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty" style="border-radius:0;border:none;">
+    <span class="empty-icon"><i class="fas fa-history"></i></span>
+    <h3>No logs found</h3>
+    <p>Audit events are recorded automatically as users interact with the platform.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

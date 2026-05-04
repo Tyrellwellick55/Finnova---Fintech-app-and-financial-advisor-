@@ -1,0 +1,202 @@
+{% extends "finance/base.html" %}
+{% block title %}Goals — Finance — Finnova{% endblock %}
+
+{% block finance_content %}
+<style>
+.goals-layout { display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px; }
+.goal-grid    { display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px; }
+.goal-jar {
+  padding:22px;border-radius:var(--r-xl);
+  border:1px solid var(--border);background:var(--surface);
+  transition:border-color .2s,transform .2s;
+}
+.goal-jar:hover { border-color:var(--border-2);transform:translateY(-2px); }
+.goal-jar.achieved { border-color:var(--brand);background:linear-gradient(135deg,rgba(0,200,150,.06),rgba(0,200,150,.02)); }
+.goal-jar.PLANNING  { border-left:3px solid var(--blue); }
+.goal-jar.IN_PROGRESS { border-left:3px solid var(--brand); }
+.goal-jar.ACHIEVED  { border-left:3px solid var(--green); }
+.goal-jar.PAUSED    { border-left:3px solid var(--yellow); }
+.gj-top  { display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px; }
+.gj-icon { width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0; }
+.gj-name { font-weight:800;font-size:.96rem;color:var(--text);margin:0 0 3px; }
+.gj-type { font-size:.74rem;color:var(--text-3); }
+.gj-st   { padding:3px 9px;border-radius:999px;font-size:.68rem;font-weight:800; }
+.gj-st.PLANNING   { background:var(--blue-bg);color:var(--blue); }
+.gj-st.IN_PROGRESS{ background:var(--brand-glow);color:var(--brand); }
+.gj-st.ACHIEVED   { background:var(--green-bg);color:var(--green); }
+.gj-st.PAUSED     { background:var(--yellow-bg);color:var(--yellow); }
+.gj-amounts { display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px; }
+.gj-current { font-family:var(--mono);font-size:1.25rem;font-weight:800;color:var(--text); }
+.gj-target  { font-family:var(--mono);font-size:.84rem;color:var(--text-3); }
+.gj-track   { height:6px;border-radius:999px;background:var(--surface-3);overflow:hidden;margin-bottom:10px; }
+.gj-fill    { height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--brand),#6366F1);transition:width .4s; }
+.gj-fill.achieved { background:linear-gradient(90deg,var(--green),var(--brand)); }
+.gj-meta    { display:flex;justify-content:space-between;font-size:.75rem;color:var(--text-3);margin-bottom:12px; }
+.gj-actions { display:flex;gap:6px;padding-top:12px;border-top:1px solid var(--border); }
+.ga  { padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);font-size:.75rem;font-weight:700;cursor:pointer;text-decoration:none;transition:.15s; }
+.ga:hover { border-color:var(--brand);color:var(--brand); }
+.ga.primary { background:var(--brand);border-color:var(--brand);color:var(--bg); }
+.create-panel { background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:22px;position:sticky;top:84px; }
+.cp-field   { margin-bottom:12px; }
+.cp-field label { display:block;font-size:.76rem;font-weight:700;color:var(--text-2);margin-bottom:4px; }
+.cp-field input,.cp-field select { width:100%;padding:9px 12px;border-radius:var(--r-md);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.85rem; }
+.cp-field input:focus,.cp-field select:focus { outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-glow); }
+.cp-row  { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+.template-tiles { display:grid;gap:8px;margin-top:16px; }
+.tmpl { padding:10px 12px;border-radius:var(--r-md);border:1px solid var(--border);background:var(--surface-2);cursor:pointer;transition:.15s; }
+.tmpl:hover { border-color:var(--brand);background:var(--brand-glow); }
+.tmpl strong { display:block;font-size:.82rem;color:var(--text);margin-bottom:2px; }
+.tmpl span   { font-size:.74rem;color:var(--text-3); }
+@media(max-width:1100px){ .goals-layout{grid-template-columns:1fr} .create-panel{position:static} }
+@media(max-width:640px){ .metric-grid{grid-template-columns:repeat(2,1fr)} }
+</style>
+
+<!-- Hero -->
+<div  class="mod-hero">
+  <div>
+    <span style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#6366F1;">Finance · Goals</span>
+    <h1 style="font-size:1.4rem;color:var(--text);margin:8px 0 6px;">Financial Goals</h1>
+    <p style="font-size:.86rem;color:var(--text-2);margin:0;">Save with purpose. Goals connect your spare cash to a target — and give Autopilot a direction for savings recommendations.</p>
+  </div>
+  <a href="{% url 'finance:add_financial_goal' %}" class="btn"><i class="fas fa-plus"></i> New goal</a>
+</div>
+
+<!-- KPIs -->
+<div class="metric-grid" style="margin-bottom:20px;">
+  <div class="metric">
+    <div class="metric-label">Total goals</div>
+    <div class="metric-value">{{ stats.total }}</div>
+    <div class="metric-sub">{{ stats.active }} active</div>
+  </div>
+  <div class="metric" style="border-color:var(--border-brand);background:var(--brand-glow);">
+    <div class="metric-label" style="color:var(--brand);">Total saved</div>
+    <div class="metric-value" style="color:var(--brand);">₹{{ stats.total_current|default:0|floatformat:0 }}</div>
+    <div class="metric-sub" style="color:var(--brand);">Across all goals</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Target total</div>
+    <div class="metric-value">₹{{ stats.total_target|default:0|floatformat:0 }}</div>
+    <div class="metric-sub">Combined milestone</div>
+  </div>
+  <div class="metric" style="border-color:rgba(16,185,129,.3);background:var(--green-bg);">
+    <div class="metric-label" style="color:var(--green);">Completed</div>
+    <div class="metric-value" style="color:var(--green);">{{ stats.completed }}</div>
+    <div class="metric-sub" style="color:var(--green);">Goals achieved</div>
+  </div>
+</div>
+
+<!-- Filter chips -->
+<div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
+  <a href="?" style="padding:6px 14px;border-radius:999px;font-size:.8rem;font-weight:700;border:1px solid {% if not status_filter %}var(--brand){% else %}var(--border){% endif %};background:{% if not status_filter %}var(--brand-glow){% else %}var(--surface){% endif %};color:{% if not status_filter %}var(--brand){% else %}var(--text-3){% endif %};">All</a>
+  
+  
+  <a href="?status=PLANNING" style="padding:6px 14px;border-radius:999px;font-size:.8rem;font-weight:700;border:1px solid {% if status_filter == pair.0 %}var(--brand){% else %}var(--border){% endif %};background:{% if status_filter == pair.0 %}var(--brand-glow){% else %}var(--surface){% endif %};color:{% if status_filter == pair.0 %}var(--brand){% else %}var(--text-3){% endif %};">Planning</a>
+  
+  
+  
+  <a href="?status=IN_PROGRESS" style="padding:6px 14px;border-radius:999px;font-size:.8rem;font-weight:700;border:1px solid {% if status_filter == pair.0 %}var(--brand){% else %}var(--border){% endif %};background:{% if status_filter == pair.0 %}var(--brand-glow){% else %}var(--surface){% endif %};color:{% if status_filter == pair.0 %}var(--brand){% else %}var(--text-3){% endif %};">In progress</a>
+  
+  
+  
+  <a href="?status=ACHIEVED" style="padding:6px 14px;border-radius:999px;font-size:.8rem;font-weight:700;border:1px solid {% if status_filter == pair.0 %}var(--brand){% else %}var(--border){% endif %};background:{% if status_filter == pair.0 %}var(--brand-glow){% else %}var(--surface){% endif %};color:{% if status_filter == pair.0 %}var(--brand){% else %}var(--text-3){% endif %};">Achieved</a>
+  
+  
+  
+  <a href="?status=PAUSED" style="padding:6px 14px;border-radius:999px;font-size:.8rem;font-weight:700;border:1px solid {% if status_filter == pair.0 %}var(--brand){% else %}var(--border){% endif %};background:{% if status_filter == pair.0 %}var(--brand-glow){% else %}var(--surface){% endif %};color:{% if status_filter == pair.0 %}var(--brand){% else %}var(--text-3){% endif %};">Paused</a>
+  
+  
+</div>
+
+<div class="goals-layout">
+  <!-- Goal cards -->
+  <div>
+    {% if goals %}
+    <div class="goal-grid">
+      {% for goal in goals %}
+      <div class="goal-jar {{ goal.status }} {% if goal.status == 'ACHIEVED' %}achieved{% endif %}">
+        <div class="gj-top">
+          <div class="gj-icon" style="background:{% if goal.status == 'ACHIEVED' %}var(--green-bg);color:var(--green){% elif goal.status == 'IN_PROGRESS' %}var(--brand-glow);color:var(--brand){% elif goal.status == 'PLANNING' %}var(--blue-bg);color:var(--blue){% else %}var(--yellow-bg);color:var(--yellow){% endif %};">
+            <i class="fas {% if goal.status == 'ACHIEVED' %}fa-trophy{% elif goal.goal_type == 'EMERGENCY_FUND' %}fa-shield-halved{% elif goal.goal_type == 'VACATION' %}fa-plane{% elif goal.goal_type == 'DEBT_FREE' %}fa-link-slash{% else %}fa-bullseye{% endif %}"></i>
+          </div>
+          <div style="flex:1;min-width:0;margin-left:10px;">
+            <p class="gj-name">{{ goal.name }}</p>
+            <p class="gj-type">{{ goal.get_goal_type_display }}</p>
+          </div>
+          <span class="gj-st {{ goal.status }}">{{ goal.get_status_display }}</span>
+        </div>
+
+        <div class="gj-amounts">
+          <span class="gj-current">₹{{ goal.current_amount|default:0|floatformat:0 }}</span>
+          <span class="gj-target">of ₹{{ goal.target_amount|default:0|floatformat:0 }}</span>
+        </div>
+        <div class="gj-track">
+          <div class="gj-fill {% if goal.status == 'ACHIEVED' %}achieved{% endif %}" style="width:{% if goal.progress_percentage > 100 %}100{% else %}{{ goal.progress_percentage|default:0|floatformat:0 }}{% endif %}%;"></div>
+        </div>
+        <div class="gj-meta">
+          <span>{{ goal.progress_percentage|default:0|floatformat:0 }}% complete</span>
+          {% if goal.target_date %}<span>Target: {{ goal.target_date|date:"M Y" }}</span>{% endif %}
+          {% if goal.suggested_monthly_saving %}<span>₹{{ goal.suggested_monthly_saving|default:0|floatformat:0 }}/mo</span>{% endif %}
+        </div>
+
+        <div class="gj-actions">
+          {% if goal.status != 'ACHIEVED' %}
+          <a href="{% url 'finance:goal_detail' goal.id %}" class="ga primary"><i class="fas fa-plus"></i> Add funds</a>
+          {% endif %}
+          <a href="{% url 'finance:goal_detail' goal.id %}" class="ga"><i class="fas fa-chart-line"></i> Details</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">
+      <span class="empty-icon"><i class="fas fa-bullseye"></i></span>
+      <h3>No goals yet</h3>
+      <p>Create your first financial goal to direct surplus cash with purpose.</p>
+      <a href="{% url 'finance:add_financial_goal' %}" class="btn" style="margin-top:14px;display:inline-flex;"><i class="fas fa-plus"></i> Create goal</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Create panel + AI tips -->
+  <div>
+    <div class="create-panel">
+      <h2 style="margin:0 0 4px;font-size:.96rem;color:var(--text);"><i class="fas fa-plus-circle" style="color:#6366F1;margin-right:8px;"></i>Quick create</h2>
+      <p style="font-size:.78rem;color:var(--text-3);margin:0 0 14px;">Or use a template below</p>
+      <form method="post" action="{% url 'finance:add_financial_goal' %}">
+        {% csrf_token %}
+        <div class="cp-field"><label>Goal name *</label><input type="text" name="name" placeholder="Emergency fund, Holiday…" required></div>
+        <div class="cp-row">
+          <div class="cp-field"><label>Target ₹ *</label><input type="number" step="0.01" min="1" name="target_amount" placeholder="0" required></div>
+          <div class="cp-field"><label>Target date</label><input type="date" name="target_date"></div>
+        </div>
+        <div class="cp-field">
+          <label>Goal type</label>
+          <select name="goal_type">
+            <option value="SAVINGS">General savings</option>
+            <option value="EMERGENCY_FUND">Emergency fund</option>
+            <option value="VACATION">Vacation</option>
+            <option value="DEBT_FREE">Debt-free</option>
+            <option value="EDUCATION">Education</option>
+            <option value="INVESTMENT">Investment</option>
+          </select>
+        </div>
+        <button type="submit" class="btn" style="width:100%;justify-content:center;padding:11px;"><i class="fas fa-save"></i> Create goal</button>
+      </form>
+    </div>
+
+    {% if ai_recommendations %}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;margin-top:16px;">
+      <h3 style="margin:0 0 4px;font-size:.88rem;color:var(--text);"><i class="fas fa-lightbulb" style="color:var(--yellow);margin-right:7px;"></i>AI guidance</h3>
+      <div style="display:grid;gap:10px;margin-top:12px;">
+        {% for tip in ai_recommendations %}
+        <div style="padding:11px 13px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);">
+          <strong style="font-size:.83rem;color:var(--text);display:block;margin-bottom:3px;">{{ tip.title }}</strong>
+          <p style="font-size:.76rem;color:var(--text-3);margin:0;line-height:1.5;">{{ tip.description }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

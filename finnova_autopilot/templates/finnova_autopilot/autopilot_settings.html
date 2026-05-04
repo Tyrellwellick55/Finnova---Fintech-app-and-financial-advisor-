@@ -1,0 +1,532 @@
+{% load nav_extras %}
+{% extends "finnova_autopilot/base_autopilot.html" %}
+{% block title %}Autopilot Settings — Finnova{% endblock %}
+
+{% block autopilot_content %}
+<div class="page-header">
+  <div><h1>Autopilot Settings</h1><p>Control how Autopilot monitors your finances, triggers alerts, and executes automated actions.</p></div>
+  <span class="badge {% if profile.is_active %}is-on{% else %}is-off{% endif %}">
+    <i class="fas fa-{% if profile.is_active %}bolt{% else %}pause{% endif %}"></i>
+    Autopilot {% if profile.is_active %}active{% else %}paused{% endif %}
+  </span>
+</div>
+
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;">
+  <div>
+    <form method="post">
+      {% csrf_token %}
+
+      <!-- Risk & budget -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h2><i class="fas fa-sliders" style="color:var(--brand);margin-right:8px;"></i>Risk & budget</h2></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Risk tolerance</label>
+            <select name="risk_tolerance" class="form-control form-select">
+              
+              <option value="{{ val }}" {% if profile.risk_tolerance == val %}selected{% endif %}>Bill reminders</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monthly budget cap ₹</label>
+            <input type="number" step="0.01" min="0" name="monthly_budget" class="form-control" value="{{ profile.monthly_budget|default:0 }}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;margin-top:8px;">
+              <input type="checkbox" name="budget_alerts_enabled" {% if profile.budget_alerts_enabled %}checked{% endif %} style="width:15px;height:15px;"> Budget threshold alerts
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Alert at % spent</label>
+            <input type="number" step="1" min="1" max="100" name="budget_alert_threshold" class="form-control" value="{{ profile.budget_alert_threshold|default:80 }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-pay settings -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h2><i class="fas fa-bolt" style="color:var(--yellow);margin-right:8px;"></i>Auto-pay & approvals</h2></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;">
+              <input type="checkbox" name="auto_pay_bills" {% if profile.auto_pay_bills %}checked{% endif %} style="width:15px;height:15px;"> Enable auto-pay readiness
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Days before due to trigger</label>
+            <input type="number" min="0" max="30" name="auto_pay_days_before" class="form-control" value="{{ profile.auto_pay_days_before|default:2 }}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;margin-top:8px;">
+              <input type="checkbox" name="approval_required" {% if profile.approval_required %}checked{% endif %} style="width:15px;height:15px;"> Require approval for all auto-actions
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Max auto-pay amount ₹</label>
+            <input type="number" step="0.01" min="0" name="max_autopay_amount" class="form-control" value="{{ profile.max_autopay_amount|default:25000 }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-savings -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h2><i class="fas fa-piggy-bank" style="color:var(--green);margin-right:8px;"></i>Auto-savings</h2></div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;">
+            <input type="checkbox" name="auto_savings_enabled" {% if profile.auto_savings_enabled %}checked{% endif %} style="width:15px;height:15px;"> Enable automatic savings tracking
+          </label>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Auto-save amount ₹</label>
+            <input type="number" step="0.01" min="0" name="auto_savings_amount" class="form-control" value="{{ profile.auto_savings_amount|default:0 }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Frequency</label>
+            <select name="auto_savings_frequency" class="form-control form-select">
+              {% for val, label in frequency_choices %}
+              <option value="{{ val }}" {% if profile.auto_savings_frequency == val %}selected{% endif %}>Bill reminders</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Savings day of month</label>
+          <input type="number" min="1" max="31" name="auto_savings_day" class="form-control" value="{{ profile.auto_savings_day|default:1 }}">
+        </div>
+      </div>
+
+      <!-- Notification prefs -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h2><i class="fas fa-bell" style="color:#6366F1;margin-right:8px;"></i>Notifications</h2></div>
+        <div style="display:grid;gap:10px;">
+          {% for key, label in "notify_bill_reminders:Bill reminders,notify_approval_updates:Approval updates,notify_budget_warnings:Budget warnings,notify_health_updates:Health score updates,notify_pattern_warnings:Pattern anomaly warnings"|split:"," %}
+          
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+            <span style="font-size:.85rem;font-weight:600;color:var(--text-2);">Bill reminders</span>
+            <input type="checkbox" name="notify_bill_reminders" {% if notification_settings|get:pair.0 %}checked{% endif %} style="width:16px;height:16px;">
+          </label>
+          
+          
+              <option value="{{ val }}" {% if profile.risk_tolerance == val %}selected{% endif %}>Approval updates</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monthly budget cap ₹</label>
+            <input type="number" step="0.01" min="0" name="monthly_budget" class="form-control" value="{{ profile.monthly_budget|default:0 }}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;margin-top:8px;">
+              <input type="checkbox" name="budget_alerts_enabled" {% if profile.budget_alerts_enabled %}checked{% endif %} style="width:15px;height:15px;"> Budget threshold alerts
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Alert at % spent</label>
+            <input type="number" step="1" min="1" max="100" name="budget_alert_threshold" class="form-control" value="{{ profile.budget_alert_threshold|default:80 }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-pay settings -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h2><i class="fas fa-bolt" style="color:var(--yellow);margin-right:8px;"></i>Auto-pay & approvals</h2></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;">
+              <input type="checkbox" name="auto_pay_bills" {% if profile.auto_pay_bills %}checked{% endif %} style="width:15px;height:15px;"> Enable auto-pay readiness
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Days before due to trigger</label>
+            <input type="number" min="0" max="30" name="auto_pay_days_before" class="form-control" value="{{ profile.auto_pay_days_before|default:2 }}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;margin-top:8px;">
+              <input type="checkbox" name="approval_required" {% if profile.approval_required %}checked{% endif %} style="width:15px;height:15px;"> Require approval for all auto-actions
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Max auto-pay amount ₹</label>
+            <input type="number" step="0.01" min="0" name="max_autopay_amount" class="form-control" value="{{ profile.max_autopay_amount|default:25000 }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-savings -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h2><i class="fas fa-piggy-bank" style="color:var(--green);margin-right:8px;"></i>Auto-savings</h2></div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;">
+            <input type="checkbox" name="auto_savings_enabled" {% if profile.auto_savings_enabled %}checked{% endif %} style="width:15px;height:15px;"> Enable automatic savings tracking
+          </label>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Auto-save amount ₹</label>
+            <input type="number" step="0.01" min="0" name="auto_savings_amount" class="form-control" value="{{ profile.auto_savings_amount|default:0 }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Frequency</label>
+            <select name="auto_savings_frequency" class="form-control form-select">
+              {% for val, label in frequency_choices %}
+              <option value="{{ val }}" {% if profile.auto_savings_frequency == val %}selected{% endif %}>Approval updates</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Savings day of month</label>
+          <input type="number" min="1" max="31" name="auto_savings_day" class="form-control" value="{{ profile.auto_savings_day|default:1 }}">
+        </div>
+      </div>
+
+      <!-- Notification prefs -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h2><i class="fas fa-bell" style="color:#6366F1;margin-right:8px;"></i>Notifications</h2></div>
+        <div style="display:grid;gap:10px;">
+          {% for key, label in "notify_bill_reminders:Bill reminders,notify_approval_updates:Approval updates,notify_budget_warnings:Budget warnings,notify_health_updates:Health score updates,notify_pattern_warnings:Pattern anomaly warnings"|split:"," %}
+          
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+            <span style="font-size:.85rem;font-weight:600;color:var(--text-2);">Approval updates</span>
+            <input type="checkbox" name="notify_approval_updates" {% if notification_settings|get:pair.0 %}checked{% endif %} style="width:16px;height:16px;">
+          </label>
+          
+          
+              <option value="{{ val }}" {% if profile.risk_tolerance == val %}selected{% endif %}>Budget warnings</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monthly budget cap ₹</label>
+            <input type="number" step="0.01" min="0" name="monthly_budget" class="form-control" value="{{ profile.monthly_budget|default:0 }}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;margin-top:8px;">
+              <input type="checkbox" name="budget_alerts_enabled" {% if profile.budget_alerts_enabled %}checked{% endif %} style="width:15px;height:15px;"> Budget threshold alerts
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Alert at % spent</label>
+            <input type="number" step="1" min="1" max="100" name="budget_alert_threshold" class="form-control" value="{{ profile.budget_alert_threshold|default:80 }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-pay settings -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h2><i class="fas fa-bolt" style="color:var(--yellow);margin-right:8px;"></i>Auto-pay & approvals</h2></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;">
+              <input type="checkbox" name="auto_pay_bills" {% if profile.auto_pay_bills %}checked{% endif %} style="width:15px;height:15px;"> Enable auto-pay readiness
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Days before due to trigger</label>
+            <input type="number" min="0" max="30" name="auto_pay_days_before" class="form-control" value="{{ profile.auto_pay_days_before|default:2 }}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;margin-top:8px;">
+              <input type="checkbox" name="approval_required" {% if profile.approval_required %}checked{% endif %} style="width:15px;height:15px;"> Require approval for all auto-actions
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Max auto-pay amount ₹</label>
+            <input type="number" step="0.01" min="0" name="max_autopay_amount" class="form-control" value="{{ profile.max_autopay_amount|default:25000 }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-savings -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h2><i class="fas fa-piggy-bank" style="color:var(--green);margin-right:8px;"></i>Auto-savings</h2></div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;">
+            <input type="checkbox" name="auto_savings_enabled" {% if profile.auto_savings_enabled %}checked{% endif %} style="width:15px;height:15px;"> Enable automatic savings tracking
+          </label>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Auto-save amount ₹</label>
+            <input type="number" step="0.01" min="0" name="auto_savings_amount" class="form-control" value="{{ profile.auto_savings_amount|default:0 }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Frequency</label>
+            <select name="auto_savings_frequency" class="form-control form-select">
+              {% for val, label in frequency_choices %}
+              <option value="{{ val }}" {% if profile.auto_savings_frequency == val %}selected{% endif %}>Budget warnings</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Savings day of month</label>
+          <input type="number" min="1" max="31" name="auto_savings_day" class="form-control" value="{{ profile.auto_savings_day|default:1 }}">
+        </div>
+      </div>
+
+      <!-- Notification prefs -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h2><i class="fas fa-bell" style="color:#6366F1;margin-right:8px;"></i>Notifications</h2></div>
+        <div style="display:grid;gap:10px;">
+          {% for key, label in "notify_bill_reminders:Bill reminders,notify_approval_updates:Approval updates,notify_budget_warnings:Budget warnings,notify_health_updates:Health score updates,notify_pattern_warnings:Pattern anomaly warnings"|split:"," %}
+          
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+            <span style="font-size:.85rem;font-weight:600;color:var(--text-2);">Budget warnings</span>
+            <input type="checkbox" name="notify_budget_warnings" {% if notification_settings|get:pair.0 %}checked{% endif %} style="width:16px;height:16px;">
+          </label>
+          
+          
+              <option value="{{ val }}" {% if profile.risk_tolerance == val %}selected{% endif %}>Health score updates</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monthly budget cap ₹</label>
+            <input type="number" step="0.01" min="0" name="monthly_budget" class="form-control" value="{{ profile.monthly_budget|default:0 }}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;margin-top:8px;">
+              <input type="checkbox" name="budget_alerts_enabled" {% if profile.budget_alerts_enabled %}checked{% endif %} style="width:15px;height:15px;"> Budget threshold alerts
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Alert at % spent</label>
+            <input type="number" step="1" min="1" max="100" name="budget_alert_threshold" class="form-control" value="{{ profile.budget_alert_threshold|default:80 }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-pay settings -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h2><i class="fas fa-bolt" style="color:var(--yellow);margin-right:8px;"></i>Auto-pay & approvals</h2></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;">
+              <input type="checkbox" name="auto_pay_bills" {% if profile.auto_pay_bills %}checked{% endif %} style="width:15px;height:15px;"> Enable auto-pay readiness
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Days before due to trigger</label>
+            <input type="number" min="0" max="30" name="auto_pay_days_before" class="form-control" value="{{ profile.auto_pay_days_before|default:2 }}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;margin-top:8px;">
+              <input type="checkbox" name="approval_required" {% if profile.approval_required %}checked{% endif %} style="width:15px;height:15px;"> Require approval for all auto-actions
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Max auto-pay amount ₹</label>
+            <input type="number" step="0.01" min="0" name="max_autopay_amount" class="form-control" value="{{ profile.max_autopay_amount|default:25000 }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-savings -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h2><i class="fas fa-piggy-bank" style="color:var(--green);margin-right:8px;"></i>Auto-savings</h2></div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;">
+            <input type="checkbox" name="auto_savings_enabled" {% if profile.auto_savings_enabled %}checked{% endif %} style="width:15px;height:15px;"> Enable automatic savings tracking
+          </label>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Auto-save amount ₹</label>
+            <input type="number" step="0.01" min="0" name="auto_savings_amount" class="form-control" value="{{ profile.auto_savings_amount|default:0 }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Frequency</label>
+            <select name="auto_savings_frequency" class="form-control form-select">
+              {% for val, label in frequency_choices %}
+              <option value="{{ val }}" {% if profile.auto_savings_frequency == val %}selected{% endif %}>Health score updates</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Savings day of month</label>
+          <input type="number" min="1" max="31" name="auto_savings_day" class="form-control" value="{{ profile.auto_savings_day|default:1 }}">
+        </div>
+      </div>
+
+      <!-- Notification prefs -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h2><i class="fas fa-bell" style="color:#6366F1;margin-right:8px;"></i>Notifications</h2></div>
+        <div style="display:grid;gap:10px;">
+          {% for key, label in "notify_bill_reminders:Bill reminders,notify_approval_updates:Approval updates,notify_budget_warnings:Budget warnings,notify_health_updates:Health score updates,notify_pattern_warnings:Pattern anomaly warnings"|split:"," %}
+          
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+            <span style="font-size:.85rem;font-weight:600;color:var(--text-2);">Health score updates</span>
+            <input type="checkbox" name="notify_health_updates" {% if notification_settings|get:pair.0 %}checked{% endif %} style="width:16px;height:16px;">
+          </label>
+          
+          
+              <option value="{{ val }}" {% if profile.risk_tolerance == val %}selected{% endif %}>Pattern anomaly warnings</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monthly budget cap ₹</label>
+            <input type="number" step="0.01" min="0" name="monthly_budget" class="form-control" value="{{ profile.monthly_budget|default:0 }}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;margin-top:8px;">
+              <input type="checkbox" name="budget_alerts_enabled" {% if profile.budget_alerts_enabled %}checked{% endif %} style="width:15px;height:15px;"> Budget threshold alerts
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Alert at % spent</label>
+            <input type="number" step="1" min="1" max="100" name="budget_alert_threshold" class="form-control" value="{{ profile.budget_alert_threshold|default:80 }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-pay settings -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h2><i class="fas fa-bolt" style="color:var(--yellow);margin-right:8px;"></i>Auto-pay & approvals</h2></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;">
+              <input type="checkbox" name="auto_pay_bills" {% if profile.auto_pay_bills %}checked{% endif %} style="width:15px;height:15px;"> Enable auto-pay readiness
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Days before due to trigger</label>
+            <input type="number" min="0" max="30" name="auto_pay_days_before" class="form-control" value="{{ profile.auto_pay_days_before|default:2 }}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;margin-top:8px;">
+              <input type="checkbox" name="approval_required" {% if profile.approval_required %}checked{% endif %} style="width:15px;height:15px;"> Require approval for all auto-actions
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Max auto-pay amount ₹</label>
+            <input type="number" step="0.01" min="0" name="max_autopay_amount" class="form-control" value="{{ profile.max_autopay_amount|default:25000 }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-savings -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h2><i class="fas fa-piggy-bank" style="color:var(--green);margin-right:8px;"></i>Auto-savings</h2></div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;">
+            <input type="checkbox" name="auto_savings_enabled" {% if profile.auto_savings_enabled %}checked{% endif %} style="width:15px;height:15px;"> Enable automatic savings tracking
+          </label>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Auto-save amount ₹</label>
+            <input type="number" step="0.01" min="0" name="auto_savings_amount" class="form-control" value="{{ profile.auto_savings_amount|default:0 }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Frequency</label>
+            <select name="auto_savings_frequency" class="form-control form-select">
+              {% for val, label in frequency_choices %}
+              <option value="{{ val }}" {% if profile.auto_savings_frequency == val %}selected{% endif %}>Pattern anomaly warnings</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Savings day of month</label>
+          <input type="number" min="1" max="31" name="auto_savings_day" class="form-control" value="{{ profile.auto_savings_day|default:1 }}">
+        </div>
+      </div>
+
+      <!-- Notification prefs -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><h2><i class="fas fa-bell" style="color:#6366F1;margin-right:8px;"></i>Notifications</h2></div>
+        <div style="display:grid;gap:10px;">
+          {% for key, label in "notify_bill_reminders:Bill reminders,notify_approval_updates:Approval updates,notify_budget_warnings:Budget warnings,notify_health_updates:Health score updates,notify_pattern_warnings:Pattern anomaly warnings"|split:"," %}
+          
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+            <span style="font-size:.85rem;font-weight:600;color:var(--text-2);">Pattern anomaly warnings</span>
+            <input type="checkbox" name="notify_pattern_warnings" {% if notification_settings|get:pair.0 %}checked{% endif %} style="width:16px;height:16px;">
+          </label>
+          
+          
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2><i class="fas fa-brain" style="color:#6366F1;margin-right:8px;"></i>AI learning</h2></div>
+        <div style="display:grid;gap:10px;">
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+            <span style="font-size:.85rem;font-weight:600;color:var(--text-2);">Enable AI recommendations</span>
+            <input type="checkbox" name="ai_recommendations_enabled" {% if profile.ai_recommendations_enabled %}checked{% endif %} style="width:16px;height:16px;">
+          </label>
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);cursor:pointer;">
+            <span style="font-size:.85rem;font-weight:600;color:var(--text-2);">Enable pattern learning</span>
+            <input type="checkbox" name="learning_enabled" {% if profile.learning_enabled %}checked{% endif %} style="width:16px;height:16px;">
+          </label>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button type="submit" class="btn" style="padding:12px 24px;"><i class="fas fa-save"></i> Save all settings</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Right: status summary -->
+  <div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header"><h2>Autopilot status</h2></div>
+      <div style="display:grid;gap:10px;font-size:.86rem;">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-3);">Status</span>
+          <strong style="color:{% if profile.is_active %}var(--brand){% else %}var(--yellow){% endif %};">{% if profile.is_active %}Active{% else %}Paused{% endif %}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-3);">Active rules</span>
+          <strong>{{ active_rules_count }}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-3);">Approvals required</span>
+          <strong style="color:{% if profile.approval_required %}var(--yellow){% else %}var(--text-3){% endif %};">{% if profile.approval_required %}Yes{% else %}No{% endif %}</strong>
+        </div>
+        {% if payment_account %}
+        <div style="display:flex;justify-content:space-between;padding:8px 0;">
+          <span style="color:var(--text-3);">Payment wallet</span>
+          <strong style="color:var(--brand);font-family:var(--mono);">₹{{ payment_account.available_balance|default:0|floatformat:2 }}</strong>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2>Quick links</h2></div>
+      <div style="display:grid;gap:8px;">
+        <a href="{% url 'autopilot:automation_rules' %}" class="btn-outline" style="justify-content:flex-start;"><i class="fas fa-bolt"></i> Manage automation rules</a>
+        <a href="{% url 'autopilot:approvals' %}" class="btn-outline" style="justify-content:flex-start;"><i class="fas fa-check-double"></i> View approvals</a>
+        <a href="{% url 'autopilot:smart_bills' %}" class="btn-outline" style="justify-content:flex-start;"><i class="fas fa-file-invoice"></i> Smart bills</a>
+        <a href="{% url 'analytics-ai:financial_health_dashboard' %}" class="btn-outline" style="justify-content:flex-start;"><i class="fas fa-heartbeat"></i> Financial health</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,153 @@
+{% extends "agency/base.html" %}
+{% block title %}Receivables — {{ org.name }} — Finnova{% endblock %}
+
+{% block agency_content %}
+<style>
+.inv-panel  { background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden; }
+.inv-filters{ padding:14px 18px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end; }
+.rif { display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px; }
+.rif label { font-size:.72rem;font-weight:700;color:var(--text-3); }
+.rif select,.rif input { padding:8px 11px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.84rem; }
+.rif select:focus,.rif input:focus { outline:none;border-color:var(--brand); }
+.inv-row { display:grid;grid-template-columns:2fr 1.2fr 110px 110px 180px;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border);transition:background .15s; }
+.inv-row:last-child { border-bottom:none; }
+.inv-row:hover { background:var(--surface-2); }
+.inv-row.OVERDUE { border-left:3px solid var(--red); }
+.inv-row.PAID    { border-left:3px solid var(--green);opacity:.75; }
+.inv-row.DRAFT   { border-left:3px solid var(--text-3); }
+.inv-row.SENT    { border-left:3px solid var(--blue); }
+.inv-badge { padding:3px 8px;border-radius:999px;font-size:.7rem;font-weight:800; }
+.inv-badge.DRAFT     { background:var(--surface-3);color:var(--text-3); }
+.inv-badge.SENT      { background:var(--blue-bg);color:var(--blue); }
+.inv-badge.PAID      { background:var(--green-bg);color:var(--green); }
+.inv-badge.OVERDUE   { background:var(--red-bg);color:var(--red); }
+.inv-badge.CANCELLED { background:var(--surface-3);color:var(--text-3); }
+.inv-amount { font-family:var(--mono);font-weight:800;font-size:.92rem; }
+.ia { padding:5px 9px;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);font-size:.74rem;font-weight:700;text-decoration:none;transition:.15s;cursor:pointer; }
+.ia:hover { border-color:var(--brand);color:var(--brand); }
+.ia.green { background:var(--green-bg);border-color:rgba(16,185,129,.3);color:var(--green); }
+.ia.orange { background:rgba(249,115,22,.1);border-color:rgba(249,115,22,.3);color:#F97316; }
+@media(max-width:1000px){ .inv-row{grid-template-columns:1fr 1fr;gap:8px} }
+@media(max-width:640px){ .metric-grid{grid-template-columns:repeat(2,1fr)} }
+</style>
+
+<div  class="mod-hero">
+  <div>
+    <span style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--brand);">Agency · Receivables</span>
+    <h1 style="font-size:1.4rem;color:var(--text);margin:8px 0 5px;">Receivables</h1>
+    <p style="font-size:.86rem;color:var(--text-2);margin:0;">Invoices you've sent — track what's pending, overdue, and paid. Every marked-paid invoice posts to Finance automatically.</p>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{% url 'agency:invoice_create' %}"  class="btn"><i class="fas fa-plus"></i> New invoice</a>
+    {% if retainer_projects %}
+    <form method="post" action="{% url 'agency:generate_retainer_invoices' %}" style="display:inline;" onsubmit="return confirm('Generate this month\'s retainer invoices for all {{ retainer_projects }} active project{{ retainer_projects|pluralize }}?')">
+      {% csrf_token %}
+      <button type="submit" class="btn-outline"><i class="fas fa-rotate"></i> Generate retainers ({{ retainer_projects }})</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<!-- KPIs -->
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px;">
+  <div style="padding:16px 18px;border-radius:var(--r-lg);border:1px solid var(--border-brand);background:var(--brand-glow);">
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--brand);display:block;margin-bottom:4px;">Total open</span>
+    <div style="font-size:1.45rem;font-weight:800;font-family:var(--mono);color:var(--brand);">₹{{ total_open|default:0|floatformat:0 }}</div>
+  </div>
+  <div style="padding:16px 18px;border-radius:var(--r-lg);border:1px solid rgba(244,63,94,.3);background:var(--red-bg);">
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--red);display:block;margin-bottom:4px;">Overdue</span>
+    <div style="font-size:1.45rem;font-weight:800;font-family:var(--mono);color:var(--red);">₹{{ total_overdue|default:0|floatformat:0 }}</div>
+  </div>
+  <div style="padding:16px 18px;border-radius:var(--r-lg);border:1px solid rgba(245,158,11,.3);background:var(--yellow-bg);">
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--yellow);display:block;margin-bottom:4px;">Due in 14d</span>
+    <div style="font-size:1.45rem;font-weight:800;font-family:var(--mono);color:var(--yellow);">₹{{ due_next_14|default:0|floatformat:0 }}</div>
+  </div>
+  <div style="padding:16px 18px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--surface);">
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);display:block;margin-bottom:4px;">Drafts</span>
+    <div style="font-size:1.45rem;font-weight:800;font-family:var(--mono);">{{ draft_count }}</div>
+  </div>
+</div>
+
+<div class="inv-panel">
+  <!-- Filters -->
+  <form method="get" class="inv-filters">
+    <div class="rif" style="flex:2;">
+      <label>Search</label>
+      <input type="search" name="q" value="{{ q }}" placeholder="Invoice #, client name, project…">
+    </div>
+    <div class="rif">
+      <label>Status</label>
+      <select name="status">
+        <option value="">All</option>
+        {% for val, label in STATUS_CHOICES %}
+        <option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="display:flex;gap:6px;align-items:flex-end;">
+      <button type="submit" class="btn" style="min-height:38px;">Filter</button>
+      <a href="{% url 'agency:receivables_dashboard' %}" style="padding:8px 12px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);font-weight:700;font-size:.84rem;text-decoration:none;min-height:38px;display:flex;align-items:center;">Reset</a>
+    </div>
+  </form>
+
+  <!-- Header -->
+  <div class="inv-row" style="background:var(--surface-2);">
+    
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Invoice</div>
+    
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Client / Project</div>
+    
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Status</div>
+    
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Amount</div>
+    
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Actions</div>
+    
+  </div>
+
+  {% if invoices %}
+  {% for inv in invoices %}
+  <div class="inv-row {{ inv.status }}">
+    <div>
+      <div style="font-weight:700;font-size:.88rem;color:var(--text);font-family:var(--mono);">{{ inv.invoice_number }}</div>
+      {% if inv.title %}<div style="font-size:.76rem;color:var(--text-3);">{{ inv.title|truncatechars:36 }}</div>{% endif %}
+      <div style="font-size:.74rem;color:{% if inv.is_overdue %}var(--red){% else %}var(--text-3){% endif %};">
+        Due {{ inv.due_date|date:"d M Y" }}{% if inv.is_overdue %} · <strong>{{ inv.due_date|timesince }} overdue</strong>{% endif %}
+        {% if inv.reminder_count %} · {{ inv.reminder_count }} reminder{{ inv.reminder_count|pluralize }}{% endif %}
+      </div>
+    </div>
+    <div>
+      <div style="font-size:.86rem;font-weight:600;color:var(--text);">{{ inv.client.company_name|default:inv.client.name }}</div>
+      {% if inv.project %}<div style="font-size:.76rem;color:var(--text-3);">{{ inv.project.name|truncatechars:24 }}</div>{% endif %}
+    </div>
+    <div><span class="inv-badge {{ inv.status }}">{{ inv.get_status_display }}</span></div>
+    <div class="inv-amount" style="color:{% if inv.status == 'PAID' %}var(--green){% elif inv.status == 'OVERDUE' %}var(--red){% else %}var(--text){% endif %};">₹{{ inv.amount|default:0|floatformat:0 }}</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;">
+      {% if inv.status == 'DRAFT' %}
+      <form method="post" action="{% url 'agency:invoice_send' inv.id %}" style="display:inline;">{% csrf_token %}
+        <button type="submit" class="ia orange" title="Mark as sent"><i class="fas fa-paper-plane"></i></button>
+      </form>
+      {% endif %}
+      {% if inv.status in 'SENT,OVERDUE' %}
+      <form method="post" action="{% url 'agency:invoice_mark_paid' inv.id %}" style="display:inline;">{% csrf_token %}
+        <button type="submit" class="ia green" title="Mark paid"><i class="fas fa-check"></i></button>
+      </form>
+      <form method="post" action="{% url 'agency:invoice_remind' inv.id %}" style="display:inline;">{% csrf_token %}
+        <button type="submit" class="ia" title="Record reminder"><i class="fas fa-bell"></i></button>
+      </form>
+      {% endif %}
+      <a href="{% url 'agency:invoice_edit' inv.id %}" class="ia" title="Edit"><i class="fas fa-pen"></i></a>
+      <a href="{% url 'agency:invoice_pdf' inv.id %}" class="ia" title="Download PDF" target="_blank"><i class="fas fa-file-pdf"></i></a>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div style="padding:48px;text-align:center;">
+    <i class="fas fa-file-invoice-dollar" style="font-size:2rem;color:var(--text-3);margin-bottom:14px;display:block;"></i>
+    <h3 style="color:var(--text);margin:0 0 6px;">No invoices{% if status %} with status "{{ status }}"{% endif %}</h3>
+    <p style="color:var(--text-3);font-size:.86rem;">{% if q %}No results for "{{ q }}".{% else %}Create your first invoice or use Generate Retainers.{% endif %}</p>
+    <a href="{% url 'agency:invoice_create' %}"  class="btn"><i class="fas fa-plus"></i> Create invoice</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

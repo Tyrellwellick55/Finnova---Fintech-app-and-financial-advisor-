@@ -1,0 +1,59 @@
+{% extends "finnovaapp/onboarding/base.html" %}
+{% block onboarding_title %}How does your income arrive?{% endblock %}
+{% block onboarding_subtitle %}Autopilot uses this to build the right income-split plan every time money lands in your account.{% endblock %}
+{% block step_heading %}Income pattern{% endblock %}
+{% block step_description %}Different income patterns need different autopilot rules. A retainer client needs different handling than a one-off project payment.{% endblock %}
+
+{% block step_body %}
+<style>
+.income-option { display:flex; align-items:flex-start; gap:12px; padding:14px 16px; border:2px solid var(--border-2); border-radius:var(--r-lg); cursor:pointer; margin-bottom:8px; transition:.15s; }
+.income-option:has(input:checked) { border-color:var(--brand); background:var(--brand-glow); }
+.income-option input { width:17px; height:17px; accent-color:var(--brand); margin-top:2px; flex-shrink:0; }
+.income-option strong { display:block; font-size:.9rem; color:var(--text); margin-bottom:2px; }
+.income-option span { font-size:.79rem; color:var(--text-3); }
+</style>
+
+<label class="income-option">
+  <input type="radio" name="income_pattern" value="project" checked>
+  <div><strong>Project-based payments</strong><span>Clients pay when a project is delivered. Amounts vary. Timing is irregular.</span></div>
+</label>
+
+<label class="income-option">
+  <input type="radio" name="income_pattern" value="retainer">
+  <div><strong>Monthly retainers</strong><span>Fixed amount arrives on roughly the same date each month from recurring clients.</span></div>
+</label>
+
+<label class="income-option">
+  <input type="radio" name="income_pattern" value="mixed">
+  <div><strong>Mix of both</strong><span>Some retainer clients, some project-based. Finnova handles each payment type correctly.</span></div>
+</label>
+
+<label class="income-option">
+  <input type="radio" name="income_pattern" value="salary">
+  <div><strong>Salary or fixed monthly</strong><span>Regular, predictable income. Autopilot will still reserve GST and tax where applicable.</span></div>
+</label>
+
+<div class="form-section-grid" style="margin-top:16px;">
+  <div class="form-group">
+    <label class="form-label">Approximate monthly revenue</label>
+    <select name="monthly_revenue" class="form-control">
+      <option value="under50k">Under ₹50,000</option>
+      <option value="50-150k" selected>₹50,000 – ₹1,50,000</option>
+      <option value="150-500k">₹1,50,000 – ₹5,00,000</option>
+      <option value="500k+">₹5,00,000+</option>
+    </select>
+    <div class="form-section-hint">Used to calibrate your health score and tax reserve estimates. Not shared with anyone.</div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Savings target (% of income)</label>
+    <select name="savings_target_pct" class="form-control">
+      <option value="10">10%</option>
+      <option value="15">15%</option>
+      <option value="20" selected>20% (recommended)</option>
+      <option value="30">30%</option>
+      <option value="40">40%</option>
+    </select>
+    <div class="form-section-hint">Autopilot will reserve this percentage of each income payment into your savings goal automatically.</div>
+  </div>
+</div>
+{% endblock %}

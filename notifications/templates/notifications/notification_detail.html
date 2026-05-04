@@ -1,0 +1,31 @@
+{% extends "notifications/base_notifications.html" %}
+{% block title %}{{ notification.title }} — Notifications — Finnova{% endblock %}
+
+{% block notification_content %}
+<div class="page-header"><div>
+  <a href="{% url 'notifications:notification_list' %}" style="font-size:.82rem;color:var(--brand);font-weight:700;text-decoration:none;"><i class="fas fa-arrow-left"></i> Notifications</a>
+  <h1 style="margin-top:8px;">{{ notification.title }}</h1></div>
+</div>
+<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:18px;">
+  <div class="card">
+    <div style="padding:22px;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+        <span style="padding:3px 10px;border-radius:999px;font-size:.76rem;font-weight:700;background:{% if notification.severity == 'CRITICAL' %}var(--red-bg);color:var(--red){% elif notification.severity == 'WARNING' %}var(--yellow-bg);color:var(--yellow){% else %}var(--brand-glow);color:var(--brand){% endif %};">{{ notification.severity }}</span>
+        <span style="padding:3px 10px;border-radius:999px;font-size:.76rem;font-weight:700;background:var(--surface-3);color:var(--text-3);">{{ notification.category }}</span>
+      </div>
+      <p style="font-size:.92rem;color:var(--text-2);line-height:1.6;margin-bottom:20px;">{{ notification.message }}</p>
+      {% if notification.action_url and notification.action_required and not notification.action_completed %}
+      <a href="{{ notification.action_url }}" class="btn btn-primary"><i class="fas fa-arrow-right"></i> Take action</a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h2>Details</h2></div>
+    <div style="display:grid;gap:8px;font-size:.86rem;">
+      <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Received</span><strong>{{ notification.created_at|date:"d M Y, H:i" }}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 18px;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Status</span><strong>{% if notification.is_read %}Read{% else %}Unread{% endif %}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 18px;"><span style="color:var(--text-3);">Action</span><strong>{% if notification.action_completed %}Completed{% elif notification.action_required %}Required{% else %}None{% endif %}</strong></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

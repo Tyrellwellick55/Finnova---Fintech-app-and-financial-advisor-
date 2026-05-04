@@ -1,0 +1,13 @@
+{% extends 'finnovaapp/base.html' %}
+{% block title %}Privacy — Finnova{% endblock %}
+{% block content %}
+<div class="card" style="max-width:740px;margin:0 auto;padding:32px;">
+  <h1 style="font-size:1.4rem;margin:0 0 20px;">Privacy Policy</h1>
+  <div style="display:grid;gap:16px;color:var(--text-2);font-size:.9rem;line-height:1.7;">
+    <div><h3 style="color:var(--text);font-size:.96rem;">Data we collect</h3><p>Identity, authentication, preferences, and onboarding selections power the shell flow. Financial data including income, expenses, budgets, and goals are used to render the dashboard and connected modules. We collect the minimum product data required to provide the service.</p></div>
+    <div><h3 style="color:var(--text);font-size:.96rem;">How we use it</h3><p>Your data is used exclusively to power Finnova features — analytics, autopilot recommendations, and reporting. We never sell your data, share it with advertisers, or use it for purposes outside the product.</p></div>
+    <div><h3 style="color:var(--text);font-size:.96rem;">Your rights</h3><p>You can export all your data at any time from Finance Settings. You can request account deletion by contacting support. Local development instances should treat all sample data as non-production.</p></div>
+  </div>
+  <a href="{% url 'finnovaapp:landing' %}" class="btn btn-outline btn-sm" style="margin-top:20px;">Back to Finnova</a>
+</div>
+{% endblock %}

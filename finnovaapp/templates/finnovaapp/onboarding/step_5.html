@@ -1,0 +1,72 @@
+{% extends "finnovaapp/onboarding/base.html" %}
+{% block onboarding_title %}You're ready to go{% endblock %}
+{% block onboarding_subtitle %}Finnova is set up for your business. Here's exactly what happens from here.{% endblock %}
+{% block step_heading %}The workflow, explained{% endblock %}
+{% block step_description %}Every rupee that enters or leaves your business flows through this chain.{% endblock %}
+
+{% block step_body %}
+<style>
+.workflow-steps { display:grid; gap:10px; }
+.wf-step { display:flex; gap:14px; align-items:flex-start; padding:14px 16px; border-radius:var(--r-lg); background:var(--surface-2); border:1px solid var(--border); }
+.wf-num { width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.85rem; flex-shrink:0; }
+.wf-step h4 { font-size:.9rem; font-weight:700; color:var(--text); margin:0 0 3px; }
+.wf-step p  { font-size:.8rem; color:var(--text-3); margin:0; line-height:1.5; }
+.wf-connector { width:2px; height:12px; background:var(--border); margin:0 15px; }
+.ready-box { padding:20px; border-radius:var(--r-xl); background:var(--brand-glow); border:1px solid var(--border-brand); text-align:center; margin-top:16px; }
+.ready-box h3 { color:var(--brand); margin:0 0 6px; font-size:1rem; }
+.ready-box p  { color:var(--text-2); font-size:.84rem; margin:0; }
+</style>
+
+<div class="workflow-steps">
+  <div class="wf-step">
+    <div class="wf-num" style="background:var(--blue-bg);color:var(--blue);">1</div>
+    <div>
+      <h4>Add a client, raise an invoice</h4>
+      <p>Agency module. Client gets a payment link. Invoice tracks who owes you and how much.</p>
+    </div>
+  </div>
+  <div class="wf-connector"></div>
+  <div class="wf-step">
+    <div class="wf-num" style="background:var(--green-bg);color:var(--green);">2</div>
+    <div>
+      <h4>Client pays via UPI or card</h4>
+      <p>Razorpay processes it. Finnova receives the webhook, marks invoice paid, creates a payment transaction.</p>
+    </div>
+  </div>
+  <div class="wf-connector"></div>
+  <div class="wf-step">
+    <div class="wf-num" style="background:var(--yellow-bg);color:var(--yellow);">3</div>
+    <div>
+      <h4>Autopilot shows you a money plan</h4>
+      <p>GST locked. Tax reserved. Savings goal contribution. Bills covered. Your spendable balance — clearly shown. One tap to approve.</p>
+    </div>
+  </div>
+  <div class="wf-connector"></div>
+  <div class="wf-step">
+    <div class="wf-num" style="background:var(--brand-glow);color:var(--brand);border:1px solid var(--border-brand);">4</div>
+    <div>
+      <h4>Finance records the truth</h4>
+      <p>Income logged. Budgets updated. Goal progress moves. Analytics reads it all.</p>
+    </div>
+  </div>
+  <div class="wf-connector"></div>
+  <div class="wf-step">
+    <div class="wf-num" style="background:rgba(99,102,241,.12);color:#6366F1;">5</div>
+    <div>
+      <h4>AI answers your questions</h4>
+      <p>"Am I profitable this month?" "Can I hire?" "What's my GST this quarter?" — real answers from your real data.</p>
+    </div>
+  </div>
+</div>
+
+<div class="ready-box">
+  <h3>Your financial brain is ready</h3>
+  <p>Start by adding your first client or recording your first income. Everything else follows automatically.</p>
+</div>
+
+{% block action_buttons %}
+<button type="submit" class="btn" style="padding:12px 28px;font-size:1rem;">
+  <i class="fas fa-gauge-high"></i> Open your dashboard
+</button>
+{% endblock %}
+{% endblock %}

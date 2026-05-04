@@ -1,0 +1,83 @@
+{% extends 'audit/base_audit.html' %}
+{% block title %}Security Alerts — Audit — Finnova{% endblock %}
+
+{% block audit_content %}
+<div class="audit-header">
+  <div><h1 class="audit-title"><i class="fas fa-shield-halved" style="color:var(--red);"></i>Security Alerts</h1>
+  <p class="audit-breadcrumb"><a href="{% url 'audit:dashboard' %}">Audit</a> → Security Alerts</p></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a href="{% url 'audit:reports' %}" class="btn btn-ghost btn-sm"><i class="fas fa-file-alt"></i> Reports</a>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="metric-grid" style="margin-bottom:18px;">
+  <div class="metric" {% if stats.critical %}style="border-color:rgba(244,63,94,.4);background:var(--red-bg);"{% endif %}>
+    <div class="metric-label" {% if stats.critical %}style="color:var(--red);"{% endif %}>Critical</div>
+    <div class="metric-value" {% if stats.critical %}style="color:var(--red);"{% endif %}>{{ stats.critical }}</div>
+  </div>
+  <div class="metric" {% if stats.open %}style="border-color:rgba(245,158,11,.3);background:var(--yellow-bg);"{% endif %}>
+    <div class="metric-label" {% if stats.open %}style="color:var(--yellow);"{% endif %}>Open</div>
+    <div class="metric-value" {% if stats.open %}style="color:var(--yellow);"{% endif %}>{{ stats.open }}</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Investigating</div>
+    <div class="metric-value">{{ stats.investigating }}</div>
+  </div>
+  <div class="metric" style="border-color:rgba(16,185,129,.3);background:var(--green-bg);">
+    <div class="metric-label" style="color:var(--green);">Resolved</div>
+    <div class="metric-value" style="color:var(--green);">{{ stats.resolved }}</div>
+  </div>
+</div>
+
+<div class="audit-card">
+  <div class="audit-card-header">
+    <h2 style="margin:0;font-size:.96rem;color:var(--text);">All alerts</h2>
+  </div>
+  <!-- Filters -->
+  <form method="get" style="display:flex;flex-wrap:wrap;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);">
+    <select name="status" class="audit-input" style="padding:8px 11px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.84rem;">
+      <option value="">All statuses</option>
+      {% for val, label in status_choices %}<option value="{{ val }}" {% if request.GET.status == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <select name="severity" style="padding:8px 11px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.84rem;">
+      <option value="">All severities</option>
+      {% for val, label in severity_choices %}<option value="{{ val }}" {% if request.GET.severity == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <input type="search" name="search" value="{{ request.GET.search }}" placeholder="Search alerts…" style="flex:1;min-width:180px;padding:8px 12px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.84rem;">
+    <button type="submit" class="btn btn-ghost btn-sm">Filter</button>
+    <a href="{% url 'audit:alert_list' %}" class="btn btn-ghost btn-sm">Reset</a>
+  </form>
+  {% if alerts %}
+  {% for alert in alerts %}
+  <div style="display:flex;align-items:flex-start;gap:14px;padding:16px 18px;border-bottom:1px solid var(--border);transition:background .15s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
+    <span style="width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:5px;background:{% if alert.severity == 'CRITICAL' %}var(--red){% elif alert.severity == 'HIGH' %}#F97316{% elif alert.severity == 'MEDIUM' %}var(--yellow){% else %}var(--brand){% endif %};{% if alert.severity == 'CRITICAL' %}box-shadow:0 0 5px var(--red);{% endif %}"></span>
+    <div style="flex:1;min-width:0;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px;">
+        <strong style="font-size:.9rem;color:var(--text);">{{ alert.title }}</strong>
+        <span style="font-size:.74rem;color:var(--text-3);flex-shrink:0;">{{ alert.detected_at|timesince }} ago</span>
+      </div>
+      <p style="font-size:.82rem;color:var(--text-2);margin:0 0 8px;">{{ alert.description|truncatechars:120 }}</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <span style="padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700;background:{% if alert.status == 'OPEN' %}var(--yellow-bg);color:var(--yellow){% elif alert.status == 'RESOLVED' %}var(--green-bg);color:var(--green){% else %}var(--blue-bg);color:var(--blue){% endif %};">{{ alert.status }}</span>
+        <span style="padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700;background:{% if alert.severity == 'CRITICAL' %}var(--red-bg);color:var(--red){% elif alert.severity == 'HIGH' %}rgba(249,115,22,.12);color:#F97316{% elif alert.severity == 'MEDIUM' %}var(--yellow-bg);color:var(--yellow){% else %}var(--surface-3);color:var(--text-3){% endif %};">{{ alert.severity }}</span>
+        {% if alert.user %}<span style="font-size:.74rem;color:var(--text-3);">User: {{ alert.user.username }}</span>{% endif %}
+        {% if alert.status != 'RESOLVED' %}
+        <a href="{% url 'audit:resolve_alert' alert.id %}" style="margin-left:auto;padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);font-size:.75rem;font-weight:700;text-decoration:none;">Resolve</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% if alerts.has_other_pages %}
+  <div style="display:flex;justify-content:center;gap:6px;padding:14px;">
+    {% if alerts.has_previous %}<a href="?page={{ alerts.previous_page_number }}" class="btn btn-ghost btn-sm"><i class="fas fa-chevron-left"></i></a>{% endif %}
+    <span style="padding:5px 12px;border-radius:8px;background:var(--surface-3);color:var(--text-2);font-size:.84rem;">{{ alerts.number }} / {{ alerts.paginator.num_pages }}</span>
+    {% if alerts.has_next %}<a href="?page={{ alerts.next_page_number }}" class="btn btn-ghost btn-sm"><i class="fas fa-chevron-right"></i></a>{% endif %}
+  </div>
+  {% endif %}
+  {% else %}
+  <div style="padding:40px;text-align:center;color:var(--text-3);">No security alerts found.</div>
+  {% endif %}
+</div>
+{% endblock %}

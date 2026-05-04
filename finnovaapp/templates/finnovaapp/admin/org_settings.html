@@ -1,0 +1,32 @@
+{% extends 'finnovaapp/base.html' %}
+
+{% block title %}Org Settings | Finnova{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Organization Settings</h1>
+  <p class="text-muted">Update your organization profile. Changes are logged in Audit + Activity.</p>
+</div>
+
+<div class="card">
+  <div style="padding:6px 0">
+    <form method="post">
+      {% csrf_token %}
+      <div class="grid" style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+        {% for field in form %}
+          <div>
+            <label class="form-label" style="display:block; font-weight:600; margin-bottom:6px;">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<small class="text-muted">{{ field.help_text }}</small>{% endif %}
+            {% for err in field.errors %}<div class="alert alert-error" style="margin-top:6px;">{{ err }}</div>{% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+      <div style="margin-top:16px; display:flex; gap:10px;">
+        <button class="btn btn-primary" type="submit">Save</button>
+        <a class="btn btn-outline" href="{% url 'finnovaapp:activity_feed' %}">View Activity</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

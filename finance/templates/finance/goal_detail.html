@@ -1,0 +1,86 @@
+{% extends "finance/base.html" %}
+{% block title %}{{ goal.name }} — Goals — Finance — Finnova{% endblock %}
+
+{% block finance_content %}
+<div class="page-header">
+  <div>
+    <a href="{% url 'finance:financial_goals' %}" style="font-size:.82rem;color:var(--brand);font-weight:700;text-decoration:none;"><i class="fas fa-arrow-left"></i> Goals</a>
+    <h1 style="margin-top:8px;">{{ goal.name }}</h1>
+    <p>{{ goal.get_goal_type_display }} · {{ goal.get_status_display }}</p>
+  </div>
+  {% if autopilot_goal %}<a href="{% url 'autopilot:savings_detail' autopilot_goal.id %}" class="btn btn-ghost btn-sm"><i class="fas fa-robot"></i> Autopilot goal</a>{% endif %}
+</div>
+
+<div class="metric-grid" style="margin-bottom:20px;">
+  <div class="metric" style="border-color:var(--border-brand);background:var(--brand-glow);">
+    <div class="metric-label" style="color:var(--brand);">Saved</div>
+    <div class="metric-value" style="color:var(--brand);">₹{{ goal.current_amount|default:0|floatformat:0 }}</div>
+  </div>
+  <div class="metric"><div class="metric-label">Target</div><div class="metric-value">₹{{ goal.target_amount|default:0|floatformat:0 }}</div></div>
+  <div class="metric"><div class="metric-label">Monthly needed</div>
+    <div class="metric-value">₹{{ monthly_needed|default:0|floatformat:0 }}</div>
+    <div class="metric-sub">{{ months_remaining }} month{{ months_remaining|pluralize }} left</div>
+  </div>
+  <div class="metric" {% if goal.status == 'ACHIEVED' %}style="border-color:rgba(16,185,129,.3);background:var(--green-bg);"{% endif %}>
+    <div class="metric-label" {% if goal.status == 'ACHIEVED' %}style="color:var(--green);"{% endif %}>Progress</div>
+    <div class="metric-value" {% if goal.status == 'ACHIEVED' %}style="color:var(--green);"{% endif %}>{{ goal.progress_percentage|default:0|floatformat:0 }}%</div>
+  </div>
+</div>
+
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 22px;margin-bottom:20px;">
+  <div style="height:10px;border-radius:999px;background:var(--surface-3);overflow:hidden;margin-bottom:8px;">
+    <div style="height:100%;border-radius:inherit;width:{% if goal.progress_percentage > 100 %}100{% else %}{{ goal.progress_percentage|default:0|floatformat:0 }}{% endif %}%;background:linear-gradient(90deg,var(--brand),#6366F1);"></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--text-3);">
+    <span>₹{{ goal.current_amount|default:0|floatformat:0 }} saved</span>
+    {% if goal.target_date %}<span>Target: {{ goal.target_date|date:"d M Y" }}</span>{% endif %}
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:18px;">
+  <!-- Contributions -->
+  <div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;margin-bottom:14px;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);"><h2 style="margin:0;font-size:.96rem;color:var(--text);">Contributions</h2></div>
+      {% if transactions %}{% for t in transactions %}
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);">
+        <div style="width:32px;height:32px;border-radius:9px;background:var(--green-bg);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:.82rem;flex-shrink:0;"><i class="fas fa-arrow-down"></i></div>
+        <div style="flex:1;"><div style="font-size:.87rem;color:var(--text);">{{ t.source|default:"Contribution" }}</div>
+        <div style="font-size:.76px;color:var(--text-3);">{{ t.date|date:"d M Y" }}</div></div>
+        <div style="font-family:var(--mono);font-weight:800;color:var(--green);">+₹{{ t.amount|default:0|floatformat:2 }}</div>
+      </div>{% endfor %}{% else %}
+      <div style="padding:28px;text-align:center;color:var(--text-3);">No contributions recorded yet.</div>{% endif %}
+    </div>
+  </div>
+
+  <!-- Contribution form + AI recs -->
+  <div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;">
+      <h3 style="margin:0 0 14px;font-size:.9rem;color:var(--text);"><i class="fas fa-plus-circle" style="color:var(--brand);margin-right:8px;"></i>Add contribution</h3>
+      <form method="post" action="{% url 'finance:update_goal_progress' goal.id %}">{% csrf_token %}
+        <div class="form-group"><label class="form-label">Amount ₹ *</label><input type="number" step="0.01" min="0.01" name="amount" class="form-control" required></div>
+        <div class="form-group">
+          <label class="form-label">Source account *</label>
+          <select name="source_account" class="form-select" required>
+            {% for account in contribution_form.fields.source_account.queryset %}
+              <option value="{{ account.id }}" {% if account.id == goal.linked_account_id %}selected{% endif %}>{{ account.name }} (₹{{ account.balance|floatformat:0 }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Date</label><input type="date" name="contribution_date" class="form-control" value="{% now 'Y-m-d' %}"></div>
+        <div class="form-group"><label class="form-label">Notes</label><input type="text" name="notes" class="form-control" placeholder="Optional"></div>
+        <button type="submit" class="btn" style="width:100%;justify-content:center;padding:11px;"><i class="fas fa-save"></i> Add funds</button>
+      </form>
+    </div>
+    {% if ai_recommendations %}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:18px;">
+      <h3 style="margin:0 0 12px;font-size:.9rem;color:var(--text);"><i class="fas fa-lightbulb" style="color:var(--yellow);margin-right:6px;"></i>AI recommendations</h3>
+      {% for rec in ai_recommendations %}
+      <div style="padding:10px 12px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px;">
+        <strong style="font-size:.84rem;color:var(--text);display:block;margin-bottom:2px;">{{ rec.title }}</strong>
+        <p style="font-size:.78rem;color:var(--text-3);margin:0;">{{ rec.description|truncatechars:100 }}</p>
+      </div>{% endfor %}
+    </div>{% endif %}
+  </div>
+</div>
+{% endblock %}

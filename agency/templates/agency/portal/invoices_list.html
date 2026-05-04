@@ -1,0 +1,37 @@
+{% extends "agency/portal/base.html" %}
+{% block title %}Your Invoices — Finnova Portal{% endblock %}
+
+{% block portal_content %}
+<div style="margin-bottom:20px;">
+  <h1 style="font-size:1.4rem;margin:0 0 4px;">Your invoices</h1>
+  <p style="color:var(--text-2);font-size:.88rem;margin:0;">All invoices from {{ org.name }}</p>
+</div>
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;">
+  {% if invoices %}
+  <div style="display:grid;grid-template-columns:2fr 1fr 100px 100px;gap:14px;padding:10px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);">
+    
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Invoice</div>
+    
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Due date</div>
+    
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Status</div>
+    
+    <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);">Amount</div>
+    
+  </div>
+  {% for inv in invoices %}
+  <a href="{% url 'agency:client_invoice_detail' inv.id %}" style="display:grid;grid-template-columns:2fr 1fr 100px 100px;gap:14px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border);text-decoration:none;transition:background .15s;">
+    <div>
+      <div style="font-weight:700;font-size:.9rem;color:var(--text);font-family:var(--mono);">{{ inv.invoice_number }}</div>
+      {% if inv.title %}<div style="font-size:.76rem;color:var(--text-3);">{{ inv.title }}</div>{% endif %}
+    </div>
+    <div style="font-size:.86rem;color:var(--text-2);">{{ inv.due_date|date:"d M Y" }}</div>
+    <div><span style="padding:3px 9px;border-radius:999px;font-size:.7rem;font-weight:800;background:{% if inv.status == 'PAID' %}var(--green-bg);color:var(--green){% elif inv.status == 'OVERDUE' %}var(--red-bg);color:var(--red){% elif inv.status == 'SENT' %}var(--blue-bg);color:var(--blue){% else %}var(--surface-3);color:var(--text-3){% endif %};">{{ inv.get_status_display }}</span></div>
+    <div style="font-family:var(--mono);font-weight:800;font-size:.9rem;color:{% if inv.status == 'PAID' %}var(--green){% elif inv.status == 'OVERDUE' %}var(--red){% else %}var(--text){% endif %};">₹{{ inv.amount|default:0|floatformat:0 }}</div>
+  </a>
+  {% endfor %}
+  {% else %}
+  <div style="padding:48px;text-align:center;color:var(--text-3);">No invoices yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

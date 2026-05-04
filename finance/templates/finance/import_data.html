@@ -1,0 +1,84 @@
+{% extends "finance/base.html" %}
+{% block title %}Import Data — Finance — Finnova{% endblock %}
+
+{% block finance_content %}
+<div class="page-header">
+  <div><h1>Import data</h1><p>Import income or expenses from a CSV file. Data maps directly into Finance and triggers budget recalculation.</p></div>
+  <a href="{% url 'finance:transaction_center' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Transactions</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;">
+  <div class="card">
+    <div class="card-header"><h2><i class="fas fa-upload" style="color:var(--brand);margin-right:8px;"></i>Upload CSV</h2></div>
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% if form %}
+      {% for field in form %}
+      <div class="form-group">
+        <label class="form-label">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<small style="color:var(--text-3);font-size:.76rem;">{{ field.help_text }}</small>{% endif %}
+        {% if field.errors %}<p style="color:var(--red);font-size:.78rem;margin:4px 0 0;">{{ field.errors.0 }}</p>{% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="form-group">
+        <label class="form-label">CSV file *</label>
+        <input type="file" name="csv_file" accept=".csv,.txt" class="form-control" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Data type</label>
+          <select name="data_type" class="form-control form-select">
+            <option value="INCOME">Income only</option>
+            <option value="EXPENSE">Expenses only</option>
+            <option value="BOTH">Mixed (requires type column)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date format</label>
+          <select name="date_format" class="form-control form-select">
+            <option value="%d/%m/%Y">DD/MM/YYYY</option>
+            <option value="%Y-%m-%d">YYYY-MM-DD</option>
+            <option value="%d-%m-%Y">DD-MM-YYYY</option>
+            <option value="%m/%d/%Y">MM/DD/YYYY</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;">
+          <input type="checkbox" name="has_headers" checked style="width:15px;height:15px;"> File has header row
+        </label>
+      </div>
+      {% endif %}
+      <button type="submit" class="btn btn-primary"><i class="fas fa-upload"></i> Import data</button>
+    </form>
+  </div>
+
+  <div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header"><h2>CSV format guide</h2></div>
+      <div style="font-size:.84rem;color:var(--text-2);line-height:1.6;">
+        <p style="margin:0 0 12px;"><strong style="color:var(--brand);">Income columns:</strong></p>
+        <code style="display:block;padding:10px;border-radius:var(--r-sm);background:var(--surface-2);color:var(--text-3);font-family:var(--mono);font-size:.78rem;margin-bottom:14px;">date, source, amount, category, description</code>
+        <p style="margin:0 0 12px;"><strong style="color:var(--red);">Expense columns:</strong></p>
+        <code style="display:block;padding:10px;border-radius:var(--r-sm);background:var(--surface-2);color:var(--text-3);font-family:var(--mono);font-size:.78rem;margin-bottom:14px;">date, description, amount, category, payment_method, merchant</code>
+        <ul style="margin:0;padding-left:18px;color:var(--text-3);">
+          <li>Amount must be a positive number</li>
+          <li>Category must match Finance categories (e.g. FOOD, TRANSPORT)</li>
+          <li>Unknown categories default to OTHER</li>
+          <li>Max 1,000 rows per import</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h2>Quick actions</h2></div>
+      <div style="display:grid;gap:8px;">
+        <a href="{% url 'finance:add_income' %}" class="btn btn-ghost btn-sm" style="justify-content:flex-start;"><i class="fas fa-plus"></i> Add single income</a>
+        <a href="{% url 'finance:add_expense' %}" class="btn btn-ghost btn-sm" style="justify-content:flex-start;"><i class="fas fa-plus"></i> Add single expense</a>
+        <a href="{% url 'finance:export_data' %}?type=all" class="btn btn-ghost btn-sm" style="justify-content:flex-start;"><i class="fas fa-download"></i> Export existing data</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

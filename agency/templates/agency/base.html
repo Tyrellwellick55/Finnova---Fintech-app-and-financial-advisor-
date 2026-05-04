@@ -1,0 +1,26 @@
+{% extends 'finnovaapp/base.html' %}
+{% load static %}
+{% load nav_extras %}
+{% block title %}{% block page_title %}Agency{% endblock %} — Finnova{% endblock %}
+{% block topbar_title %}Agency{% endblock %}
+{% block topbar_sub %}<span style="color:var(--text-3);font-size:.76rem;">Clients · Projects · Invoices</span>{% endblock %}
+
+{% block extra_css %}
+{% block agency_extra_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<nav class="mod-nav">
+  <div class="mod-nav-tabs">
+    <a href="{% url 'agency:control_tower' %}" class="mod-tab {% if request.resolver_match.url_name == 'control_tower' %}active{% endif %}"><i class="fas fa-tower-control"></i> Control Tower</a>
+    <a href="{% url 'agency:clients_list' %}" class="mod-tab {% if request.resolver_match.url_name == 'clients_list' %}active{% endif %}"><i class="fas fa-address-book"></i> Clients</a>
+    <a href="{% url 'agency:projects_list' %}" class="mod-tab {% if request.resolver_match.url_name == 'projects_list' %}active{% endif %}"><i class="fas fa-folder-open"></i> Projects</a>
+    <a href="{% url 'agency:receivables_dashboard' %}" class="mod-tab {% if request.resolver_match.url_name == 'receivables_dashboard' %}active{% endif %}"><i class="fas fa-file-invoice-dollar"></i> Receivables</a>
+    <a href="{% url 'agency:invoice_create' %}" class="mod-tab {% if request.resolver_match.url_name == 'invoice_create' %}active{% endif %}"><i class="fas fa-plus"></i> New Invoice</a>
+  </div>
+  <div class="mod-nav-actions">
+{% block agency_actions %}{% endblock %}
+  </div>
+</nav>
+{% block agency_content %}{% endblock %}
+{% endblock %}

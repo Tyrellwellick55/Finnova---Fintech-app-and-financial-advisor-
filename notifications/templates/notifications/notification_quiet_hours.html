@@ -1,0 +1,20 @@
+{% extends "notifications/base_notifications.html" %}
+{% block title %}Quiet Hours — Notifications — Finnova{% endblock %}
+
+{% block notification_content %}
+<div class="page-header"><div><h1>Quiet Hours</h1><p>Set times when notifications won't disturb you.</p></div></div>
+<div style="display:grid;grid-template-columns:1.2fr 1fr;gap:20px;">
+  <div class="card">
+    <div class="card-header"><h2>Schedule</h2></div>
+    <form method="post" action="{% url 'notifications:notification_preferences' %}" style="padding:4px 0;">{% csrf_token %}
+      <div class="form-group"><label class="form-label">Quiet hours start</label><input type="time" name="quiet_start" class="form-control" value="22:00"></div>
+      <div class="form-group"><label class="form-label">Quiet hours end</label><input type="time" name="quiet_end" class="form-control" value="08:00"></div>
+      <div class="form-group"><label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.86rem;"><input type="checkbox" name="quiet_hours_enabled" style="width:15px;height:15px;"> Enable quiet hours</label></div>
+      <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Save</button>
+    </form>
+  </div>
+  <div class="card"><div class="card-header"><h2>About quiet hours</h2></div>
+    <p style="font-size:.86rem;color:var(--text-2);padding:16px;">During quiet hours, non-critical notifications are held and delivered when the window ends. Critical security and payment alerts always come through.</p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends 'analytics_ai/base_analytics.html' %}
+{% load static %}
+{% block title %}Financial Insights — Finnova{% endblock %}
+{% block page_title %}AI Insights{% endblock %}
+
+{% block analytics_css %}
+<style>
+.fi-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;}
+.fi-stat{padding:16px;border-radius:var(--r-lg);border:1px solid var(--border);background:var(--surface);text-align:center;}
+.fi-stat-val{font-family:var(--f-mono);font-size:1.65rem;font-weight:800;display:block;}
+.fi-stat-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);display:block;margin-top:4px;}
+.fi-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:18px;}
+.fi-filters label{display:block;font-size:.72rem;font-weight:700;color:var(--text-2);margin-bottom:4px;}
+.fi-filters select,.fi-filters input{padding:8px 12px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text);font:inherit;font-size:.84rem;}
+.insight-card{padding:18px 20px;border-radius:var(--r-xl);border:1px solid var(--border);background:var(--surface);margin-bottom:12px;transition:box-shadow .2s;border-left:4px solid var(--border);}
+.insight-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.15);}
+.insight-card.CRITICAL,.insight-card.HIGH{border-left-color:var(--red);}
+.insight-card.MEDIUM{border-left-color:var(--yellow);}
+.insight-card.LOW,.insight-card.INFO{border-left-color:var(--green);}
+.ic-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;}
+.ic-title{font-weight:800;color:var(--text);margin:0;font-size:.93rem;}
+.ic-chips{display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0;}
+.ic-desc{color:var(--text-2);font-size:.86rem;margin:0 0 12px;line-height:1.55;}
+.ic-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.ic-meta{font-size:.76rem;color:var(--text-3);display:flex;align-items:center;gap:8px;}
+.ic-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.type-badge{padding:2px 8px;border-radius:999px;font-size:.68rem;font-weight:700;background:var(--surface-2);border:1px solid var(--border);color:var(--text-3);}
+.pag{display:flex;justify-content:center;gap:6px;padding:18px 0;}
+.pl{padding:6px 12px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-2);font-weight:700;font-size:.84rem;text-decoration:none;transition:.12s;}
+.pl:hover{border-color:var(--brand);color:var(--brand);}
+.pl.cur{background:var(--brand);color:var(--bg);border-color:var(--brand);}
+</style>
+{% endblock %}
+
+{% block analytics_content %}
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+  <div>
+    <h1 style="font-size:1.4rem;color:var(--text);margin:0 0 4px;">Financial Insights</h1>
+    <p style="font-size:.86rem;color:var(--text-2);margin:0;">AI-generated observations and alerts from your Finance data. {{ stats.total }} total · {{ recent_insights }} in last 30 days.</p>
+  </div>
+  <a href="{% url 'analytics-ai:ai_chat' %}" class="btn-outline btn-sm"><i class="fas fa-robot"></i> Ask AI about an insight</a>
+</div>
+
+<!-- Stats strip -->
+<div class="fi-stats">
+  <div class="fi-stat"><span class="fi-stat-val">{{ stats.total|default:0 }}</span><span class="fi-stat-label">Total</span></div>
+  <div class="fi-stat" style="border-color:rgba(239,68,68,.2);background:var(--red-bg);"><span class="fi-stat-val" style="color:var(--red);">{{ stats.critical|default:0 }}</span><span class="fi-stat-label" style="color:var(--red);">Critical</span></div>
+  <div class="fi-stat" style="border-color:rgba(249,115,22,.2);background:rgba(249,115,22,.06);"><span class="fi-stat-val" style="color:#F97316;">{{ stats.high|default:0 }}</span><span class="fi-stat-label" style="color:#F97316;">High</span></div>
+  <div class="fi-stat" style="border-color:rgba(245,158,11,.2);background:var(--yellow-bg);"><span class="fi-stat-val" style="color:var(--yellow);">{{ stats.medium|default:0 }}</span><span class="fi-stat-label" style="color:var(--yellow);">Medium</span></div>
+  <div class="fi-stat" style="border-color:rgba(16,185,129,.2);background:var(--green-bg);"><span class="fi-stat-val" style="color:var(--green);">{{ stats.low|default:0 }}</span><span class="fi-stat-label" style="color:var(--green);">Low</span></div>
+  <div class="fi-stat" style="border-color:rgba(59,130,246,.2);background:var(--blue-bg);"><span class="fi-stat-val" style="color:var(--blue);">{{ stats.action_required|default:0 }}</span><span class="fi-stat-label" style="color:var(--blue);">Action needed</span></div>
+</div>
+
+<!-- Filters -->
+<form method="get">
+<div class="fi-filters">
+  <div><label>Severity</label>
+    <select name="severity">
+      <option value="">All severities</option>
+      <option value="CRITICAL" {% if severity == "CRITICAL" %}selected{% endif %}>Critical</option>
+      <option value="HIGH" {% if severity == "HIGH" %}selected{% endif %}>High</option>
+      <option value="MEDIUM" {% if severity == "MEDIUM" %}selected{% endif %}>Medium</option>
+      <option value="LOW" {% if severity == "LOW" %}selected{% endif %}>Low</option>
+    </select>
+  </div>
+  <div><label>Type</label>
+    <select name="type">
+      <option value="">All types</option>
+      {% for cat in insight_categories %}
+      <option value="{{ cat.insight_type }}" {% if insight_type == cat.insight_type %}selected{% endif %}>{{ cat.insight_type }} ({{ cat.count }})</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div><label>Action required</label>
+    <select name="action_required">
+      <option value="">All</option>
+      <option value="true" {% if action_required == "true" %}selected{% endif %}>Yes</option>
+      <option value="false" {% if action_required == "false" %}selected{% endif %}>No</option>
+    </select>
+  </div>
+  <div style="flex:1;min-width:160px;"><label>Search</label>
+    <input type="text" name="search" value="{{ search_query|default:'' }}" placeholder="Search insights…" style="width:100%;">
+  </div>
+  <div style="display:flex;gap:8px;align-items:flex-end;">
+    <button type="submit" class="btn btn-sm"><i class="fas fa-filter"></i> Filter</button>
+    <a href="{% url 'analytics-ai:financial_insights' %}" class="btn-outline btn-sm">Reset</a>
+  </div>
+</div>
+</form>
+
+{% if page_obj.object_list %}
+{% for insight in page_obj %}
+<div class="insight-card {{ insight.severity }}">
+  <div class="ic-head">
+    <p class="ic-title">{{ insight.title }}</p>
+    <div class="ic-chips">
+      <span class="sev sev-{{ insight.severity }}">{{ insight.severity }}</span>
+      {% if insight.action_required and not insight.is_read %}<span class="sev" style="background:var(--blue-bg);color:var(--blue);">Action</span>{% endif %}
+      {% if insight.is_read %}<span class="sev" style="background:var(--surface-2);color:var(--text-3);">Read</span>{% endif %}
+    </div>
+  </div>
+  <p class="ic-desc">{{ insight.description|truncatechars:220 }}</p>
+  <div class="ic-foot">
+    <div class="ic-meta">
+      <i class="fas fa-clock"></i> {{ insight.created_at|timesince }} ago
+      <span class="type-badge">{{ insight.get_insight_type_display|default:insight.insight_type }}</span>
+    </div>
+    <div class="ic-actions">
+      <a href="{% url 'analytics-ai:insight_detail' insight.id %}" class="btn-outline xs">Details</a>
+      <a href="{% url 'analytics-ai:ai_chat' %}?q={{ insight.title|urlencode }}" class="btn-outline xs"><i class="fas fa-comment-dots"></i> Ask AI</a>
+      {% if not insight.is_read %}
+      <form method="post" action="{% url 'analytics-ai:mark_insight_read' insight.id %}" style="display:inline;" onsubmit="this.querySelector('button').disabled=true;">
+        {% csrf_token %}<button type="submit" class="btn-outline xs">Mark read</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% if page_obj.has_other_pages %}
+<div class="pag">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="pl"><i class="fas fa-chevron-left"></i></a>{% endif %}
+  {% for i in page_obj.paginator.page_range %}
+  {% if page_obj.number == i %}<span class="pl cur">{{ i }}</span>
+  {% elif i >= page_obj.number|add:"-2" and i <= page_obj.number|add:"2" %}<a href="?page={{ i }}" class="pl">{{ i }}</a>{% endif %}
+  {% endfor %}
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="pl"><i class="fas fa-chevron-right"></i></a>{% endif %}
+</div>
+{% endif %}
+{% else %}
+<div class="an-empty" style="padding:48px 20px;">
+  <i class="fas fa-brain"></i>
+  <strong>No insights found</strong>
+  <p>{% if search_query or severity or insight_type %}No insights match your filters — <a href="{% url 'analytics-ai:financial_insights' %}" style="color:var(--brand);">reset filters</a>.{% else %}Insights generate from your Finance activity. Add income, expenses, and budgets to unlock AI analysis.{% endif %}</p>
+  {% if not search_query and not severity and not insight_type %}
+  <a href="{% url 'finance:finance_dashboard' %}" class="btn" style="margin-top:14px;">Go to Finance</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

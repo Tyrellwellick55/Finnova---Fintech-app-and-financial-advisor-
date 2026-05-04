@@ -1,0 +1,21 @@
+{% extends "notifications/base_notifications.html" %}
+{% block title %}History — Notifications — Finnova{% endblock %}
+
+{% block notification_content %}
+<div class="page-header"><div><h1>Notification History</h1><p>All notifications including read and dismissed.</p></div>
+<a href="{% url 'notifications:notification_list' %}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Inbox</a></div>
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;">
+  {% if history_notifications %}
+  {% for notif in history_notifications %}
+  <div style="display:flex;align-items:flex-start;gap:14px;padding:13px 18px;border-bottom:1px solid var(--border);transition:background .15s;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
+    <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;background:{% if not notif.is_read %}var(--blue){% else %}var(--surface-3){% endif %};"></span>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:.88rem;font-weight:{% if not notif.is_read %}700{% else %}600{% endif %};color:{% if not notif.is_read %}var(--text){% else %}var(--text-2){% endif %};">{{ notif.title }}</div>
+      <div style="font-size:.76rem;color:var(--text-3);margin-top:1px;">{{ notif.created_at|timesince }} ago · {{ notif.category }} · {{ notif.severity }}</div>
+    </div>
+    <a href="{% url 'notifications:notification_detail_item' notif.id %}" style="font-size:.76rem;color:var(--brand);font-weight:700;text-decoration:none;flex-shrink:0;">View</a>
+  </div>
+  {% endfor %}
+  {% else %}<div style="padding:40px;text-align:center;color:var(--text-3);">No notification history yet.</div>{% endif %}
+</div>
+{% endblock %}

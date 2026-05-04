@@ -1,0 +1,96 @@
+/* ── Finnova UI Polish ─────────────────────────────────────────────────────
+   Loaded after base.html inline CSS. Only adds things not in base,
+   never overrides dark-theme design tokens with light values.
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Smooth rendering */
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Selection color */
+::selection { background: rgba(0,200,150,.22); color: var(--text); }
+
+/* Focus ring - global accessible ring */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* Smooth transitions on interactive elements */
+a, button, input, select, textarea { transition: all .15s ease; }
+
+/* Form elements - ensure dark bg inherited */
+input, select, textarea {
+  background-color: var(--bg-3);
+  color: var(--text);
+  border-color: var(--border-2);
+}
+input::placeholder, textarea::placeholder { color: var(--text-3); }
+option { background: var(--bg-3); color: var(--text); }
+
+/* Scrollbar styling */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-2); }
+
+/* Chart.js canvas */
+canvas { max-width: 100%; }
+
+/* Autopilot pill class missing from base */
+.autopilot-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 999px;
+  font-size: .78rem; font-weight: 700;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-2);
+}
+.autopilot-pill.is-on     { background: var(--brand-glow); border-color: var(--border-brand); color: var(--brand); }
+.autopilot-pill.is-warning { background: var(--yellow-bg); border-color: rgba(245,158,11,.3); color: var(--yellow); }
+.autopilot-pill.is-off     { background: var(--surface-3); border-color: var(--border); color: var(--text-3); }
+.autopilot-eyebrow {
+  font-size: .68rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--brand); display: block; margin-bottom: 6px;
+}
+
+/* Finance-specific small helpers */
+.finance-kicker {
+  font-size: .68rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--brand); display: block; margin-bottom: 6px;
+}
+.positive { color: var(--green) !important; }
+.negative { color: var(--red) !important; }
+
+/* Notification dot */
+.notif-dot-live {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--red); box-shadow: 0 0 0 2px rgba(244,63,94,.2);
+  display: inline-block; flex-shrink: 0;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+/* Insight severity borders */
+.insight-card.CRITICAL, .insight-card.HIGH { border-left: 3px solid var(--red) !important; }
+.insight-card.MEDIUM                        { border-left: 3px solid var(--yellow) !important; }
+.insight-card.LOW, .insight-card.INFO       { border-left: 3px solid var(--brand) !important; }
+
+/* Page transition fade */
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+.page-content > * { animation: fadeIn .2s ease both; }
+.page-content > *:nth-child(2) { animation-delay: .04s; }
+.page-content > *:nth-child(3) { animation-delay: .08s; }
+
+/* Responsive table util */
+.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* Monospace numbers in tables */
+.num { font-family: var(--mono); font-size: .9em; }
+
+/* Utility: hide on mobile */
+@media (max-width: 640px) {
+  .hide-mobile { display: none !important; }
+}

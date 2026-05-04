@@ -1,0 +1,40 @@
+.env
+.env.*
+*.env
+venv/
+env/
+.venv/
+__pycache__/
+*.py[cod]
+*.sqlite3
+db.sqlite3
+*.log
+logs/
+media/
+staticfiles/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.agent/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+secrets.*
+secret.*
+
+# Node / frontend artifacts
+node_modules/
+dist/
+build/
+
+# Python caches
+.pytest_cache/
+.mypy_cache/
+
+# Local archives
+*.zip

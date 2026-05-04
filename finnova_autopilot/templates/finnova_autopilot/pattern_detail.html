@@ -1,0 +1,97 @@
+{% extends "finnova_autopilot/base_autopilot.html" %}
+{% block title %}{{ pattern.pattern_name }} — Autopilot — Finnova{% endblock %}
+
+{% block autopilot_content %}
+<div class="page-header">
+  <div>
+    <a href="{% url 'autopilot:transaction_patterns' %}" style="font-size:.82rem;color:var(--brand);font-weight:700;text-decoration:none;"><i class="fas fa-arrow-left"></i> Patterns</a>
+    <h1 style="margin-top:8px;">{{ pattern.pattern_name }}</h1>
+    <p>{{ pattern.get_pattern_type_display }} · Confidence {{ pattern.confidence_score }}%</p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    {% if pattern.is_anomaly %}
+    <span style="padding:6px 14px;border-radius:999px;background:var(--red-bg);color:var(--red);font-size:.8rem;font-weight:700;border:1px solid rgba(244,63,94,.3);"><i class="fas fa-triangle-exclamation"></i> Anomaly flagged</span>
+    {% endif %}
+    <a href="{{ create_rule_url }}" class="btn"><i class="fas fa-bolt"></i> Create rule from this</a>
+    <form method="post" action="{% url 'autopilot:toggle_pattern' pattern.id %}" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" class="btn-outline">{% if pattern.is_active %}Pause{% else %}Activate{% endif %}</button>
+    </form>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px;">
+  <div>
+    <!-- Pattern details -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header"><h2>Pattern details</h2></div>
+      <div style="display:grid;gap:8px;font-size:.86rem;">
+        {% if pattern.related_category %}<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Category</span><strong>{{ pattern.related_category }}</strong></div>{% endif %}
+        {% if pattern.related_merchant %}<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Merchant</span><strong>{{ pattern.related_merchant }}</strong></div>{% endif %}
+        {% if pattern.typical_amount %}<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Typical amount</span><strong style="font-family:var(--mono);">₹{{ pattern.typical_amount|default:0|floatformat:2 }}</strong></div>{% endif %}
+        {% if pattern.occurrence_count %}<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Occurrences</span><strong>{{ pattern.occurrence_count }}×</strong></div>{% endif %}
+        {% if pattern.last_observed %}<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-3);">Last seen</span><strong>{{ pattern.last_observed|timesince }} ago</strong></div>{% endif %}
+        <div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="color:var(--text-3);">Confidence</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:80px;height:6px;border-radius:999px;background:var(--surface-3);overflow:hidden;"><div style="height:100%;border-radius:inherit;width:{{ pattern.confidence_score }}%;background:{% if pattern.confidence_score >= 80 %}var(--brand){% elif pattern.confidence_score >= 60 %}var(--yellow){% else %}var(--red){% endif %};"></div></div>
+            <strong>{{ pattern.confidence_score }}%</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Matching transactions -->
+    {% if matching_transactions %}
+    <div class="card">
+      <div class="card-header"><h2>Matching transactions</h2><a href="{{ finance_transactions_url }}" style="font-size:.78rem;color:var(--brand);font-weight:700;">View all →</a></div>
+      <div style="border-radius:var(--r-md);overflow:hidden;border:1px solid var(--border);">
+        {% for tx in matching_transactions %}
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border);">
+          <div style="width:32px;height:32px;border-radius:9px;background:var(--red-bg);color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-arrow-up"></i></div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:.86rem;font-weight:700;color:var(--text);">{{ tx.description|truncatechars:40 }}</div>
+            <div style="font-size:.74rem;color:var(--text-3);">{{ tx.date|date:"d M Y" }} · {{ tx.get_category_display }}</div>
+          </div>
+          <div style="font-family:var(--mono);font-weight:800;color:var(--red);">₹{{ tx.amount|default:0|floatformat:2 }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <!-- AI recommendations -->
+    {% if recommendations %}
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-header"><h2><i class="fas fa-lightbulb" style="color:var(--yellow);margin-right:8px;"></i>AI recommendations</h2></div>
+      {% for rec in recommendations %}
+      <div style="padding:12px 14px;border-radius:var(--r-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:8px;">
+        <strong style="font-size:.86rem;color:var(--text);display:block;margin-bottom:4px;">{{ rec.title|default:rec }}</strong>
+        {% if rec.description %}<p style="font-size:.78rem;color:var(--text-3);margin:0;line-height:1.5;">{{ rec.description|truncatechars:120 }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="card">
+      <div class="card-header"><h2>Actions</h2></div>
+      <div style="display:grid;gap:8px;">
+        <a href="{{ create_rule_url }}" class="btn" style="justify-content:center;"><i class="fas fa-bolt"></i> Create automation rule</a>
+        <form method="post" action="{% url 'autopilot:mark_pattern_anomaly' pattern.id %}">
+          {% csrf_token %}
+          <input type="hidden" name="state" value="{% if pattern.is_anomaly %}false{% else %}true{% endif %}">
+          <button type="submit" class="btn-outline" style="width:100%;justify-content:center;">
+            <i class="fas fa-flag"></i> {% if pattern.is_anomaly %}Unmark anomaly{% else %}Mark as anomaly{% endif %}
+          </button>
+        </form>
+        <form method="post" action="{% url 'autopilot:confirm_pattern' pattern.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-outline" style="width:100%;justify-content:center;"><i class="fas fa-check"></i> Confirm pattern</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "notifications/base_notifications.html" %}
+{% block title %}Send Notification — Admin — Finnova{% endblock %}
+
+{% block notification_content %}
+<div class="page-header"><div><h1>Send Notification</h1><p>Admin: send a notification directly to users.</p></div></div>
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;">
+  <div class="card">
+    {% if send_notification_form %}
+    <form method="post" action="{% url 'notifications:notification_list' %}">{% csrf_token %}{{ send_notification_form.as_p }}
+      <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Send</button>
+    </form>
+    {% else %}
+    <div style="padding:20px;color:var(--text-2);">Admin send form not available.</div>
+    {% endif %}
+  </div>
+  <div class="card"><div class="card-header"><h2>Delivery info</h2></div>
+    <p style="font-size:.86rem;color:var(--text-2);padding:16px;">Notifications sent from here are immediately delivered in-app. Email and SMS delivery depends on user preferences.</p>
+  </div>
+</div>
+{% endblock %}

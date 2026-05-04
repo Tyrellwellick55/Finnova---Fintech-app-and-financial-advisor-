@@ -1,0 +1,34 @@
+{% extends "finance/base.html" %}
+{% block title %}Taxes — Finance — Finnova{% endblock %}
+
+{% block finance_content %}
+<div class="page-header">
+  <div><h1>Tax records</h1><p>Track tax payments, liabilities, and connect with income data.</p></div>
+  <a href="{% url 'finance:tax_calculator' %}" class="btn btn-ghost btn-sm"><i class="fas fa-calculator"></i> Tax calculator</a>
+</div>
+<div class="metric-grid" style="margin-bottom:20px;">
+  <div class="metric"><div class="metric-label">Taxable amount</div><div class="metric-value">₹{{ stats.total_taxable|default:0|floatformat:0 }}</div></div>
+  <div class="metric" style="border-color:rgba(16,185,129,.3);background:var(--green-bg);">
+    <div class="metric-label" style="color:var(--green);">Tax paid</div>
+    <div class="metric-value" style="color:var(--green);">₹{{ stats.total_tax_paid|default:0|floatformat:0 }}</div>
+  </div>
+  <div class="metric" {% if stats.total_tax_due %}style="border-color:rgba(244,63,94,.3);background:var(--red-bg);"{% endif %}>
+    <div class="metric-label" {% if stats.total_tax_due %}style="color:var(--red);"{% endif %}>Tax due</div>
+    <div class="metric-value" {% if stats.total_tax_due %}style="color:var(--red);"{% endif %}>₹{{ stats.total_tax_due|default:0|floatformat:0 }}</div>
+  </div>
+  <div class="metric"><div class="metric-label">Overdue records</div><div class="metric-value" {% if stats.overdue %}style="color:var(--red);"{% endif %}>{{ stats.overdue }}</div></div>
+</div>
+{% if tax_records %}
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;">
+  {% for record in tax_records %}
+  <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border);">
+    <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:.9rem;color:var(--text);">{{ record.tax_type|default:"Tax record" }}</div>
+    <div style="font-size:.76rem;color:var(--text-3);">{{ record.period|default:"—" }}</div></div>
+    <div style="text-align:right;flex-shrink:0;">
+      <div style="font-family:var(--mono);font-weight:800;">₹{{ record.amount|default:0|floatformat:0 }}</div>
+      <span style="padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700;background:{% if record.status == 'PAID' %}var(--green-bg);color:var(--green){% elif record.status == 'OVERDUE' %}var(--red-bg);color:var(--red){% else %}var(--yellow-bg);color:var(--yellow){% endif %};">{{ record.status }}</span>
+    </div>
+  </div>{% endfor %}
+</div>{% else %}
+<div class="empty"><span class="empty-icon"><i class="fas fa-receipt"></i></span><h3>No tax records</h3><p>Add income to Finance to track taxable amounts.</p></div>{% endif %}
+{% endblock %}
